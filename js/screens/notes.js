@@ -1,6 +1,7 @@
 import { S, nav, eleve, cours, volee, volees, refDate, voleeAt, nomEleve, coursActifs } from '../state.js';
 import { h, card, btn, field, select, badge, empty, esc, phaseBadge } from '../ui.js';
 import { fmtDate, fmtNote, weightedAvg, sortBy, groupBy, lastVolee } from '../domain.js';
+import { notesChartCard } from './notes-chart.js';
 
 const state = { eleveId: '', voleeId: null, coursId: '', tri: 'date' };
 
@@ -57,12 +58,9 @@ export function render() {
         avgs.map(a => h('div', { class: 'tile', style: { borderTop: `5px solid ${a.c.Couleur || 'var(--muted)'}` } },
           h('div', { class: 'num', style: a.avg < 4 ? { color: 'var(--danger)' } : null }, fmtNote(Math.round(a.avg * 10) / 10)),
           h('div', { class: 'lab' }, `${a.c.Title} · ${a.n} note${a.n > 1 ? 's' : ''}`))),
-        h('div', { class: 'tile' }, h('div', { class: 'num' }, fmtNote(Math.round(gen * 10) / 10)), h('div', { class: 'lab' }, 'générale (indicative)'))) : empty('Aucune note.'),
-      h('h3', { style: { margin: '16px 0 6px' } }, 'Évolution'),
-      noteChart(ev));
-  } else {
-    moyennes = card('Moyennes', {}, h('p', { class: 'muted' }, 'Choisissez un élève pour voir ses moyennes par branche et l\'évolution de ses notes. Pour une vue par classe : ', h('a', { href: '#/branche' }, 'Ma branche'), '.'));
-  }
+        h('div', { class: 'tile' }, h('div', { class: 'num' }, fmtNote(Math.round(gen * 10) / 10)), h('div', { class: 'lab' }, 'générale (indicative)'))) : empty('Aucune note.'));
+  } else moyennes = null;
+  const graph = card('Graphique', { hint: 'Tous les élèves et toutes les branches correspondant aux filtres ci-dessus.' }, notesChartCard(ev));
 
   const list = card(`Évaluations (${ev.length})`, {},
     sorted.length ? h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' },
@@ -80,6 +78,6 @@ export function render() {
     h('div', { class: 'page-head' },
       h('div', null, h('h1', null, 'Notes'), h('div', { class: 'sub' }, 'Notes calibrées sur le niveau de la classe d\'origine. Une note sous 4 est un signal.')),
       h('div', { class: 'btn-row' }, btn('Ma branche', () => nav('branche'), 'secondary'), btn('+ Évaluation', () => nav('evaluation')))),
-    filters, moyennes, list);
+    filters, graph, moyennes, list);
   void volee;
 }

@@ -2,11 +2,11 @@
 import { CONFIG } from './config.js';
 import { DEFAULT_LEVEL_LABELS, todayISO, voleeOf, phaseOf, sortBy } from './domain.js';
 
-const SETTINGS_KEY = 'ressources_reglages_v2';
+const SETTINGS_KEY = 'ressources_reglages_v3';
 
 export const S = {
   store: null,
-  settings: { moiId: null, dateSimulee: CONFIG.DATE_SIMULEE_DEFAUT, labels: [...DEFAULT_LEVEL_LABELS], vueTout: false, theme: 'auto' },
+  settings: { moiId: null, dateSimulee: CONFIG.DATE_SIMULEE_DEFAUT, labels: [...DEFAULT_LEVEL_LABELS], vueTout: false, theme: 'auto', sansCopie: true },
   route: { name: 'accueil', params: {} },
 };
 

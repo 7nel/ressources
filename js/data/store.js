@@ -28,6 +28,7 @@ export class Store {
   async add(list, item) {
     const created = await this.adapter.add(list, item);
     this.cache[list].push(created);
+    this.onWrite?.();
     return created;
   }
 
@@ -42,11 +43,20 @@ export class Store {
     const arr = this.cache[list];
     const i = arr.findIndex(x => x.ID === id);
     if (i >= 0) arr[i] = updated;
+    this.onWrite?.();
     return updated;
   }
 
   /* Outils du bac à sable (sans effet en mode SharePoint) */
   exportJSON() { return this.adapter.exportJSON?.(); }
   async importJSON(json) { await this.adapter.importJSON(json); await this.init(); }
+  /** Fusionne une version d'un·e collègue (bac à sable uniquement). */
+  async mergeJSON(json) {
+    const data = typeof json === 'string' ? JSON.parse(json) : json;
+    if (!data?.lists) throw new Error('Fichier non reconnu');
+    const stats = this.adapter.mergeLists(data.lists);
+    await this.init();
+    return stats;
+  }
   async reset() { await this.adapter.reset(); await this.init(); }
 }

@@ -1,6 +1,7 @@
-import { S, refDate, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
+import { S, isSandbox, refDate, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
 import { h, card, btn, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
 import { semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, nextVolee, lastVolee, mondayOf, addDays, weeksOfVolee } from '../domain.js';
+import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
 import { colles, alertes, sansSuivi, devoirsOuverts, aFaire, suivisDeSemaine } from '../queries.js';
 
 const state = { date: null, forDate: null };
@@ -121,7 +122,16 @@ export function render() {
         h('div', { class: 'main' }, h('div', { class: 'meta' }, t.kind), h('div', { class: 'title' }, t.title), t.meta && h('div', { class: 'meta' }, t.meta)),
         h('span', { 'aria-hidden': 'true', class: 'muted' }, '›'))))) : empty('Rien en attente.'));
 
+  const syncNotice = isSandbox() && S.settings.sansCopie === false && !wasLoadedThisSession()
+    ? h('div', { class: 'notice info btn-row', style: { justifyContent: 'space-between' } },
+      h('span', null, 'Récupérer les saisies de vos collègues depuis le dossier OneDrive partagé ?'),
+      h('span', { class: 'btn-row' },
+        btn('Charger les versions', () => charger(), 'small'),
+        btn('Plus tard', () => { dismissLoad(); nav('accueil'); }, 'ghost small')))
+    : null;
+
   return h('div', { class: 'page' },
+    syncNotice,
     head,
     voleeBlock,
     h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' } }, tiles),

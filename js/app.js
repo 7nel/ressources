@@ -6,6 +6,7 @@ import { SharePointAdapter } from './data/sharepoint-adapter.js';
 import { S, loadSettings, saveSettings, isSandbox, refDate, moi, enseignantsActifs, nav, applyTheme } from './state.js';
 import { h, icon, btn, field, select, notice, card } from './ui.js';
 import { fmtDate } from './domain.js';
+import { sauvegarder, charger, chargerAuDemarrage, isDirty, markDirty, getMeta, wasLoadedThisSession, dismissLoad, supportsFolder } from './sync.js';
 
 import * as Accueil from './screens/accueil.js';
 import * as Eleves from './screens/eleves.js';
@@ -62,7 +63,7 @@ function renderBanner() {
   if (!isSandbox()) { bannerEl.hidden = true; return; }
   bannerEl.replaceChildren(
     h('strong', null, 'VERSION DE TEST'),
-    h('span', { class: 'banner-long' }, 'Données fictives uniquement : ne saisissez aucun vrai nom d\'élève.'),
+    h('span', { class: 'banner-long' }, 'Élèves fictifs uniquement : ne saisissez aucun vrai nom d\'élève.'),
     h('span', null, `Date simulée : ${fmtDate(refDate(), { day: true })}`),
     h('button', { type: 'button', onClick: () => nav('parametres') }, 'changer'));
 }
@@ -79,8 +80,22 @@ function renderSidebar(active) {
       }, icon(ic), h('span', null, label));
     }),
     h('div', { class: 'spacer' }),
-    h('div', { class: 'whoami' }, 'Connecté·e (simulé) :', h('strong', null, m ? m.Title : 'personne')),
+    isSandbox() && syncBlock(),
+    h('div', { class: 'whoami' }, 'Connecté·e : ', h('strong', { style: { display: 'inline' } }, m ? m.Title : '—')),
   );
+}
+
+function syncBlock() {
+  const m = getMeta();
+  const hhmm = iso => { const d = new Date(iso); return `${fmtDate(iso.slice(0, 10), { year: false })} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  return h('div', { class: 'sync' },
+    h('div', { class: 'sync-title' }, 'Échange avec l\'équipe'),
+    h('button', { type: 'button', class: `nav-btn ${isDirty() ? 'dirty' : ''}`, onClick: () => sauvegarder() },
+      icon('upload'), h('span', null, 'Sauvegarder ma version'), isDirty() && h('span', { class: 'dot-dirty', title: 'Modifications non sauvegardées' })),
+    h('button', { type: 'button', class: 'nav-btn', onClick: () => charger() }, icon('download'), h('span', null, 'Charger les versions')),
+    h('div', { class: 'sync-meta' },
+      isDirty() ? h('span', { class: 'danger-text' }, 'Modifications non sauvegardées') : (m.lastSave ? `Sauvegardé ${hhmm(m.lastSave)}` : 'Jamais sauvegardé'),
+      m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
 }
 
 async function render() {
@@ -90,6 +105,7 @@ async function render() {
   renderBanner();
   renderSidebar(route.nav === 'saisie' ? 'groupe' : route.nav);
   if (!S.settings.moiId && name !== 'parametres') { mainEl.replaceChildren(welcome()); return; }
+  if (isSandbox() && S.settings.sansCopie !== false && !wasLoadedThisSession() && name !== 'parametres') { mainEl.replaceChildren(gate()); return; }
   try {
     const page = await route.mod.render(params);
     mainEl.replaceChildren(page);
@@ -99,13 +115,28 @@ async function render() {
   }
 }
 
+/** Sans copie locale, les données viennent du dossier partagé à chaque ouverture. */
+function gate() {
+  return h('div', { class: 'page welcome' },
+    card(null, {},
+      h('h1', null, 'Ouvrir les données de l\'équipe'),
+      h('p', { class: 'muted', style: { marginTop: '8px' } },
+        'Rien n\'est conservé dans ce navigateur : les données sont relues dans le dossier OneDrive partagé à chaque ouverture.'),
+      h('p', { class: 'small muted' }, supportsFolder()
+        ? 'Première fois : choisissez le dossier partagé. Ensuite, un clic suffit (ou rien, si le navigateur garde l\'autorisation).'
+        : 'Sélectionnez tous les fichiers « RessourceS_… » du dossier partagé (Ctrl+A ou Cmd+A).'),
+      h('div', { class: 'btn-row', style: { marginTop: '12px' } },
+        btn('Charger les données', () => charger()),
+        btn('Commencer sans charger', () => { dismissLoad(); render(); }, 'ghost'))));
+}
+
 function welcome() {
   const sel = select([{ value: '', label: 'Choisir…' }, ...enseignantsActifs().map(e => ({ value: e.ID, label: e.Title }))], '');
   return h('div', { class: 'page welcome' },
     card(null, {},
       h('h1', null, 'Bienvenue dans RessourceS'),
       h('p', { class: 'muted', style: { marginTop: '8px' } },
-        'Ceci est une version de test. Les élèves sont fictifs et vos essais restent dans votre navigateur : personne d\'autre ne les voit.'),
+        'Ceci est une version de test. Saisissez uniquement des élèves fictifs.'),
       notice('Ne saisissez aucun vrai nom d\'élève, même pour essayer.', 'warn'),
       h('div', { class: 'form', style: { marginTop: '14px' } },
         field('Vos initiales', sel, { help: 'Ce choix simule la connexion Microsoft : l\'accueil affiche vos cours. Vous pourrez en changer dans Réglages.' }),
@@ -125,7 +156,7 @@ async function start() {
 
   loadSettings();
   applyTheme();
-  const adapter = CONFIG.MODE === 'sharepoint' ? new SharePointAdapter(CONFIG.sharepoint) : new LocalAdapter();
+  const adapter = CONFIG.MODE === 'sharepoint' ? new SharePointAdapter(CONFIG.sharepoint) : new LocalAdapter({ memoryOnly: S.settings.sansCopie !== false });
   S.store = new Store(adapter);
   try {
     await S.store.init();
@@ -139,6 +170,10 @@ async function start() {
     const me = S.store.all('RS_Enseignants').find(e => (e.Email || '').toLowerCase() === email);
     S.settings.moiId = me ? me.ID : -1;
   }
+  S.store.onWrite = markDirty;
+  window.addEventListener('beforeunload', e => { if (isSandbox() && isDirty()) { e.preventDefault(); e.returnValue = ''; } });
+  window.addEventListener('rs:sync', () => renderSidebar(ROUTES[S.route.name]?.nav === 'saisie' ? 'groupe' : ROUTES[S.route.name]?.nav));
+  if (isSandbox() && S.settings.moiId) await chargerAuDemarrage();
   let first = true;
   window.addEventListener('hashchange', () => { if (!first) S.cameFromApp = true; first = false; render().then(() => { window.scrollTo(0, 0); }); });
   window.addEventListener('rs:refresh', () => render());

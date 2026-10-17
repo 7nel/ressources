@@ -1,6 +1,7 @@
 import { S, saveSettings, nav, refresh, isSandbox, refDate, enseignantsActifs, volees, ens, coursActifs, applyTheme, moi } from '../state.js';
 import { h, card, btn, field, select, input, checkbox, seg, modal, toast, confirmDlg, notice, levelLegend } from '../ui.js';
 import { fmtDate, todayISO, DEFAULT_LEVEL_LABELS } from '../domain.js';
+import { sauvegarder, charger, chooseFolder, folderStatus, supportsFolder, myFileName } from '../sync.js';
 
 function editVolee(v) {
   const f = ['Title', 'AnneeScolaire', 'DateDebut', 'DateDebutRemob', 'DateDebutReexpo', 'DateFin'];
@@ -66,6 +67,28 @@ function editCours(c) {
   ]);
 }
 
+function echangeCard() {
+  const status = h('p', { class: 'small muted' }, '…');
+  folderStatus().then(st => {
+    if (st.mode === 'fichiers') status.textContent = `Ce navigateur ne peut pas écrire directement dans un dossier. « Sauvegarder » télécharge « ${myFileName()} » : déposez-le dans le dossier OneDrive partagé en remplaçant l'ancien. « Charger » : sélectionnez tous les fichiers du dossier (Ctrl+A ou Cmd+A).`;
+    else if (!st.relie) status.textContent = 'Aucun dossier relié. Au premier « Sauvegarder », choisissez le dossier OneDrive partagé (synchronisé sur cet ordinateur).';
+    else status.textContent = `Dossier relié : « ${st.nom} ». ${st.autorise ? 'Chargement à l\'ouverture et sauvegarde automatique après chaque saisie.' : 'Le navigateur redemandera l\'autorisation au prochain clic ; ensuite, sauvegarde automatique.'} Votre fichier : ${myFileName()}.`;
+  });
+  return card('Échange avec l\'équipe (provisoire)', { hint: 'En attendant SharePoint : chacun·e sauvegarde sa version dans le dossier OneDrive partagé ; « Charger » fusionne les versions de tout le monde. Si deux personnes modifient le même élément, la modification la plus récente l\'emporte.' },
+    status,
+    checkbox('Ne rien garder dans ce navigateur (recommandé)', S.settings.sansCopie !== false, on => {
+      S.settings.sansCopie = on; saveSettings();
+      S.store.adapter.setMemoryOnly?.(on);
+      toast(on ? 'Copie locale effacée : les données ne restent qu\'en mémoire pendant l\'utilisation.' : 'Copie locale activée sur cet appareil.');
+      refresh();
+    }),
+    h('p', { class: 'hint' }, 'Activé : à la fermeture de l\'onglet, aucune donnée ne reste sur l\'appareil ; tout est relu dans le dossier partagé à l\'ouverture. Désactivé : pratique pour tester seul·e, mais les données restent dans ce navigateur.'),
+    h('div', { class: 'btn-row' },
+      btn('Sauvegarder ma version', () => sauvegarder()),
+      btn('Charger les versions', () => charger(), 'secondary'),
+      supportsFolder() && btn('Changer de dossier', async () => { try { await chooseFolder(); toast('Dossier relié'); refresh(); } catch { /* annulé */ } }, 'ghost')));
+}
+
 export function render() {
   const s = S.settings;
   const who = select([{ value: '', label: 'Choisir…' }, ...enseignantsActifs().map(e => ({ value: e.ID, label: e.Title }))], s.moiId || '', {
@@ -92,22 +115,24 @@ export function render() {
     document.body.appendChild(a); a.click(); a.remove();
   };
   const reset = async () => {
-    if (!(await confirmDlg('Réinitialiser', 'Effacer vos essais et revenir aux données fictives de départ ?', 'Réinitialiser'))) return;
+    if (!(await confirmDlg('Réinitialiser', 'Effacer toutes les données de cet appareil et repartir à vide (enseignant·es, cours et volées conservés) ?', 'Réinitialiser'))) return;
     await S.store.reset(); toast('Données réinitialisées'); nav('accueil');
   };
 
-  const V1 = volees().find(v => v.Title === '2026-27 V1');
+  const ref = refDate();
+  const vRef = volees().find(v => v.DateDebut <= ref && ref <= v.DateFin) || volees().find(v => v.DateDebut > ref) || volees().at(-1);
+  const plus = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
   return h('div', { class: 'page' },
     h('h1', null, 'Réglages'),
     isSandbox() && card('Profil de test', { hint: 'Simule la connexion Microsoft. Essayez un profil « coordination » et un profil « enseignant » : l\'accueil change.' },
       field('Je teste en tant que', who)),
-    isSandbox() && card('Date simulée', { hint: 'Les données fictives couvrent la volée V1 (31.08–16.10.2026). La date simulée permet de tester chaque phase pendant les vacances.' },
+    isSandbox() && card('Date simulée', { hint: 'La date simulée permet de tester chaque phase pendant les vacances. Les saisies doivent tomber dans une volée.' },
       h('div', { class: 'form' },
         field('Date', dateIn, { help: `Actuellement : ${fmtDate(refDate(), { day: true })}` }),
-        V1 && h('div', { class: 'btn-row' },
-          btn('Décompression (02.09)', () => setDate('2026-09-02'), 'secondary small'),
-          btn('Remobilisation (23.09)', () => setDate('2026-09-23'), 'secondary small'),
-          btn('Ré-exposition (07.10)', () => setDate('2026-10-07'), 'secondary small'),
+        vRef && h('div', { class: 'btn-row' },
+          h('span', { class: 'small muted' }, `${vRef.Title} :`),
+          [['Décompression', plus(vRef.DateDebut, 2)], ['Remobilisation', plus(vRef.DateDebutRemob, 7)], ['Ré-exposition', plus(vRef.DateDebutReexpo, 2)]]
+            .map(([l, d]) => btn(`${l} (${fmtDate(d, { year: false })})`, () => setDate(d), 'secondary small')),
           btn('Aujourd\'hui', () => setDate(todayISO()), 'ghost small')))),
     card('Libellés des 4 niveaux', { hint: 'Proposition en attendant les ancrages comportementaux rédigés en équipe. Ce réglage reste dans votre navigateur.' },
       h('div', { class: 'form' },
@@ -134,11 +159,12 @@ export function render() {
           h('td', null, ens(c.EnseignantID)?.Title || h('span', { class: 'danger-text' }, 'aucun')),
           h('td', null, c.EstCoaching ? 'oui' : ''),
           h('td', null, btn('Modifier', () => editCours(c), 'ghost small')))))))),
-    isSandbox() && card('Données de ce navigateur', { hint: 'Vos essais restent dans ce navigateur, sur cet appareil. Pour montrer un état précis à une collègue : exportez, envoyez le fichier, elle l\'importe.' },
+    isSandbox() && echangeCard(),
+    isSandbox() && card('Données de ce navigateur (avancé)', { hint: 'Importer REMPLACE toutes vos données par celles du fichier (contrairement à « Charger les versions », qui fusionne).' },
       h('div', { class: 'btn-row' },
-        btn('Exporter (.json)', exportData, 'secondary'),
-        fileIn, h('label', { for: 'imp', class: 'btn secondary', tabindex: '0', onKeydown: ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); fileIn.click(); } } }, 'Importer…'),
-        btn('Réinitialiser les données fictives', reset, 'danger secondary'))),
+        btn('Exporter une copie', exportData, 'secondary'),
+        fileIn, h('label', { for: 'imp', class: 'btn secondary', tabindex: '0', onKeydown: ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); fileIn.click(); } } }, 'Remplacer par un fichier…'),
+        btn('Tout effacer', reset, 'danger secondary'))),
     card('À propos', { cls: 'flat' },
       h('p', { class: 'small muted' }, `Mode : ${isSandbox() ? 'bac à sable (données fictives dans le navigateur)' : 'SharePoint'}. Les filtres d'écran (« Ma vue ») relèvent de l'ergonomie, pas de la sécurité : en mode SharePoint, ce sont les permissions du site qui protègent les données.`)));
 }

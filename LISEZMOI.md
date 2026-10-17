@@ -20,12 +20,37 @@ Pour mettre à jour : **Add file → Upload files** à nouveau, avec les fichier
 ## 2. Ce que les collègues doivent savoir
 
 - Chacun·e choisit **ses initiales** au premier lancement (PL, ME, CM, ET, DAH, OG, DA, VO, XG) : cela simule la connexion Microsoft et affiche ses propres cours. PL et ME ont le rôle coordination.
-- Les données vivent **dans leur navigateur**, sur leur appareil : personne ne voit les essais des autres.
-- **Réglages → Date simulée** : les données couvrent la volée V1 (31.08–16.10.2026). Les boutons
+- **Départ à vide** : aucun élève ; enseignant·es, cours et volées sont déjà en place. Pour retrouver des élèves fictifs d'exemple : `DONNEES_EXEMPLE: true` dans `js/config.js`.
+- **Réglages → Date simulée** : par défaut le 26.10.2026 (début de V2). Les boutons
   « Décompression », « Remobilisation », « Ré-exposition » permettent de tester chaque phase.
-- **Réglages → Exporter / Importer** : pour montrer un état précis à quelqu'un, on exporte un fichier `.json` et on l'envoie.
-- **Réglages → Réinitialiser** : revient aux données de départ.
+- **Échange avec l'équipe** (menu de gauche) : voir la section 2 bis.
+- **Réglages → Tout effacer** : repart à vide sur cet appareil.
 - **Aucun vrai nom d'élève**, même pour essayer : le code est public et la version de test n'est pas validée (LIPDA).
+
+## 2 bis. Échange provisoire par OneDrive
+
+Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échange ») et le synchroniser sur chaque ordinateur
+(OneDrive → « Ajouter un raccourci à Mon OneDrive » puis synchronisation).
+
+**Chrome ou Edge sur ordinateur (recommandé, presque sans manipulation)**
+- 1re fois : « Sauvegarder ma version » → choisir le dossier partagé → autoriser.
+- Ensuite : **sauvegarde automatique** dans le dossier après chaque saisie (`RessourceS_<initiales>.json`).
+  « Sauvegarder ma version » reste disponible (il intègre aussi les versions des collègues).
+- À l'ouverture, les versions de l'équipe se chargent seules si le navigateur a gardé l'autorisation ;
+  sinon un clic sur « Charger les versions » suffit.
+
+**Safari, Firefox, téléphone**
+- « Sauvegarder ma version » télécharge `RessourceS_<initiales>.json` : le glisser dans le dossier partagé (remplacer l'ancien).
+- « Charger les versions » : sélectionner tous les fichiers du dossier (Ctrl+A / Cmd+A).
+
+Règles de fusion : rien n'est jamais supprimé ; si deux personnes modifient le même élément, la modification la plus récente l'emporte.
+**Aucune copie dans le navigateur** (réglage « Ne rien garder dans ce navigateur », activé par défaut) :
+les données ne vivent qu'en mémoire pendant l'utilisation. À la fermeture de l'onglet, rien ne reste sur l'appareil ;
+à l'ouverture, l'app relit le dossier partagé. Le réglage peut être désactivé pour tester seul·e.
+
+Un point orange signale des modifications non sauvegardées ; le navigateur avertit si on ferme la page avant d'avoir sauvegardé.
+
+⚠ Solution provisoire, pour données fictives uniquement : des fichiers JSON dans un dossier ne protègent pas des données réelles d'élèves.
 
 ## 3. Contenu
 

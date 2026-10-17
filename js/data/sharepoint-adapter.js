@@ -20,7 +20,7 @@ const DATE_FIELDS = new Set([
   'DateEval', 'DateBilan', 'DatePassation', 'DateSignatureEleve', 'DateValidationCoord', 'Echeance',
   'DateCloture', 'DateMaj',
 ]);
-const READ_ONLY = new Set(['ID', 'id', 'Created', 'Modified', 'Author', 'Editor', '@odata.etag', 'ContentType', 'Attachments', 'Edit', 'LinkTitle', 'LinkTitleNoMenu', 'DocIcon', 'ItemChildCount', 'FolderChildCount', '_UIVersionString', '_ComplianceFlags', '_ComplianceTag', '_ComplianceTagWrittenTime', '_ComplianceTagUserId', 'AppAuthorLookupId', 'AppEditorLookupId', 'AuthorLookupId', 'EditorLookupId']);
+const READ_ONLY = new Set(['ID', 'id', 'UID', 'Created', 'Modified', 'Author', 'Editor', '@odata.etag', 'ContentType', 'Attachments', 'Edit', 'LinkTitle', 'LinkTitleNoMenu', 'DocIcon', 'ItemChildCount', 'FolderChildCount', '_UIVersionString', '_ComplianceFlags', '_ComplianceTag', '_ComplianceTagWrittenTime', '_ComplianceTagUserId', 'AppAuthorLookupId', 'AppEditorLookupId', 'AuthorLookupId', 'EditorLookupId']);
 
 /** Les colonnes « Date sans heure » reviennent en UTC (ex. 2026-10-06T22:00:00Z pour le 7 octobre). */
 function toLocalDate(v) {

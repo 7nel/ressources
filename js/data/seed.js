@@ -1,5 +1,6 @@
 // Bac à sable : enseignant·es = initiales réelles de l'équipe ; ÉLÈVES FICTIFS (noms inventés, plantes des Alpes).
 // Générées de façon déterministe : chaque testeur part du même jeu de données.
+import { CONFIG } from '../config.js';
 import { addDays, semaineCle, phaseOf, cleDoublon, DOMAINES } from '../domain.js';
 
 function mulberry32(a) {
@@ -11,7 +12,7 @@ function mulberry32(a) {
   };
 }
 
-export function buildSeed() {
+export function buildSeed({ exemples = CONFIG.DONNEES_EXEMPLE } = {}) {
   const rnd = mulberry32(20261017);
   const pick = arr => arr[Math.floor(rnd() * arr.length)];
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
@@ -289,5 +290,9 @@ export function buildSeed() {
   add('RS_DocsOrientation', { Title: 'Timéo Sorbier · CV', EleveID: timeo.e.ID, TypeDoc: 'CV', Destinataire: '', Statut: 'En cours', DateMaj: '2026-06-05', Remarque: '' }, '2026-06-05');
 
   void iJules;
+  if (!exemples) {
+    // Départ à vide : on garde seulement les listes de référence (enseignant·es, cours, volées).
+    for (const l of Object.keys(lists)) if (!['RS_Enseignants', 'RS_Cours', 'RS_Volees'].includes(l)) lists[l] = [];
+  }
   return { lists };
 }

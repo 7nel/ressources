@@ -12,7 +12,8 @@ export const CONFIG = {
     sitePath: '',      // ex. sites/RessourceS
     scopes: ['Sites.ReadWrite.All'],
   },
-  // Date simulée par défaut en mode test (mercredi de la semaine 6 de V1, ré-exposition).
-  // Chaque testeur peut la changer dans Paramètres.
-  DATE_SIMULEE_DEFAUT: '2026-10-07',
+  // Date simulée par défaut en mode test : premier jour de V2. Chacun·e peut la changer dans Réglages.
+  DATE_SIMULEE_DEFAUT: '2026-10-26',
+  // false : aucun élève au départ (seulement enseignant·es, cours, volées). true : élèves fictifs d'exemple.
+  DONNEES_EXEMPLE: false,
 };
