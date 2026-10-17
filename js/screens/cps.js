@@ -6,7 +6,7 @@ const state = { moyenne: false };
 const fmt2 = v => v == null ? '—' : Number(v).toFixed(2).replace('.', ',');
 
 export function radarSVG(p, { moyenne = false } = {}) {
-  const W = 600, H = 400, cx = W / 2, cy = 205, R = 140;
+  const W = 560, H = 390, cx = W / 2, cy = 200, R = 155;
   const ang = k => (-90 + k * 72) * Math.PI / 180;
   const pt = (k, v) => [cx + R * (v / 5) * Math.cos(ang(k)), cy + R * (v / 5) * Math.sin(ang(k))];
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Radar des compétences psychosociales : 5 domaines, 4 regards">`;
@@ -19,7 +19,7 @@ export function radarSVG(p, { moyenne = false } = {}) {
     s += `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--line)"/>`;
     const [lx, ly] = pt(k, 6.1);
     const anchor = Math.abs(lx - cx) < 10 ? 'middle' : lx > cx ? 'start' : 'end';
-    s += `<text x="${lx}" y="${ly + 4}" text-anchor="${anchor}" font-size="12" fill="var(--ink)">${esc(DOMAINES_COURTS[k])}</text>`;
+    s += `<text x="${lx}" y="${ly + 4}" text-anchor="${anchor}" font-size="13" fill="var(--ink)">${esc(DOMAINES_COURTS[k])}</text>`;
   }
   const series = REGARDS.map(r => {
     const vals = [1, 2, 3, 4, 5].map(d => p[cpsKey(d, r.key)]);
@@ -88,8 +88,17 @@ export function render(params) {
     h('thead', null, h('tr', null, h('th', null, 'Domaine'), REGARDS.map(r => h('th', { class: 'num' }, r.label, h('br'), h('span', { style: { fontWeight: 400 } }, `1–${r.max}`))), h('th', { class: 'num' }, 'Écart entre', h('br'), 'questionnaires'))),
     h('tbody', null, rows)));
 
-  const { svg, drawn } = radarSVG(cur, { moyenne: state.moyenne });
-  const missing = REGARDS.filter(r => !drawn.includes(r.key)).map(r => r.label);
+  // Un radar par passation, côte à côte (dans l'ordre chronologique) ; celle du tableau est encadrée.
+  const radars = passations.map(p => {
+    const { svg, drawn } = radarSVG(p, { moyenne: state.moyenne });
+    const missing = REGARDS.filter(r => !drawn.includes(r.key)).map(r => r.label);
+    return h('figure', { class: `radar-item ${p.ID === cur.ID ? 'current' : ''}` },
+      h('figcaption', null,
+        h('button', { type: 'button', class: 'back', style: { fontWeight: 700, color: 'var(--ink)' }, onClick: () => nav('cps', { eleve: e.ID, id: p.ID }) }, `${p.Moment} · ${fmtDate(p.DatePassation)}`),
+        h('span', { class: 'small muted' }, ` ${volee(insc(p.InscriptionID)?.VoleeID)?.Title || ''}`)),
+      h('div', { class: 'radar-wrap', svg }),
+      missing.length ? h('p', { class: 'hint' }, `Non tracé : ${missing.join(', ')}.`) : null);
+  });
 
   return h('div', { class: 'page' },
     head,
@@ -100,7 +109,6 @@ export function render(params) {
     }, table),
     card('Les regards en un coup d\'œil', { hint: 'La boussole du coach (1–4) est ramenée sur 1–5 pour le tracé.' },
       h('div', { style: { marginBottom: '8px' } }, REGARDS.map(r => h('span', { class: 'regard-key' }, h('span', { class: 'dot', style: { background: r.color, width: '14px', height: '4px', borderRadius: '2px' } }), r.label))),
-      h('div', { class: 'radar-wrap', svg }),
-      missing.length ? h('p', { class: 'hint' }, `Non tracé (regard incomplet) : ${missing.join(', ')}.`) : null,
+      h('div', { class: `radar-grid n${Math.min(radars.length, 3)}` }, radars),
       checkbox('Afficher la moyenne des 3 questionnaires (pointillés) — à lire avec prudence', state.moyenne, on => { state.moyenne = on; refresh(); })));
 }

@@ -373,3 +373,14 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .chart svg circle[data-k], .chart svg rect[data-k] { cursor: pointer; }
 .chart svg [data-k]:focus-visible { outline: none; stroke: var(--ink); stroke-width: 3; }
 .chart-tip { position: fixed; z-index: 70; background: var(--ink); color: var(--bg); padding: 8px 12px; border-radius: 8px; font-size: .85rem; pointer-events: none; max-width: 280px; box-shadow: var(--shadow); font-variant-numeric: tabular-nums; }
+
+/* Radars CPS côte à côte */
+.radar-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
+.radar-grid.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.radar-grid.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.radar-item { margin: 0; padding: 10px; border: 1.5px solid var(--line); border-radius: 10px; min-width: 0; }
+.radar-item.current { border-color: var(--accent); background: var(--accent-soft); }
+.radar-item figcaption { text-align: center; }
+.radar-item .radar-wrap svg { width: 100%; }
+@media (max-width: 900px) { .radar-grid.n3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .radar-grid.n2, .radar-grid.n3 { grid-template-columns: 1fr; } }
