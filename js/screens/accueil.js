@@ -1,10 +1,9 @@
-import { S, isSandbox, refDate, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
+import { S, isSandbox, refDate, setDateCourante, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
 import { h, card, btn, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
-import { semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, nextVolee, lastVolee, mondayOf, addDays, weeksOfVolee } from '../domain.js';
+import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, nextVolee, lastVolee, mondayOf, addDays, weeksOfVolee } from '../domain.js';
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
 import { colles, alertes, sansSuivi, devoirsOuverts, aFaire, suivisDeSemaine } from '../queries.js';
 
-const state = { date: null, forDate: null };
 
 export function ramp(v, date) {
   const total = daysBetween(v.DateDebut, v.DateFin) + 1;
@@ -29,9 +28,7 @@ function tile(num, label, { alert = false, onClick } = {}) {
 }
 
 export function render() {
-  const ref = refDate();
-  if (state.forDate !== ref) { state.date = ref; state.forDate = ref; }
-  const date = state.date;
+  const date = refDate();
   const sk = semaineCle(date);
   const v = voleeAt(date);
   const m = moi();
@@ -42,14 +39,20 @@ export function render() {
   const inscIds = inscs.map(i => i.ID);
 
   /* ---- En-tête ---- */
-  const dateInput = input('date', date, { onChange: e => { if (e.target.value) { state.date = e.target.value; nav('accueil'); } } });
+  // La date : celle du jour ; un clic dessus permet d'en choisir une autre pour la session.
+  const picker = input('date', date, { id: 'acc-date', class: 'date-hidden', tabindex: '-1', 'aria-hidden': 'true',
+    onChange: e => { if (e.target.value) { setDateCourante(e.target.value); nav('accueil'); } } });
+  const openPicker = () => { try { picker.showPicker(); } catch { picker.focus(); picker.click(); } };
+  const isToday = date === todayISO();
   const head = h('div', { class: 'page-head' },
     h('div', null,
       h('h1', null, `Bonjour ${m ? m.Title.split(' ')[0] : ''}`),
-      h('div', { class: 'sub' }, `${fmtDateLong(date)} · semaine ${sk % 100}`)),
+      h('div', { class: 'sub date-line' },
+        h('button', { type: 'button', class: 'date-btn', onClick: openPicker, title: 'Choisir une autre date' },
+          `${fmtDateLong(date)} · semaine ${sk % 100}`, h('span', { 'aria-hidden': 'true', class: 'pen' }, ' ✎')),
+        picker,
+        !isToday && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(null); nav('accueil'); } }, 'revenir à aujourd\'hui'))),
     h('div', { class: 'btn-row' },
-      h('label', { class: 'sr-only', for: 'acc-date' }, 'Date affichée'),
-      Object.assign(dateInput, { id: 'acc-date', style: 'width:auto' }),
       !isCoord() && mine.length ? btn(S.settings.vueTout ? 'Ma vue' : 'Tout voir', () => { S.settings.vueTout = !S.settings.vueTout; saveSettings(); nav('accueil'); }, 'secondary') : null,
       btn('+ Saisie de groupe', () => nav('groupe'))));
 
@@ -64,7 +67,7 @@ export function render() {
     voleeBlock = card(null, {},
       notice(`Pas de volée à cette date (vacances ou pause).${nv ? ` Prochaine volée : ${nv.Title}, dès le ${fmtDate(nv.DateDebut)}.` : ''}`, 'info'),
       lv && h('div', { class: 'btn-row', style: { marginTop: '10px' } },
-        btn(`Afficher la dernière semaine de ${lv.Title}`, () => { state.date = addDays(lv.DateFin, -2); nav('accueil'); }, 'secondary')));
+        btn(`Afficher la dernière semaine de ${lv.Title}`, () => { setDateCourante(addDays(lv.DateFin, -2)); nav('accueil'); }, 'secondary')));
   }
 
   /* ---- Tuiles ---- */

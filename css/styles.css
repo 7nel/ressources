@@ -63,6 +63,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; }
 body {
   background: var(--bg);
@@ -136,6 +137,7 @@ main { padding: 24px 28px 48px; min-width: 0; }
   main { padding: 16px 16px 96px; }
   .banner { font-size: .78rem; padding: 4px 10px; gap: 8px; }
   .banner-long { display: none; }
+  .btn { white-space: normal; text-align: center; }
   h1 { font-size: 1.35rem; }
 }
 
@@ -384,3 +386,10 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .radar-item .radar-wrap svg { width: 100%; }
 @media (max-width: 900px) { .radar-grid.n3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 620px) { .radar-grid.n2, .radar-grid.n3 { grid-template-columns: 1fr; } }
+
+/* Date de l'accueil : cliquable pour en choisir une autre */
+.date-line { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; position: relative; }
+.date-btn { background: none; border: 0; padding: 2px 0; color: inherit; font: inherit; cursor: pointer; border-bottom: 1px dashed var(--line-strong); }
+.date-btn:hover { color: var(--accent); border-bottom-color: var(--accent); }
+.date-btn .pen { color: var(--accent); }
+.date-hidden { position: absolute; left: 0; top: 100%; width: 1px !important; height: 1px; min-height: 0 !important; opacity: 0; pointer-events: none; padding: 0 !important; border: 0 !important; }

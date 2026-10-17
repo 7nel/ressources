@@ -95,8 +95,6 @@ export function render() {
     disabled: !isSandbox(),
     onChange: ev => { s.moiId = Number(ev.target.value) || null; saveSettings(); toast(`Vous êtes maintenant : ${moi()?.Title || 'personne'}`); refresh(); },
   });
-  const dateIn = input('date', s.dateSimulee || '', { onChange: ev => { s.dateSimulee = ev.target.value || null; saveSettings(); refresh(); } });
-  const setDate = d => { s.dateSimulee = d; saveSettings(); refresh(); };
   const labelInputs = s.labels.map((l, k) => input('text', l, { onChange: ev => { s.labels[k] = ev.target.value.trim() || DEFAULT_LEVEL_LABELS[k]; saveSettings(); refresh(); } }));
 
   const fileIn = h('input', {
@@ -119,25 +117,10 @@ export function render() {
     await S.store.reset(); toast('Données réinitialisées'); nav('accueil');
   };
 
-  const ref = refDate();
-  const vRef = volees().find(v => v.DateDebut <= ref && ref <= v.DateFin) || volees().find(v => v.DateDebut > ref) || volees().at(-1);
-  const plus = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
   return h('div', { class: 'page' },
     h('h1', null, 'Réglages'),
     isSandbox() && card('Profil de test', { hint: 'Simule la connexion Microsoft. Essayez un profil « coordination » et un profil « enseignant » : l\'accueil change.' },
       field('Je teste en tant que', who)),
-    isSandbox() && card('Date simulée', { hint: 'La date simulée permet de tester chaque phase pendant les vacances. Les saisies doivent tomber dans une volée.' },
-      h('div', { class: 'form' },
-        field('Date', dateIn, { help: `Actuellement : ${fmtDate(refDate(), { day: true })}` }),
-        vRef && h('div', { class: 'btn-row' },
-          h('span', { class: 'small muted' }, `${vRef.Title} :`),
-          [['Décompression', plus(vRef.DateDebut, 2)], ['Remobilisation', plus(vRef.DateDebutRemob, 7)], ['Ré-exposition', plus(vRef.DateDebutReexpo, 2)]]
-            .map(([l, d]) => btn(`${l} (${fmtDate(d, { year: false })})`, () => setDate(d), 'secondary small')),
-          btn('Aujourd\'hui', () => setDate(todayISO()), 'ghost small')),
-        h('div', { class: 'btn-row' },
-          h('span', { class: 'small muted' }, 'Volée d\'exemple (2025-26 V5) :'),
-          [['Décompression', '2026-05-20'], ['Remobilisation', '2026-06-03'], ['Fin de volée', '2026-06-17']]
-            .map(([l, d]) => btn(`${l} (${fmtDate(d, { year: false })})`, () => setDate(d), 'secondary small'))))),
     card('Libellés des 4 niveaux', { hint: 'Proposition en attendant les ancrages comportementaux rédigés en équipe. Ce réglage reste dans votre navigateur.' },
       h('div', { class: 'form' },
         h('div', { class: 'grid grid-4' }, labelInputs.map((el, k) => field(`Niveau ${k + 1}`, el))),

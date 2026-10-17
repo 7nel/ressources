@@ -6,8 +6,9 @@ const SETTINGS_KEY = 'ressources_reglages_v3';
 
 export const S = {
   store: null,
-  settings: { moiId: null, dateSimulee: CONFIG.DATE_SIMULEE_DEFAUT, labels: [...DEFAULT_LEVEL_LABELS], vueTout: false, theme: 'auto', sansCopie: true },
+  settings: { moiId: null, labels: [...DEFAULT_LEVEL_LABELS], vueTout: false, theme: 'auto', sansCopie: true },
   route: { name: 'accueil', params: {} },
+  dateCourante: null, // date choisie pour la session (null = aujourd'hui) ; jamais enregistrée
 };
 
 export function loadSettings() {
@@ -15,6 +16,7 @@ export function loadSettings() {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (raw) Object.assign(S.settings, JSON.parse(raw));
   } catch { /* réglages par défaut */ }
+  delete S.settings.dateSimulee; // ancienne date simulée enregistrée : on revient à la date du jour
   if (!Array.isArray(S.settings.labels) || S.settings.labels.length !== 4) S.settings.labels = [...DEFAULT_LEVEL_LABELS];
 }
 export function saveSettings() {
@@ -22,8 +24,9 @@ export function saveSettings() {
 }
 
 export const isSandbox = () => CONFIG.MODE !== 'sharepoint';
-/** Date de référence : date simulée en mode test, date du jour sinon. */
-export function refDate() { return isSandbox() && S.settings.dateSimulee ? S.settings.dateSimulee : todayISO(); }
+/** Date de référence : la date du jour, sauf si on en a choisi une autre pour cette session (clic sur la date de l'accueil). */
+export function refDate() { return S.dateCourante || todayISO(); }
+export function setDateCourante(d) { S.dateCourante = d && d !== todayISO() ? d : null; }
 export const labels = () => S.settings.labels;
 
 /* ---------- Accès aux listes ---------- */
