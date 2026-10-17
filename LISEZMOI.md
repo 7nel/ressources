@@ -50,7 +50,11 @@ Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échan
 - À l'ouverture, les versions de l'équipe se chargent seules si le navigateur a gardé l'autorisation ;
   sinon un clic sur « Charger les versions » suffit.
 
-**Safari, Firefox, téléphone**
+**Téléphone**
+- « Sauvegarder » ouvre le menu de partage avec le nom exact du fichier : « Enregistrer dans Fichiers » (ou l'app OneDrive) → dossier partagé → **Remplacer**.
+- Si le téléphone ajoute « (1) » au nom, l'app lit quand même ce fichier ; la prochaine sauvegarde depuis un ordinateur (Chrome/Edge) fusionne et supprime ces copies.
+
+**Safari, Firefox**
 - « Sauvegarder ma version » télécharge `RessourceS_<initiales>.json` : le glisser dans le dossier partagé (remplacer l'ancien).
 - « Charger les versions » : sélectionner tous les fichiers du dossier (Ctrl+A / Cmd+A).
 

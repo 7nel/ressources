@@ -141,6 +141,22 @@ async function readFolder(handle) {
   return texts;
 }
 
+/**
+ * Copies de mon fichier créées par un téléphone ou un navigateur (« RessourceS_PL (1).json », « RessourceS_PL-2.json »…).
+ * Elles sont fusionnées avant d'être supprimées : on ne perd rien, le dossier reste propre.
+ */
+async function supprimerMesDoublons(handle) {
+  const mine = myFileName().replace(/\.json$/i, '');
+  const re = new RegExp(`^${mine.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[ _-]*(\\(\\d+\\)|\\d+)?\\s*\\.json$`, 'i');
+  let n = 0;
+  for await (const entry of handle.values()) {
+    if (entry.kind === 'file' && entry.name !== myFileName() && re.test(entry.name)) {
+      try { await handle.removeEntry(entry.name); n++; } catch { /* fichier verrouillé : on le laisse */ }
+    }
+  }
+  return n;
+}
+
 /* ---------- Actions ---------- */
 export async function sauvegarder() {
   if (!isSandbox()) return;
@@ -151,6 +167,8 @@ export async function sauvegarder() {
       // On intègre d'abord les versions des autres, pour que son propre fichier soit complet.
       const t = await mergeTexts(await readFolder(handle));
       await writeOwnFile(handle);
+      const doublons = await supprimerMesDoublons(handle); // déjà fusionnés ci-dessus
+      if (doublons) toast(`${doublons} ancienne${doublons > 1 ? 's' : ''} copie${doublons > 1 ? 's' : ''} de votre fichier supprimée${doublons > 1 ? 's' : ''} (contenu conservé).`);
       meta.dirty = false; meta.lastSave = new Date().toISOString(); saveMeta();
       loadedThisSession = true; meta.lastLoad = meta.lastSave;
       toast(`Version enregistrée dans « ${handle.name} »${t.ajoutes + t.misAJour ? ` (et ${t.ajoutes + t.misAJour} changement${t.ajoutes + t.misAJour > 1 ? 's' : ''} des collègues intégré${t.ajoutes + t.misAJour > 1 ? 's' : ''})` : ''}`);
@@ -161,11 +179,26 @@ export async function sauvegarder() {
       toast(`Enregistrement dans le dossier impossible (${e.message}). Téléchargement à la place.`, 'err');
     }
   }
-  const blob = new Blob([payload()], { type: 'application/json' });
+  const contenu = payload();
+  // Téléphone : la feuille de partage garde le nom exact du fichier ; en l'enregistrant dans le
+  // dossier OneDrive (app Fichiers ou OneDrive), choisir « Remplacer ».
+  try {
+    const file = new File([contenu], myFileName(), { type: 'application/json' });
+    if (navigator.canShare?.({ files: [file] })) {
+      await navigator.share({ files: [file], title: myFileName() });
+      meta.dirty = false; meta.lastSave = new Date().toISOString(); saveMeta();
+      toast(`Enregistrez « ${myFileName()} » dans le dossier partagé et choisissez « Remplacer ».`);
+      window.dispatchEvent(new Event('rs:sync'));
+      return;
+    }
+  } catch (e) {
+    if (e?.name === 'AbortError') return; // partage annulé
+  }
+  const blob = new Blob([contenu], { type: 'application/json' });
   const a = h('a', { href: URL.createObjectURL(blob), download: myFileName() });
   document.body.appendChild(a); a.click(); a.remove();
   meta.dirty = false; meta.lastSave = new Date().toISOString(); saveMeta();
-  toast(`« ${myFileName()} » téléchargé : déposez-le dans le dossier OneDrive partagé (remplacer l'ancien).`);
+  toast(`« ${myFileName()} » téléchargé : déposez-le dans le dossier partagé en remplaçant l'ancien. Si le nom a changé (« (1) »…), pas de souci : l'app le lit quand même et nettoie au prochain enregistrement depuis un ordinateur.`);
   window.dispatchEvent(new Event('rs:sync'));
 }
 
