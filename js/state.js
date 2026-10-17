@@ -86,3 +86,11 @@ export function applyTheme() {
   if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
   else delete document.documentElement.dataset.theme;
 }
+
+/** Volée par défaut des écrans de notes : celle de la date, sinon la plus récente qui a des évaluations. */
+export function voleeParDefaut(date = refDate()) {
+  const withEvals = new Set(S.store.all('RS_Evaluations').map(e => insc(e.InscriptionID)?.VoleeID));
+  const v = voleeAt(date);
+  if (v && withEvals.has(v.ID)) return v;
+  return [...volees()].filter(x => withEvals.has(x.ID) && x.DateDebut <= date).at(-1) || v || volees().filter(x => x.DateDebut <= date).at(-1) || null;
+}

@@ -1,4 +1,4 @@
-import { S, nav, eleve, cours, volees, refDate, voleeAt, nomEleve, coursActifs, mesCours } from '../state.js';
+import { S, voleeParDefaut, nav, eleve, cours, volees, refDate, voleeAt, nomEleve, coursActifs, mesCours } from '../state.js';
 import { h, card, btn, field, select, empty, badge } from '../ui.js';
 import { fmtDate, fmtNote, weightedAvg, sortBy, lastVolee } from '../domain.js';
 
@@ -8,7 +8,7 @@ export function render() {
   const mine = mesCours().filter(c => !c.EstCoaching);
   const ref = refDate();
   if (!state.coursId) state.coursId = mine[0]?.ID || coursActifs().find(c => !c.EstCoaching)?.ID;
-  if (!state.voleeId) state.voleeId = (voleeAt(ref) || lastVolee(ref, volees()))?.ID;
+  if (!state.voleeId) state.voleeId = voleeParDefaut(ref)?.ID;
   const c = cours(state.coursId);
   const inscs = S.store.where('RS_Inscriptions', i => i.VoleeID === state.voleeId && i.StatutInscription !== 'Interrompue')
     .map(i => ({ i, e: eleve(i.EleveID) })).sort((a, b) => a.e.Nom.localeCompare(b.e.Nom, 'fr'));

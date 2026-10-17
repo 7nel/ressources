@@ -5,7 +5,7 @@
 // pour qu'un filtre ne repeigne jamais les élèves restants.
 import { S, eleve, cours, nomEleve } from '../state.js';
 import { h, esc, seg, empty } from '../ui.js';
-import { fmtDate, fmtNote, weightedAvg, groupBy, parseDate } from '../domain.js';
+import { fmtDate, fmtNote, weightedAvg, groupBy, parseDate, mondayOf, addDays } from '../domain.js';
 
 const CAT = 8;
 export const chartState = { vue: 'evolution', couleur: 'eleve', groupe: 'eleve', focus: null, lignes: true };
@@ -61,6 +61,7 @@ function legend(series, redraw) {
 
 function evolutionSVG(series, lookup) {
   const pts = series.flatMap(s => s.items);
+  const dense = pts.length > 60; // beaucoup de points : on allège pour laisser parler les tendances
   const W = 760, H = 300, pl = 40, pr = 16, pt = 14, pb = 34;
   const t = d => parseDate(d).getTime();
   let t0 = Math.min(...pts.map(e => t(e.DateEval))), t1 = Math.max(...pts.map(e => t(e.DateEval)));
@@ -92,19 +93,20 @@ function evolutionSVG(series, lookup) {
     const dim = chartState.focus && chartState.focus !== se.key;
     const op = dim ? 0.13 : 1;
     if (chartState.couleur === 'eleve' && chartState.lignes) {
-      // une ligne par élève et par branche (relier des branches différentes n'aurait pas de sens)
-      for (const [, l] of groupBy(se.items, e => e.CoursID)) {
-        if (l.length < 2) continue;
-        const sorted = [...l].sort((a, b) => a.DateEval.localeCompare(b.DateEval));
-        s += `<polyline points="${sorted.map(e => `${px(e).toFixed(1)},${y(e.Note).toFixed(1)}`).join(' ')}" fill="none" stroke="${se.color}" stroke-width="2" stroke-opacity="${op * 0.55}"/>`;
-      }
+      // Tendance : moyenne des notes de l'élève, semaine par semaine (toutes branches filtrées)
+      const weeks = [...groupBy(se.items, e => mondayOf(e.DateEval))].sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([mon, l]) => ({ x: x(addDays(mon, 2)), v: l.reduce((m, e) => m + e.Note, 0) / l.length }));
+      if (weeks.length > 1) s += `<polyline points="${weeks.map(w => `${w.x.toFixed(1)},${y(w.v).toFixed(1)}`).join(' ')}" fill="none" stroke="${se.color}" stroke-width="${dim ? 2 : 3.5}" stroke-linejoin="round" stroke-linecap="round" stroke-opacity="${dim ? 0.15 : 0.95}"/>`;
     }
     for (const e of se.items) {
       const k = `n${e.ID}`;
       lookup[k] = [`${nomEleve(eleve(e.EleveID))} · ${fmtNote(e.Note)}`, `${cours(e.CoursID)?.Title} · ${e.Sujet}`, `${fmtDate(e.DateEval)}${e.Coefficient && e.Coefficient !== 1 ? ` · coef. ${String(e.Coefficient).replace('.', ',')}` : ''}`];
       const low = e.Note < 4;
-      s += `<circle data-k="${k}"${dim ? ' pointer-events="none"' : ' tabindex="0"'} cx="${px(e).toFixed(1)}" cy="${y(e.Note).toFixed(1)}" r="${low && !dim ? 6.5 : 5.5}" fill="${se.color}" fill-opacity="${op}" stroke="var(--card)" stroke-width="2"/>`;
-      if (low && !dim && chartState.couleur !== 'resultat') s += `<circle cx="${px(e).toFixed(1)}" cy="${y(e.Note).toFixed(1)}" r="10" fill="none" stroke="var(--danger)" stroke-width="1.5" pointer-events="none"/>`;
+      const focused = chartState.focus === se.key;
+      const r = dense && !focused ? 4 : 5.5;
+      const fo = dim ? 0.1 : dense && !focused && chartState.couleur === 'eleve' && chartState.lignes ? 0.4 : 1;
+      s += `<circle data-k="${k}"${dim ? ' pointer-events="none"' : ' tabindex="0"'} cx="${px(e).toFixed(1)}" cy="${y(e.Note).toFixed(1)}" r="${r}" fill="${se.color}" fill-opacity="${fo}" stroke="var(--card)" stroke-width="1.5"/>`;
+      if (low && !dim && chartState.couleur !== 'resultat' && (!dense || focused)) s += `<circle cx="${px(e).toFixed(1)}" cy="${y(e.Note).toFixed(1)}" r="10" fill="none" stroke="var(--danger)" stroke-width="1.5" pointer-events="none"/>`;
     }
   }
   return s + '</svg>';
@@ -152,8 +154,8 @@ export function notesChartCard(evAll) {
       series = seriesOf(ev, chartState.couleur);
       svg = evolutionSVG(series, lookup);
       extra = h('p', { class: 'hint' },
-        chartState.couleur === 'resultat' ? 'Rouge : note sous 4. Survoler un point pour le détail.' : 'Cercle rouge : note sous 4. Cliquer un nom dans la légende pour le mettre en avant. Survoler un point pour le détail.',
-        chartState.couleur === 'eleve' ? [' ', h('label', { class: 'check', style: { minHeight: 0 } }, h('input', { type: 'checkbox', checked: chartState.lignes, onChange: e => { chartState.lignes = e.target.checked; redraw(); } }), 'relier les notes d\'un élève dans une même branche')] : null);
+        chartState.couleur === 'resultat' ? 'Rouge : note sous 4. Survoler un point pour le détail.' : 'Cliquer un nom dans la légende pour le mettre en avant (ses notes sous 4 sont alors cerclées de rouge). Survoler un point pour le détail.',
+        chartState.couleur === 'eleve' ? [' ', h('label', { class: 'check', style: { minHeight: 0 } }, h('input', { type: 'checkbox', checked: chartState.lignes, onChange: e => { chartState.lignes = e.target.checked; redraw(); } }), 'tendance de chaque élève (moyenne de la semaine)')] : null);
     } else {
       const m = moyennesSVG(ev, lookup);
       svg = m.svg; series = m.series; minWidth = m.minWidth;

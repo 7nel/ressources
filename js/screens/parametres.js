@@ -133,7 +133,11 @@ export function render() {
           h('span', { class: 'small muted' }, `${vRef.Title} :`),
           [['Décompression', plus(vRef.DateDebut, 2)], ['Remobilisation', plus(vRef.DateDebutRemob, 7)], ['Ré-exposition', plus(vRef.DateDebutReexpo, 2)]]
             .map(([l, d]) => btn(`${l} (${fmtDate(d, { year: false })})`, () => setDate(d), 'secondary small')),
-          btn('Aujourd\'hui', () => setDate(todayISO()), 'ghost small')))),
+          btn('Aujourd\'hui', () => setDate(todayISO()), 'ghost small')),
+        h('div', { class: 'btn-row' },
+          h('span', { class: 'small muted' }, 'Volée d\'exemple (2025-26 V5) :'),
+          [['Décompression', '2026-05-20'], ['Remobilisation', '2026-06-03'], ['Fin de volée', '2026-06-17']]
+            .map(([l, d]) => btn(`${l} (${fmtDate(d, { year: false })})`, () => setDate(d), 'secondary small'))))),
     card('Libellés des 4 niveaux', { hint: 'Proposition en attendant les ancrages comportementaux rédigés en équipe. Ce réglage reste dans votre navigateur.' },
       h('div', { class: 'form' },
         h('div', { class: 'grid grid-4' }, labelInputs.map((el, k) => field(`Niveau ${k + 1}`, el))),

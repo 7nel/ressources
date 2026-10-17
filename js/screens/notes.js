@@ -1,4 +1,4 @@
-import { S, nav, eleve, cours, volee, volees, refDate, voleeAt, nomEleve, coursActifs } from '../state.js';
+import { S, voleeParDefaut, nav, eleve, cours, volee, volees, refDate, voleeAt, nomEleve, coursActifs } from '../state.js';
 import { h, card, btn, field, select, badge, empty, esc, phaseBadge } from '../ui.js';
 import { fmtDate, fmtNote, weightedAvg, sortBy, groupBy, lastVolee } from '../domain.js';
 import { notesChartCard } from './notes-chart.js';
@@ -27,7 +27,7 @@ export function noteChart(evals, { height = 220 } = {}) {
 
 export function render() {
   const ref = refDate();
-  if (state.voleeId == null) state.voleeId = String((voleeAt(ref) || lastVolee(ref, volees()))?.ID || '');
+  if (state.voleeId == null) state.voleeId = String(voleeParDefaut(ref)?.ID || '');
   let ev = S.store.all('RS_Evaluations');
   if (state.voleeId) ev = ev.filter(e => S.store.get('RS_Inscriptions', e.InscriptionID)?.VoleeID === Number(state.voleeId));
   if (state.eleveId) ev = ev.filter(e => e.EleveID === Number(state.eleveId));

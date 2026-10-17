@@ -12,8 +12,8 @@ export const CONFIG = {
     sitePath: '',      // ex. sites/RessourceS
     scopes: ['Sites.ReadWrite.All'],
   },
-  // Date simulée par défaut en mode test : premier jour de V2. Chacun·e peut la changer dans Réglages.
-  DATE_SIMULEE_DEFAUT: '2026-10-26',
-  // false : aucun élève au départ (seulement enseignant·es, cours, volées). true : élèves fictifs d'exemple.
-  DONNEES_EXEMPLE: false,
+  // Date simulée par défaut : fin de la volée d'exemple 2025-26 V5. Chacun·e peut la changer dans Réglages.
+  DATE_SIMULEE_DEFAUT: '2026-06-17',
+  // true : six élèves fictifs d'exemple dans la volée 2025-26 V5 (profils variés, bilans et CPS complets).
+  DONNEES_EXEMPLE: true,
 };

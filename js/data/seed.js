@@ -63,105 +63,174 @@ export function buildSeed({ exemples = CONFIG.DONNEES_EXEMPLE } = {}) {
     ['2026-27 V4', '2026-27', '2027-03-22', '2027-03-29', '2027-05-03', '2027-05-14'],
     ['2026-27 V5', '2026-27', '2027-05-17', '2027-05-24', '2027-06-07', '2027-06-17'],
   ].map(([t, a, d, r, x, f]) => add('RS_Volees', { Title: t, AnneeScolaire: a, DateDebut: d, DateDebutRemob: r, DateDebutReexpo: x, DateFin: f }));
-  const [V5prev, V1] = V;
+  const [V5] = V; // 2025-26 V5 : volée d'exemple, complète
+  if (!exemples) return { lists };
+  buildExemples({ add, rnd, pick, clamp, T, C, coursByTitle, V5 });
+  return { lists };
+}
 
-  /* ---------- Élèves (fictifs) ---------- */
+/* =====================================================================
+   VOLÉE D'EXEMPLE : 2025-26 V5 (18.05–19.06.2026), six profils fictifs
+   ===================================================================== */
+const PROFILS = {
+  // note : début → fin ; ct : cotation C/T début → fin ; cps : questionnaires entrée → sortie ; bou : boussole entrée → sortie
+  stable: { label: 'sans évolution', note: [4.0, 4.0], ct: [2.6, 2.6], cps: [3.0, 3.05], bou: [2, 2] },
+  petit1: { label: 'petite amélioration', note: [3.7, 4.2], ct: [2.3, 2.9], cps: [2.8, 3.2], bou: [2, 3] },
+  petit2: { label: 'petite amélioration', note: [3.8, 4.3], ct: [2.5, 3.0], cps: [2.9, 3.3], bou: [2, 2] },
+  net: { label: 'nette amélioration', note: [3.3, 5.1], ct: [1.9, 3.7], cps: [2.4, 3.9], bou: [1, 3] },
+  aggrave: { label: 'aggravation', note: [4.5, 3.1], ct: [3.1, 1.5], cps: [3.3, 2.4], bou: [3, 2] },
+  bon: { label: 'bon niveau stable', note: [5.0, 5.2], ct: [3.4, 3.7], cps: [3.7, 3.9], bou: [3, 3] },
+};
+const ELEVES_EX = [
+  { p: 'Noah', n: 'Gentiane', deg: '9CO', cl: '9CO1', tit: 'Mme Saule', prof: 'stable' },
+  { p: 'Maëlle', n: 'Myrtille', deg: '9CO', cl: '9CO4', tit: 'M. Frêne', prof: 'petit1' },
+  { p: 'Timéo', n: 'Sorbier', deg: '11CO', cl: '11CO1', tit: 'Mme Aulne', prof: 'petit2' },
+  { p: 'Léa', n: 'Edelweiss', deg: '10CO', cl: '10CO3', tit: 'M. Tilleul', prof: 'net' },
+  { p: 'Kenan', n: 'Mélèze', deg: '10CO libérable', cl: '10CO5', tit: 'Mme Charme', prof: 'aggrave' },
+  { p: 'Inès', n: 'Arolle', deg: '11CO', cl: '11CO2', tit: 'M. Peuplier', prof: 'bon' },
+];
+// Textes des bilans, par profil (faits observables, sans élément médical ni familial)
+const BILANS_EX = {
+  stable: {
+    dom: [1, 2], obj: 'Rendre mes devoirs de français et de maths chaque semaine',
+    appui: 'Ponctuel ; bonne relation avec le coach ; participe volontiers en théâtre et en sport',
+    frag: 'Décroche sur les tâches écrites de plus de 15 minutes ; rarement de questions spontanées',
+    avancee: 'Devoirs rendus 2 semaines sur 3. Notes stables autour de 4 (maths 4,0 ; français 3,9). Pas de progrès net, pas de recul.',
+    ajust: 'Objectif maintenu ; ajout d\'un point d\'étape le mercredi avec le coach pour vérifier l\'agenda.',
+    esquisse: 'Retour en 9CO1 à la rentrée avec un horaire complet ; suivi agenda à poursuivre.',
+    plan: 'Retour complet en 9CO1 à la rentrée. Point avec la titulaire après 3 semaines. Agenda vérifié chaque mercredi en classe d\'origine.',
+    sortie: 'Noter et rendre chaque devoir dans les délais',
+  },
+  petit1: {
+    dom: [3, 1], obj: 'Demander de l\'aide avant de bloquer sur un exercice',
+    appui: 'Soigneuse ; à l\'aise en arts visuels et en ACM ; accepte les conseils',
+    frag: 'Se fige devant un exercice nouveau ; évite de parler devant le groupe',
+    avancee: 'A demandé de l\'aide 4 fois cette semaine (0 la première). Notes en hausse en maths : 3,6 puis 4,0.',
+    ajust: 'Ajouter : lever la main une fois par cours en français.',
+    esquisse: 'Retour progressif : branches artistiques d\'abord, puis français et maths.',
+    plan: 'Retour en 9CO4 avec une carte « je demande de l\'aide » validée avec le titulaire. Point après 2 semaines.',
+    sortie: 'Demander de l\'aide à l\'enseignant·e au plus tard après 5 minutes de blocage',
+  },
+  petit2: {
+    dom: [1, 5], obj: 'Organiser mon travail pour préparer les évaluations',
+    appui: 'Motivé par l\'orientation (stage en mécanique) ; bon en sport ; ponctuel',
+    frag: 'Prépare les évaluations la veille ; oublie le matériel une fois sur trois',
+    avancee: 'Utilise une fiche de préparation pour 2 évaluations sur 3. Notes : 3,8 → 4,1 en moyenne.',
+    ajust: 'Objectif maintenu ; fiche de préparation étendue à l\'allemand.',
+    esquisse: 'Retour en 11CO1 ; lien avec la recherche de place d\'apprentissage.',
+    plan: 'Retour en 11CO1. Fiche de préparation utilisée dans toutes les branches. Point orientation avec ET en septembre.',
+    sortie: 'Préparer chaque évaluation avec la fiche, au moins 3 jours avant',
+  },
+  net: {
+    dom: [3, 4], obj: 'Rester en classe toute la séance et terminer les tâches',
+    appui: 'Curieuse ; très bonne en théâtre ; s\'appuie sur les adultes quand la relation est établie',
+    frag: 'Quitte la classe quand une tâche paraît trop difficile ; travail non terminé',
+    avancee: 'Plus aucune sortie de classe depuis 10 jours. Notes en nette hausse : 3,3 → 4,6 (maths, français, sciences).',
+    ajust: 'Nouvel objectif : réussir une évaluation de niveau classe sans aide en maths.',
+    esquisse: 'Retour en 10CO3 dès la rentrée, toutes branches.',
+    plan: 'Retour complet en 10CO3. Évaluation de maths réussie seule (5,0) : à présenter au titulaire comme point d\'appui.',
+    sortie: 'Garder une stratégie de pause en classe (respiration, puis reprise) au lieu de sortir',
+  },
+  aggrave: {
+    dom: [3, 2], obj: 'Venir à chaque cours avec mon matériel',
+    appui: 'Bonnes bases en maths ; s\'exprime bien à l\'oral',
+    frag: 'Conflits avec des camarades ; travail irrégulier',
+    avancee: 'Situation en recul : 3 devoirs non faits par semaine, cotations à 1-2 en fin de période. Notes : 4,5 → 3,6.',
+    ajust: 'Objectif réduit : être présent·e et au travail les 20 premières minutes de chaque cours.',
+    esquisse: 'Retour à discuter : une deuxième volée est à envisager.',
+    plan: 'Pas de retour complet. Proposition d\'une deuxième volée en V1 ; retour partiel en sport et en musique en attendant.',
+    sortie: 'Être au travail les 20 premières minutes de chaque cours',
+  },
+  bon: {
+    dom: [5, 2], obj: 'Retrouver confiance pour reprendre le rythme de la classe',
+    appui: 'Autonome ; bons résultats ; projet professionnel clair (ASE)',
+    frag: 'Anxiété avant les évaluations écrites ; s\'isole du groupe',
+    avancee: 'Notes stables à 5 et plus. Participe aux travaux de groupe depuis la semaine 2.',
+    ajust: 'Objectif maintenu ; ajouter un exposé en français devant le groupe.',
+    esquisse: 'Retour en 11CO2 sans aménagement particulier.',
+    plan: 'Retour complet en 11CO2. Exposé réussi : à valoriser auprès de la titulaire.',
+    sortie: 'Présenter un travail oral en classe d\'origine durant le premier mois',
+  },
+};
+const OBS_BY_TREND = {
+  up: ['A demandé de l\'aide au bon moment.', 'Travail terminé seul·e.', 'S\'est remis·e au travail sans rappel.', 'Participation spontanée à l\'oral.'],
+  flat: ['Travail commencé, terminé avec un rappel.', 'Mise au travail lente en début de séance.', 'Matériel complet.', 'Peu de questions, travail moyen.'],
+  down: ['Matériel oublié.', 'A quitté la tâche après 10 minutes.', 'Téléphone sorti malgré le rappel.', 'Conflit avec un camarade, réglé après la pause.', 'Refus de commencer l\'exercice.'],
+};
+const COACH_T = {
+  'Décompression': ['Faire connaissance, règles de la classe', 'Objectif personnel : premières pistes', 'Ce qui m\'aide, ce qui me freine'],
+  'Remobilisation': ['Planifier la semaine dans l\'agenda', 'Demander de l\'aide : quand et à qui', 'Préparer une évaluation'],
+  'Ré-exposition': ['Plan de retour : horaire de la classe d\'origine', 'Préparer la rencontre avec le titulaire', 'Situations difficiles en classe : que faire ?'],
+};
+const SUJETS = {
+  'Musique': ['Rythmes', 'Lecture de notes', 'Chant', 'Écoute'],
+  'Mathématiques': ['Calcul mental', 'Fractions', 'Proportionnalité', 'Équations'],
+  'Sciences': ['Cellule', 'Le système solaire', 'États de la matière', 'Énergie'],
+  'Anglais': ['Vocabulaire', 'Present simple', 'Compréhension orale', 'Expression écrite'],
+  'Méthodo / Orientation': ['Agenda', 'Portrait de métier', 'CV', 'Entretien simulé'],
+  'Allemand': ['Wortschatz', 'Perfekt', 'Hörverstehen', 'Dialog'],
+  'Français': ['Compréhension de texte', 'Orthographe', 'Production écrite', 'Exposé'],
+  'Théâtre': ['Improvisation', 'Diction', 'Scène à deux', 'Présentation finale'],
+  'ACM': ['Mesures et tracés', 'Couture', 'Projet bois', 'Finitions'],
+  'Arts visuels': ['Perspective', 'Couleurs', 'Portrait', 'Projet libre'],
+  'Sport': ['Endurance', 'Coordination', 'Jeux collectifs', 'Gymnastique'],
+};
+const ETAYAGE = ['Consignes reformulées oralement', 'Aide sollicitée par l\'élève', 'Temps supplémentaire de 10 minutes', 'Exemple résolu à disposition', 'Tâche découpée en étapes'];
+
+function buildExemples({ add, rnd, pick, clamp, T, C, coursByTitle, V5 }) {
+  const days = (a, b) => Math.round((Date.parse(b) - Date.parse(a)) / 864e5);
+  const span = days(V5.DateDebut, V5.DateFin);
+  const lerp = ([a, b], date) => a + (b - a) * Math.max(0, Math.min(1, days(V5.DateDebut, date) / span));
+  const plus = (d, n) => { const x = new Date(d + 'T12:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
   const SIGLES = ['ABR', 'BCH', 'CDU', 'DMO', 'EFA', 'FRO', 'GVI', 'HPE', 'JLA', 'KMA'];
-  const mkEleve = (Prenom, Nom, Statut) => add('RS_Eleves', { Title: `${Nom} ${Prenom}`, Nom, Prenom, CleDoublon: cleDoublon(Nom, Prenom), Statut }, '2026-08-25');
-  const mkInsc = (e, v, Degre, ClasseOrigine, Titulaire, Statut) => add('RS_Inscriptions', {
-    Title: `${e.Nom} ${e.Prenom} – ${v.Title}`, EleveID: e.ID, VoleeID: v.ID, CleUnique: `E${e.ID}-V${v.ID}`,
-    Degre, ClasseOrigine, Titulaire,
-    ProfFrancais: pick(SIGLES), ProfAllemand: pick(SIGLES), ProfAnglais: pick(SIGLES), ProfMaths: pick(SIGLES), ProfSciences: pick(SIGLES),
-    StatutInscription: Statut,
-  }, addDays(v.DateDebut, -5));
+  const CRE = '2026-05-15';
+  const PL = T[0].Title;
 
-  const PROFILS = {
-    progress: [2.2, 2.9, 3.3], stable: [3.0, 3.0, 3.1], good: [3.3, 3.6, 3.7], dip: [2.6, 3.0, 1.8], fragile: [2.4, 2.6, 2.3],
-  };
-  const NOTE = { progress: 4.3, stable: 4.5, good: 5.2, dip: 4.1, fragile: 3.5 };
-  const E = [
-    ['Léa', 'Edelweiss', '10CO', '10CO3', 'M. Tilleul', 'progress'],
-    ['Noah', 'Gentiane', '9CO', '9CO1', 'Mme Saule', 'stable'],
-    ['Inès', 'Arolle', '11CO', '11CO2', 'M. Peuplier', 'good'],
-    ['Kenan', 'Mélèze', '10CO libérable', '10CO5', 'Mme Charme', 'dip'],
-    ['Maëlle', 'Myrtille', '9CO', '9CO4', 'M. Frêne', 'progress'],
-    ['Timéo', 'Sorbier', '11CO', '11CO1', 'Mme Aulne', 'fragile'],
-  ].map(([p, n, deg, cl, tit, prof]) => {
-    const e = mkEleve(p, n, 'Actif');
-    return { e, deg, cl, tit, prof, i: null };
+  const E = ELEVES_EX.map(x => {
+    const pr = PROFILS[x.prof];
+    const e = add('RS_Eleves', { Title: `${x.n} ${x.p}`, Nom: x.n, Prenom: x.p, CleDoublon: cleDoublon(x.n, x.p), Statut: 'Actif' }, CRE);
+    const i = add('RS_Inscriptions', {
+      Title: `${x.n} ${x.p} – ${V5.Title}`, EleveID: e.ID, VoleeID: V5.ID, CleUnique: `E${e.ID}-V${V5.ID}`,
+      Degre: x.deg, ClasseOrigine: x.cl, Titulaire: x.tit,
+      ProfFrancais: pick(SIGLES), ProfAllemand: pick(SIGLES), ProfAnglais: pick(SIGLES), ProfMaths: pick(SIGLES), ProfSciences: pick(SIGLES),
+      StatutInscription: 'En cours',
+    }, CRE);
+    // talent par branche : décalage fixe, pour que les branches ne soient pas toutes identiques
+    const talent = Object.fromEntries(C.map(c => [c.rec.Title, (rnd() - 0.5) * 0.8]));
+    if (x.prof === 'net') talent['Théâtre'] = 0.6;
+    if (x.prof === 'aggrave') { talent['Mathématiques'] = 0.4; talent['Sport'] = 0.5; }
+    if (x.prof === 'petit1') { talent['Arts visuels'] = 0.5; talent['ACM'] = 0.5; }
+    return { ...x, pr, e, i, talent, trend: pr.note[1] - pr.note[0] > 0.3 ? 'up' : pr.note[1] - pr.note[0] < -0.3 ? 'down' : 'flat' };
   });
-  // Anciens : deux élèves de la volée précédente, dont Timéo qui revient pour une 2e volée.
-  const jules = mkEleve('Jules', 'Génépi', 'Ancien');
-  const sara = mkEleve('Sara', 'Lavande', 'Archivé');
-  const timeo = E[5];
-  const iJules = mkInsc(jules, V5prev, '10CO', '10CO2', 'M. Orme', 'Terminée');
-  mkInsc(sara, V5prev, '9CO', '9CO3', 'Mme Bruyère', 'Terminée');
-  const iTimeoPrev = mkInsc(timeo.e, V5prev, '10CO', '10CO1', 'Mme Aulne', 'Terminée');
-  for (const s of E) s.i = mkInsc(s.e, V1, s.deg, s.cl, s.tit, 'En cours');
 
-  /* ---------- Pools de textes (observables, sans données sensibles) ---------- */
-  const OBS = [
-    'A demandé de l\'aide au bon moment.', 'Travail commencé seul, terminé avec un rappel.',
-    'Mise au travail lente en début de séance.', 'Participation spontanée à l\'oral.',
-    'A quitté la tâche après 10 minutes, revenu après une courte pause.', 'Matériel oublié.',
-    'A aidé un camarade sans qu\'on le lui demande.', 'Consigne relue seul avant de demander.',
-    'Téléphone sorti deux fois malgré le rappel.', 'A terminé l\'exercice de niveau classe.',
-  ];
-  const COACH_T = {
-    'Décompression': ['Faire connaissance, règles de la classe', 'Objectif personnel : premières pistes', 'Ce qui m\'aide, ce qui me freine'],
-    'Remobilisation': ['Planifier la semaine dans l\'agenda', 'Demander de l\'aide : quand et à qui', 'Préparer l\'évaluation de maths', 'Gérer une consigne longue'],
-    'Ré-exposition': ['Plan de retour : horaire de la classe d\'origine', 'Préparer la rencontre avec le titulaire', 'Situations difficiles en classe : que faire ?'],
-  };
-  const COACH_P = [
-    'A rempli l\'agenda seul·e.', 'Point de vigilance : fatigue en début de semaine.', 'Sait nommer deux personnes ressources.',
-    'Progrès : demande de l\'aide plus tôt.', 'Point de vigilance : évite les tâches écrites longues.', 'Objectif reformulé avec ses mots.',
-  ];
-  const DEVOIRS = ['Exercices p. 34', 'Fiche de vocabulaire', 'Lecture du chapitre 3', 'Fiche de révision', 'Rédaction de 10 lignes', 'Exercices 5 à 9'];
-  const ETAYAGE = ['Consignes reformulées oralement', 'Aide sollicitée par l\'élève deux fois', 'Temps supplémentaire de 10 minutes', 'Exemple résolu à disposition', 'Calculatrice autorisée'];
-
-  /* ---------- Suivis et devoirs de V1 (jusqu'au mardi 06.10) ---------- */
-  const LIMITE = '2026-10-06';
-  const lvl = (base, off = 0) => clamp(Math.round(base + off + (rnd() - 0.5) * 1.6), 1, 4);
-  const phaseIdx = p => ['Décompression', 'Remobilisation', 'Ré-exposition'].indexOf(p);
-
-  for (let monday = V1.DateDebut; monday <= LIMITE; monday = addDays(monday, 7)) {
+  /* ---- Suivis et devoirs, toute la volée ---- */
+  for (let monday = V5.DateDebut; monday <= V5.DateFin; monday = plus(monday, 7)) {
     for (const c of C) {
-      if (c.rec.Title === 'Méthodo / Orientation' && monday < V1.DateDebutReexpo) continue;
       for (const day of c.days) {
-        const date = addDays(monday, day);
-        if (date > LIMITE || date < V1.DateDebut) continue;
-        const phase = phaseOf(date, V1);
+        const date = plus(monday, day);
+        if (date < V5.DateDebut || date > V5.DateFin) continue;
+        const phase = phaseOf(date, V5);
         for (const s of E) {
-          if (s.e.Prenom === 'Maëlle' && date >= '2026-10-05') continue; // absente lundi-mardi : « sans suivi »
-          if (rnd() < 0.07) continue; // absences ponctuelles
-          const base = PROFILS[s.prof][phaseIdx(phase)];
-          let comp = lvl(base), trav = lvl(base, -0.2);
-          if (s.prof === 'dip' && date >= '2026-10-05') { comp = date === '2026-10-05' && c.rec.Title === 'Français' ? 1 : clamp(comp, 1, 2); trav = clamp(trav, 1, 2); }
+          if (rnd() < (s.prof === 'aggrave' && date > '2026-06-05' ? 0.18 : 0.05)) continue; // absences
+          const base = lerp(s.pr.ct, date);
+          const comp = clamp(Math.round(base + (rnd() - 0.5) * 1.1), 1, 4);
+          const trav = clamp(Math.round(base - 0.15 + (rnd() - 0.5) * 1.1), 1, 4);
           const coaching = c.rec.EstCoaching;
           add('RS_Suivis', {
-            Title: `${s.e.Prenom} ${s.e.Nom} · ${c.rec.Title} · ${date}`,
-            EleveID: s.e.ID, InscriptionID: s.i.ID, CoursID: c.rec.ID, EnseignantID: c.rec.EnseignantID,
-            DateSuivi: date, SemaineCle: semaineCle(date), Portee: c.portee, Phase: phase,
-            Comportement: comp, Travail: trav,
-            Observation: !coaching && rnd() < 0.22 ? pick(OBS) : '',
+            Title: `${s.p} ${s.n} · ${c.rec.Title} · ${date}`, EleveID: s.e.ID, InscriptionID: s.i.ID, CoursID: c.rec.ID, EnseignantID: c.rec.EnseignantID,
+            DateSuivi: date, SemaineCle: semaineCle(date), Portee: c.portee, Phase: phase, Comportement: comp, Travail: trav,
+            Observation: !coaching && rnd() < 0.25 ? pick(OBS_BY_TREND[comp <= 2 && s.trend === 'down' ? 'down' : s.trend]) : '',
             CoachTravaille: coaching ? pick(COACH_T[phase]) : '',
-            CoachProgres: coaching ? pick(COACH_P) : '',
+            CoachProgres: coaching ? (s.trend === 'down' && phase !== 'Décompression' ? 'Point de vigilance : objectif non tenu cette semaine.' : s.trend === 'up' ? 'Progrès : a tenu son objectif cette semaine.' : 'Stable : objectif tenu en partie.') : '',
           }, date);
-          // Devoirs non faits
-          const isHw = ['Français', 'Mathématiques', 'Allemand', 'Anglais'].includes(c.rec.Title);
-          const forced = monday === '2026-10-05' && ((s.e.Prenom === 'Noah' && ['Français', 'Mathématiques'].includes(c.rec.Title))
-            || (s.e.Prenom === 'Kenan' && ['Français', 'Mathématiques'].includes(c.rec.Title))
-            || (s.e.Prenom === 'Timéo' && c.rec.Title === 'Mathématiques'));
-          const random = monday < '2026-10-05' && isHw && rnd() < (s.prof === 'fragile' || s.prof === 'dip' ? 0.18 : 0.06);
-          if (forced || random) {
-            const sansConseq = phase === 'Décompression';
+          const p = { stable: 0.08, petit1: 0.07, petit2: 0.08, net: 0.1, aggrave: 0.15, bon: 0.02 }[s.prof] * (s.prof === 'net' ? (date < '2026-06-01' ? 1.6 : 0.3) : s.prof === 'aggrave' ? (date > '2026-06-01' ? 3.5 : 0.8) : 1);
+          if (['Français', 'Mathématiques', 'Allemand', 'Anglais', 'Sciences'].includes(c.rec.Title) && rnd() < p) {
             add('RS_Devoirs', {
-              Title: `${s.e.Prenom} ${s.e.Nom} · ${c.rec.Title} · ${date}`,
-              EleveID: s.e.ID, InscriptionID: s.i.ID, CoursID: c.rec.ID, EnseignantID: c.rec.EnseignantID,
-              DateConstat: date, SemaineCle: semaineCle(date), Phase: phase, SansConsequence: sansConseq,
-              Description: pick(DEVOIRS),
-              Statut: forced ? 'Ouvert' : (rnd() < 0.75 ? 'Rattrapé' : 'Non rattrapé'),
-              DateResolution: forced ? null : addDays(date, 2),
+              Title: `${s.p} ${s.n} · ${c.rec.Title} · ${date}`, EleveID: s.e.ID, InscriptionID: s.i.ID, CoursID: c.rec.ID, EnseignantID: c.rec.EnseignantID,
+              DateConstat: date, SemaineCle: semaineCle(date), Phase: phase, SansConsequence: phase === 'Décompression',
+              Description: pick(['Exercices p. 34', 'Fiche de vocabulaire', 'Lecture du chapitre 3', 'Fiche de révision', 'Exercices 5 à 9']),
+              Statut: date >= '2026-06-15' ? 'Ouvert' : rnd() < (s.prof === 'aggrave' ? 0.4 : 0.8) ? 'Rattrapé' : 'Non rattrapé',
+              DateResolution: date >= '2026-06-15' ? null : plus(date, 2),
             }, date);
           }
         }
@@ -169,130 +238,86 @@ export function buildSeed({ exemples = CONFIG.DONNEES_EXEMPLE } = {}) {
     }
   }
 
-  /* ---------- Évaluations ---------- */
-  const mkEval = (s, inscr, volee, coursTitle, date, sujet, coef = 1) => {
-    const c = coursByTitle[coursTitle];
-    const phase = phaseOf(date, volee);
-    const rec = {
-      Title: `${s.e.Prenom} ${s.e.Nom} · ${coursTitle} · ${sujet}`,
-      EleveID: s.e.ID, InscriptionID: inscr.ID, CoursID: c.ID, EnseignantID: c.EnseignantID,
-      DateEval: date, Phase: phase, Sujet: sujet, Coefficient: coef, ResultatFormatif: '', Note: null, Etayage: '',
-    };
-    if (phase === 'Décompression') {
-      const b = NOTE[s.prof];
-      rec.ResultatFormatif = b >= 4.8 ? 'Réussi seul' : b >= 4 ? (rnd() < .5 ? 'Réussi seul' : 'Avec aide') : (rnd() < .5 ? 'Avec aide' : 'Pas encore');
-    } else {
-      rec.Note = clamp(Math.round((NOTE[s.prof] + (rnd() - 0.5) * 1.0) * 10) / 10, 1, 6);
-      if (phase === 'Remobilisation') rec.Etayage = pick(ETAYAGE);
-    }
-    add('RS_Evaluations', rec, date);
-  };
-  for (const s of E) {
-    mkEval(s, s.i, V1, 'Français', '2026-09-03', 'Compréhension de texte');
-    mkEval(s, s.i, V1, 'Mathématiques', '2026-09-02', 'Calcul mental');
-    mkEval(s, s.i, V1, 'Mathématiques', '2026-09-16', 'Fractions');
-    mkEval(s, s.i, V1, 'Français', '2026-09-24', 'Production écrite');
-    mkEval(s, s.i, V1, 'Allemand', '2026-10-02', 'Vocabulaire unité 2', 0.5);
-    mkEval(s, s.i, V1, 'Sciences', '2026-09-30', 'Le système solaire');
-    if (rnd() < 0.7) mkEval(s, s.i, V1, 'Mathématiques', '2026-10-05', 'Proportionnalité');
-  }
-  mkEval(timeo, iTimeoPrev, V5prev, 'Mathématiques', '2026-06-03', 'Nombres relatifs');
-  mkEval(timeo, iTimeoPrev, V5prev, 'Français', '2026-06-15', 'Lettre formelle');
-
-  /* ---------- Bilans ---------- */
-  const OBJ = {
-    Léa: 'Rendre mes devoirs de maths chaque semaine', Noah: 'Oser poser une question en classe',
-    Inès: 'Choisir un métier à tester en stage', Kenan: 'Rester en classe toute la séance',
-    Maëlle: 'Organiser mon sac et mon agenda seule', Timéo: 'Reprendre confiance en maths',
-  };
-  const mkBilan = (s, inscr, type, date, extra) => add('RS_Bilans', {
-    Title: `${s.e.Prenom} ${s.e.Nom} · ${type}`, InscriptionID: inscr.ID, EleveID: s.e.ID,
-    TypeBilan: type, CleUnique: `I${inscr.ID}-${{ 'Mise en route': 'MR', 'Intermédiaire': 'INT', 'Final': 'FIN' }[type]}`,
-    DateBilan: date, Participants: `${s.e.Prenom}, PL (coaching), ${s.tit}`,
-    DomainesPrioritaires: [], Objectif: '', PointsAppui: '', Fragilites: '', Avancee: '', AjustementObjectif: '',
-    PlanRetour: '', ObjectifSortie: '', PassationTitulaire: false, DatePassation: null,
-    DateSignatureEleve: date, DateValidationCoord: addDays(date, 1), ...extra,
-  }, date);
-  for (const s of E) {
-    mkBilan(s, s.i, 'Mise en route', '2026-09-03', {
-      DomainesPrioritaires: [DOMAINES[Math.floor(rnd() * 5)], DOMAINES[Math.floor(rnd() * 5)]].filter((d, k, a) => a.indexOf(d) === k),
-      Objectif: OBJ[s.e.Prenom], PointsAppui: 'Bonne relation avec le coach ; à l\'aise à l\'oral', Fragilites: 'Se décourage face aux tâches écrites longues',
-    });
-    if (['Léa', 'Noah', 'Inès', 'Maëlle'].includes(s.e.Prenom)) {
-      mkBilan(s, s.i, 'Intermédiaire', '2026-09-25', {
-        Avancee: 'Devoirs rendus 3 semaines sur 4 ; note de 4,5 en fractions avec aide sollicitée.',
-        AjustementObjectif: 'Garder l\'objectif, ajouter : préparer les évaluations avec une fiche.',
-        PlanRetour: 'Retour progressif : maths et français en classe d\'origine dès la semaine 7.',
-      });
-    }
-  }
-  const tPrev = { ...timeo, tit: 'Mme Aulne' };
-  mkBilan(tPrev, iTimeoPrev, 'Mise en route', '2026-05-20', { Objectif: 'Venir à l\'école tous les jours', DomainesPrioritaires: [DOMAINES[2]], PointsAppui: 'Intérêt pour la mécanique', Fragilites: 'Retards le matin' });
-  mkBilan(tPrev, iTimeoPrev, 'Intermédiaire', '2026-06-02', { Avancee: 'Présent tous les jours depuis 2 semaines.', AjustementObjectif: 'Ajouter : rendre un travail de maths par semaine.', PlanRetour: 'Retour en 11CO à la rentrée, avec suivi.' });
-  mkBilan(tPrev, iTimeoPrev, 'Final', '2026-06-17', { PlanRetour: 'Retour en classe d\'origine à la rentrée ; point avec la titulaire en septembre.', ObjectifSortie: 'Demander de l\'aide en maths avant les évaluations', PassationTitulaire: true, DatePassation: '2026-06-18' });
-
-  /* ---------- CPS ---------- */
-  const mkCPS = (s, inscr, date, moment, lvlQ, lvlB) => {
-    const rec = { Title: `${s.e.Prenom} ${s.e.Nom} – ${moment}`, EleveID: s.e.ID, InscriptionID: inscr.ID, DatePassation: date, Moment: moment };
-    for (let d = 1; d <= 5; d++) {
-      for (const k of ['Eleve', 'Titulaire', 'Parents']) {
-        const off = k === 'Titulaire' ? -0.5 : k === 'Parents' ? 0.2 : 0;
-        rec[`D${d}_${k}`] = clamp(Math.round((lvlQ + off + (rnd() - 0.5) * 1.6) * 100) / 100, 1, 5);
+  /* ---- Évaluations : toutes les branches (formatif en décompression, puis 2 notes étayées, puis 2 notes normales) ---- */
+  const evalDates = ['2026-05-20', '2026-05-28', '2026-06-04', '2026-06-10', '2026-06-16'];
+  C.filter(c => !c.rec.EstCoaching).forEach((c, k) => {
+    const sujets = SUJETS[c.rec.Title] || ['Évaluation 1', 'Évaluation 2', 'Évaluation 3', 'Évaluation 4'];
+    evalDates.forEach((d0, j) => {
+      const date = plus(d0, (k % 3) - 1); // dates étalées selon la branche
+      const phase = phaseOf(date, V5);
+      const sujet = j === 0 ? `${sujets[0]} (diagnostic)` : sujets[Math.min(j - 1, sujets.length - 1)];
+      for (const s of E) {
+        const target = lerp(s.pr.note, date) + s.talent[c.rec.Title];
+        const rec = {
+          Title: `${s.p} ${s.n} · ${c.rec.Title} · ${sujet}`, EleveID: s.e.ID, InscriptionID: s.i.ID, CoursID: c.rec.ID, EnseignantID: c.rec.EnseignantID,
+          DateEval: date, Phase: phase, Sujet: sujet, Coefficient: j === 4 ? 2 : 1, ResultatFormatif: '', Note: null, Etayage: '',
+        };
+        if (phase === 'Décompression') rec.ResultatFormatif = target >= 4.6 ? 'Réussi seul' : target >= 3.8 ? 'Avec aide' : 'Pas encore';
+        else {
+          rec.Note = clamp(Math.round((target + (rnd() - 0.5) * 0.5) * 10) / 10, 1, 6);
+          if (phase === 'Remobilisation') rec.Etayage = pick(ETAYAGE);
+        }
+        add('RS_Evaluations', rec, date);
       }
-      rec[`D${d}_Boussole`] = clamp(Math.round(lvlB + (rnd() - 0.5) * 1.6), 1, 4);
+    });
+  });
+
+  /* ---- Bilans complets ---- */
+  for (const s of E) {
+    const b = BILANS_EX[s.prof];
+    const common = (type, date) => ({
+      Title: `${s.p} ${s.n} · ${type}`, InscriptionID: s.i.ID, EleveID: s.e.ID, TypeBilan: type,
+      CleUnique: `I${s.i.ID}-${{ 'Mise en route': 'MR', 'Intermédiaire': 'INT', 'Final': 'FIN' }[type]}`,
+      DateBilan: date, Participants: `${s.p}, ${PL} (coaching), ${s.tit}${type === 'Final' ? ', ME (coordination)' : ''}`,
+      DomainesPrioritaires: [], Objectif: '', PointsAppui: '', Fragilites: '', Avancee: '', AjustementObjectif: '', PlanRetour: '', ObjectifSortie: '',
+      PassationTitulaire: false, DatePassation: null, DateSignatureEleve: date, DateValidationCoord: plus(date, 1),
+    });
+    add('RS_Bilans', { ...common('Mise en route', '2026-05-20'), DomainesPrioritaires: b.dom.map(d => DOMAINES[d - 1]), Objectif: b.obj, PointsAppui: b.appui, Fragilites: b.frag }, '2026-05-20');
+    add('RS_Bilans', { ...common('Intermédiaire', '2026-06-03'), Avancee: b.avancee, AjustementObjectif: b.ajust, PlanRetour: b.esquisse }, '2026-06-03');
+    add('RS_Bilans', { ...common('Final', '2026-06-16'), PlanRetour: b.plan, ObjectifSortie: b.sortie, PassationTitulaire: true, DatePassation: '2026-06-18' }, '2026-06-16');
+  }
+
+  /* ---- CPS : entrée et sortie pour chacun ---- */
+  for (const s of E) {
+    for (const [moment, date, t] of [['Entrée', '2026-05-19', 0], ['Sortie', '2026-06-17', 1]]) {
+      const rec = { Title: `${s.p} ${s.n} – ${moment}`, EleveID: s.e.ID, InscriptionID: s.i.ID, DatePassation: date, Moment: moment };
+      const q = s.pr.cps[0] + (s.pr.cps[1] - s.pr.cps[0]) * t;
+      const b = s.pr.bou[t];
+      for (let d = 1; d <= 5; d++) {
+        const prio = BILANS_EX[s.prof].dom.includes(d) ? -0.35 : 0.1; // domaines prioritaires plus bas
+        for (const [k, off] of [['Eleve', 0.15], ['Titulaire', -0.25], ['Parents', 0.05]]) {
+          let v = q + prio + off + (rnd() - 0.5) * 0.5;
+          if (s.prof === 'aggrave' && t === 1 && d === 3 && k === 'Eleve') v = 3.6; // l'élève se voit bien, le titulaire non : écart à discuter
+          if (s.prof === 'aggrave' && t === 1 && d === 3 && k === 'Titulaire') v = 1.7;
+          rec[`D${d}_${k}`] = clamp(Math.round(v * 100) / 100, 1, 5);
+        }
+        rec[`D${d}_Boussole`] = clamp(b + (prio < 0 && t === 0 ? -1 : 0), 1, 4);
+      }
+      add('RS_CPS', rec, date);
     }
-    return add('RS_CPS', rec, date);
+  }
+
+  /* ---- Actions (volée terminée : la plupart closes) ---- */
+  const A = {
+    stable: [['Vérifier l\'agenda chaque mercredi avec le coach', 'Élève', 'Fait'], ['Transmettre l\'horaire de retour à la titulaire', 'Titulaire', 'Fait']],
+    petit1: [['Préparer une carte « je demande de l\'aide »', 'Élève', 'Fait'], ['Présenter la carte au titulaire', 'Titulaire', 'En cours']],
+    petit2: [['Fiche de préparation pour chaque évaluation', 'Élève', 'Fait'], ['Rendez-vous orientation pour la place d\'apprentissage', 'ET', 'À faire']],
+    net: [['Stratégie de pause en classe (respiration, reprise)', 'Élève', 'Fait'], ['Présenter la réussite en maths au titulaire', 'PL', 'Fait']],
+    aggrave: [['Venir avec le matériel complet', 'Élève', 'Abandonnée'], ['Point avec la famille sur la deuxième volée', 'ME', 'À faire'], ['Retour partiel en sport et musique', 'Titulaire', 'En cours']],
+    bon: [['Préparer un exposé de 5 minutes', 'Élève', 'Fait'], ['Confirmer le stage ASE', 'ET', 'Fait']],
   };
-  mkCPS(timeo, iTimeoPrev, '2026-05-19', 'Entrée', 2.6, 2);
-  mkCPS(timeo, iTimeoPrev, '2026-06-17', 'Sortie', 3.2, 3);
-  for (const s of E.filter(x => ['Léa', 'Noah', 'Kenan', 'Timéo'].includes(x.e.Prenom))) {
-    mkCPS(s, s.i, '2026-09-02', 'Entrée', s.prof === 'good' ? 3.8 : s.prof === 'fragile' ? 2.9 : 3.2, s.prof === 'fragile' ? 2 : 3);
+  for (const s of E) {
+    A[s.prof].forEach(([desc, resp, st], k) => add('RS_Actions', {
+      Title: desc.slice(0, 60), EleveID: s.e.ID, InscriptionID: s.i.ID, Description: desc, Responsable: resp, Statut: st,
+      Origine: k === 0 ? 'Mise en route' : 'Bilan final', Echeance: k === 0 ? '2026-06-05' : '2026-06-26', NotesSuivi: '',
+      DateCloture: ['Fait', 'Abandonnée'].includes(st) ? (k === 0 ? '2026-06-04' : '2026-06-17') : null,
+    }, k === 0 ? '2026-05-20' : '2026-06-16'));
   }
 
-  /* ---------- Actions ---------- */
-  const A = [
-    ['Léa', 'Noter les devoirs dans l\'agenda chaque jour', 'Élève', 'En cours', '2026-10-09', 'Mise en route'],
-    ['Noah', 'Préparer une liste de questions pour le titulaire', 'Élève', 'Fait', '2026-09-18', 'Mise en route'],
-    ['Kenan', 'Point avec la famille sur l\'organisation des devoirs', 'Parents', 'À faire', '2026-10-02', 'Mise en route'],
-    ['Inès', 'Rechercher deux métiers à explorer en stage', 'Élève', 'Fait', '2026-09-25', 'Mise en route'],
-    ['Maëlle', 'Rencontrer l\'enseignant·e de maths de la classe d\'origine', 'CM', 'À faire', '2026-10-09', 'Bilan intermédiaire'],
-    ['Timéo', 'Reprendre les exercices du chapitre en cours en maths', 'Élève', 'En cours', '2026-10-05', 'Mise en route'],
-    ['Léa', 'Transmettre l\'horaire de retour au titulaire', 'Titulaire', 'À faire', '2026-10-14', 'Bilan intermédiaire'],
-  ];
-  for (const [p, desc, resp, st, ech, orig] of A) {
-    const s = E.find(x => x.e.Prenom === p);
-    add('RS_Actions', {
-      Title: desc.slice(0, 60), EleveID: s.e.ID, InscriptionID: s.i.ID, Description: desc, Responsable: resp,
-      Statut: st, Origine: orig, Echeance: ech, NotesSuivi: '', DateCloture: st === 'Fait' ? addDays(ech, -1) : null,
-    }, '2026-09-03');
-  }
-
-  /* ---------- Tâches de l'équipe ---------- */
-  const TA = [
-    ['Préparer la séance de rentrée V2', 'PL', 'À faire', '2026-10-09'],
-    ['Envoyer les notes de V1 aux titulaires', 'OG', 'À faire', '2026-10-14'],
-    ['Réserver la salle de théâtre pour V2', 'OG', 'À faire', '2026-10-05'],
-    ['Rédiger les ancrages des 4 niveaux (proposition)', 'ME', 'En cours', '2026-10-30'],
-    ['Commander le matériel d\'arts visuels', 'VO', 'Terminée', '2026-09-20'],
-    ['Préparer une évaluation de maths de niveau classe', 'CM', 'À faire', '2026-10-08'],
-  ];
-  for (const [t, r, st, ech] of TA) {
-    add('RS_Taches', { Title: t, Description: '', Responsable: r, Statut: st, CreePar: 'PL', Echeance: ech, DateCloture: st === 'Terminée' ? ech : null, EleveID: null }, '2026-09-01');
-  }
-
-  /* ---------- Orientation (entreprises fictives, sans coordonnées) ---------- */
-  const ines = E[2];
-  add('RS_Stages', { Title: 'Inès Arolle · ASE', EleveID: ines.e.ID, InscriptionID: ines.i.ID, Metier: 'Assistante socio-éducative', Entreprise: 'Crèche fictive Les Marmottes', Statut: 'Prévu', DateDebut: '2026-10-12', DateFin: '2026-10-14', Retour: '' }, '2026-09-28');
-  add('RS_Stages', { Title: 'Inès Arolle · Laborantine', EleveID: ines.e.ID, InscriptionID: ines.i.ID, Metier: 'Laborantine', Entreprise: '', Statut: 'Demandé', DateDebut: null, DateFin: null, Retour: '' }, '2026-09-30');
-  add('RS_Stages', { Title: 'Timéo Sorbier · Polymécanicien', EleveID: timeo.e.ID, InscriptionID: iTimeoPrev.ID, Metier: 'Polymécanicien', Entreprise: 'Atelier fictif SA', Statut: 'Effectué', DateDebut: '2026-06-10', DateFin: '2026-06-12', Retour: 'Ponctuel, très motivé ; à l\'aise avec les consignes orales.' }, '2026-06-01');
-  add('RS_DocsOrientation', { Title: 'Inès Arolle · CV', EleveID: ines.e.ID, TypeDoc: 'CV', Destinataire: '', Statut: 'Terminé', DateMaj: '2026-09-29', Remarque: '' }, '2026-09-29');
-  add('RS_DocsOrientation', { Title: 'Inès Arolle · Lettre', EleveID: ines.e.ID, TypeDoc: 'Lettre de motivation', Destinataire: 'Crèche fictive Les Marmottes', Statut: 'En cours', DateMaj: '2026-10-01', Remarque: 'Relire la formule finale' }, '2026-10-01');
-  add('RS_DocsOrientation', { Title: 'Timéo Sorbier · CV', EleveID: timeo.e.ID, TypeDoc: 'CV', Destinataire: '', Statut: 'En cours', DateMaj: '2026-06-05', Remarque: '' }, '2026-06-05');
-
-  void iJules;
-  if (!exemples) {
-    // Départ à vide : on garde seulement les listes de référence (enseignant·es, cours, volées).
-    for (const l of Object.keys(lists)) if (!['RS_Enseignants', 'RS_Cours', 'RS_Volees'].includes(l)) lists[l] = [];
-  }
-  return { lists };
+  /* ---- Orientation (11CO) ---- */
+  const ines = E.find(x => x.prof === 'bon'), timeo = E.find(x => x.prof === 'petit2');
+  add('RS_Stages', { Title: 'Inès Arolle · ASE', EleveID: ines.e.ID, InscriptionID: ines.i.ID, Metier: 'Assistante socio-éducative', Entreprise: 'Crèche fictive Les Marmottes', Statut: 'Effectué', DateDebut: '2026-06-08', DateFin: '2026-06-10', Retour: 'Très à l\'aise avec les enfants ; ponctuelle.' }, '2026-06-01');
+  add('RS_Stages', { Title: 'Timéo Sorbier · Polymécanicien', EleveID: timeo.e.ID, InscriptionID: timeo.i.ID, Metier: 'Polymécanicien', Entreprise: 'Atelier fictif SA', Statut: 'Effectué', DateDebut: '2026-06-10', DateFin: '2026-06-12', Retour: 'Motivé ; consignes orales bien suivies.' }, '2026-06-01');
+  add('RS_DocsOrientation', { Title: 'Inès Arolle · CV', EleveID: ines.e.ID, TypeDoc: 'CV', Destinataire: '', Statut: 'Terminé', DateMaj: '2026-06-02', Remarque: '' }, '2026-06-02');
+  add('RS_DocsOrientation', { Title: 'Timéo Sorbier · Lettre', EleveID: timeo.e.ID, TypeDoc: 'Lettre de motivation', Destinataire: 'Atelier fictif SA', Statut: 'En cours', DateMaj: '2026-06-15', Remarque: 'Relire la formule finale' }, '2026-06-15');
 }
