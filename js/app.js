@@ -134,7 +134,7 @@ function gate() {
         'Rien n\'est conservé dans ce navigateur : les données sont relues dans le dossier OneDrive partagé à chaque ouverture.'),
       h('p', { class: 'small muted' }, supportsFolder()
         ? 'Première fois : choisissez le dossier partagé. Ensuite, un clic suffit (ou rien, si le navigateur garde l\'autorisation).'
-        : 'Sélectionnez tous les fichiers « RessourceS_… » du dossier partagé (Ctrl+A ou Cmd+A).'),
+        : h('span', null, 'Sélectionnez ', h('strong', null, 'tous'), ' les fichiers « RessourceS_… » du dossier partagé, pas seulement le vôtre (Ctrl+A ou Cmd+A).')),
       h('div', { class: 'btn-row', style: { marginTop: '12px' } },
         btn('Charger les données', () => charger()),
         btn('Commencer sans charger', () => { dismissLoad(); render(); }, 'ghost'))));

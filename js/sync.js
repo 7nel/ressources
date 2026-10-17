@@ -12,7 +12,7 @@
 //    pour charger, on sélectionne les fichiers du dossier (Ctrl+A).
 
 import { S, moi, isSandbox } from './state.js';
-import { toast, h } from './ui.js';
+import { toast, h, modal } from './ui.js';
 
 const META_KEY = 'ressources_echange_v1';
 const meta = { dirty: false, lastSave: null, lastLoad: null, folderName: null };
@@ -215,14 +215,32 @@ export async function charger() {
       toast(`Lecture du dossier impossible (${e.message}). Choisissez les fichiers à la main.`, 'err');
     }
   }
-  const inp = h('input', { type: 'file', accept: '.json,application/json', multiple: true, style: { display: 'none' } });
-  inp.addEventListener('change', async () => {
-    const texts = await Promise.all([...inp.files].map(f => f.text()));
-    inp.remove();
-    if (texts.length) report(await mergeTexts(texts));
-  });
-  document.body.appendChild(inp);
-  inp.click();
+  // Chargement manuel : rappeler de prendre TOUS les fichiers, pas seulement le sien.
+  const choisir = () => {
+    const inp = h('input', { type: 'file', accept: '.json,application/json', multiple: true, style: { display: 'none' } });
+    inp.addEventListener('change', async () => {
+      const files = [...inp.files];
+      const texts = await Promise.all(files.map(f => f.text()));
+      inp.remove();
+      if (!texts.length) return;
+      report(await mergeTexts(texts));
+      if (files.length === 1) {
+        const seulLeMien = files[0].name.toLowerCase().startsWith(myFileName().replace(/\.json$/i, '').toLowerCase());
+        toast(seulLeMien
+          ? 'Seul votre fichier a été chargé : vous ne voyez pas les saisies des collègues. Rechargez en sélectionnant tous les fichiers du dossier.'
+          : 'Un seul fichier chargé. Pour voir tout le travail de l\'équipe, sélectionnez tous les fichiers du dossier.', 'err');
+      }
+    });
+    document.body.appendChild(inp);
+    inp.click();
+  };
+  modal('Charger les versions de l\'équipe', h('div', { class: 'form' },
+    h('p', null, 'Dans le dossier OneDrive partagé, sélectionnez ', h('strong', null, 'tous les fichiers « RessourceS_… »'), ', pas seulement le vôtre : chaque fichier contient le travail d\'un·e collègue.'),
+    h('ul', { class: 'small', style: { margin: 0, paddingLeft: '20px' } },
+      h('li', null, 'Ordinateur : ouvrez le dossier, puis Ctrl+A (Windows) ou Cmd+A (Mac), puis Ouvrir.'),
+      h('li', null, 'Téléphone : « Sélectionner » en haut à droite, touchez chaque fichier, puis Ouvrir.')),
+    h('p', { class: 'hint' }, 'Rien n\'est remplacé : les versions sont additionnées, la modification la plus récente l\'emporte.')),
+  [{ label: 'Annuler', variant: 'secondary' }, { label: 'Choisir les fichiers', onClick: () => { choisir(); } }]);
 }
 
 /** À l'ouverture : si le dossier est relié et déjà autorisé, charge sans rien demander. */
