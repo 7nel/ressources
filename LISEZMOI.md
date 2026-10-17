@@ -27,6 +27,17 @@ Pour mettre à jour : **Add file → Upload files** à nouveau, avec les fichier
 - **Réglages → Tout effacer** : repart à vide sur cet appareil.
 - **Aucun vrai nom d'élève**, même pour essayer : le code est public et la version de test n'est pas validée (LIPDA).
 
+## 2 ter. Navigateur et installation comme application
+
+- **Navigateur recommandé : Microsoft Edge ou Google Chrome, sur ordinateur.** Ce sont les seuls à pouvoir lire et écrire
+  directement dans le dossier OneDrive (sauvegarde automatique, chargement à l'ouverture).
+- **Installer comme une application** (fenêtre à part, icône dans le menu Démarrer ou le Dock) :
+  - Edge : menu `…` → Applications → **Installer RessourceS** (ou l'icône ⊕ dans la barre d'adresse).
+  - Chrome : icône d'installation dans la barre d'adresse, ou menu `⋮` → Caster, enregistrer et partager → **Installer la page en tant qu'application**.
+  - iPhone/iPad (Safari) : Partager → **Sur l'écran d'accueil**. Android (Chrome) : menu → **Installer l'application**.
+    Sur téléphone, l'échange reste manuel (pas d'accès direct au dossier).
+- L'application installée se met à jour seule : c'est toujours la version publiée sur GitHub.
+
 ## 2 bis. Échange provisoire par OneDrive
 
 Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échange ») et le synchroniser sur chaque ordinateur
