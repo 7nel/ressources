@@ -109,12 +109,6 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .nav-btn:hover { background: var(--accent-soft); }
 .nav-btn[aria-current="page"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .sidebar .spacer { flex: 1; }
-.sync { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 8px; display: flex; flex-direction: column; gap: 2px; }
-.sync-title { font-size: .75rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; padding: 0 12px 4px; }
-.sync .nav-btn { font-size: .92rem; min-height: 40px; padding: 8px 12px; }
-.sync .nav-btn.dirty { background: var(--warn-soft); color: var(--warn); font-weight: 700; }
-.dot-dirty { width: 9px; height: 9px; border-radius: 50%; background: var(--warn); margin-left: auto; flex: none; }
-.sync-meta { font-size: .78rem; color: var(--muted); padding: 2px 12px; display: flex; flex-direction: column; }
 .whoami { font-size: .85rem; color: var(--muted); padding: 8px 10px; border-top: 1px solid var(--line); margin-top: 8px; }
 .whoami strong { color: var(--ink); display: block; }
 
@@ -394,3 +388,35 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .date-hidden { position: absolute; left: 0; top: 100%; width: 1px !important; height: 1px; min-height: 0 !important; opacity: 0; pointer-events: none; padding: 0 !important; border: 0 !important; }
 
 @media (max-width: 760px) { .btn { white-space: normal; text-align: center; } }
+
+/* ---------- Échange avec l'équipe ---------- */
+.sync { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
+.sync-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: 0 4px; }
+.sync-save, .sync-load {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  border-radius: 999px; padding: 9px 14px; min-height: 42px; cursor: pointer; font-weight: 700; font-size: .92rem;
+  transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s;
+}
+.sync-save svg, .sync-load svg { width: 18px; height: 18px; flex: none; }
+.sync-save { background: var(--accent); color: var(--accent-ink); border: 1.5px solid var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+.sync-save:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.sync-save.dirty { background: var(--warn); border-color: var(--warn); color: #fff; box-shadow: 0 0 0 4px var(--warn-soft); }
+.sync-load { background: transparent; color: var(--accent); border: 1.5px solid var(--line-strong); }
+.sync-load:hover { border-color: var(--accent); background: var(--accent-soft); }
+.sync-meta { font-size: .78rem; color: var(--muted); display: flex; flex-direction: column; gap: 2px; padding: 0 4px; }
+.sync-status { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.sync-status.ok { color: var(--accent); }
+.sync-status.warn { color: var(--warn); }
+.dot-dirty { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+@media (prefers-reduced-motion: reduce) { .sync-save, .sync-load { transition: none; } }
+
+/* Barre compacte : écrans étroits, où le menu de gauche devient une barre en bas */
+.sync-bar-wrap { display: none; }
+@media (max-width: 760px) {
+  .sync-bar-wrap { display: block; position: sticky; top: 0; z-index: 25; background: var(--card); border-bottom: 1px solid var(--line); }
+  .sync-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; font-size: .82rem; }
+  .sync-bar-btns { display: flex; gap: 6px; }
+  .sync-bar .sync-save, .sync-bar .sync-load { width: auto; min-height: 36px; padding: 6px 12px; font-size: .85rem; }
+  .sync-bar .sync-load { padding: 6px 10px; }
+  .sidebar .sync { display: none; }
+}

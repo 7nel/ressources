@@ -50,7 +50,7 @@ const MENU = [
   ['notes', 'Notes', 'chart'], ['taches', 'Tâches', 'check'], ['parametres', 'Réglages', 'gear'],
 ];
 
-let mainEl, sidebarEl, bannerEl;
+let mainEl, sidebarEl, bannerEl, syncBarEl;
 
 function parseHash() {
   const raw = location.hash.replace(/^#\/?/, '');
@@ -71,6 +71,7 @@ function renderBanner() {
 
 function renderSidebar(active) {
   const m = moi();
+  if (syncBarEl) syncBarEl.replaceChildren(isSandbox() && S.settings.moiId ? syncBlock(true) : '');
   sidebarEl.replaceChildren(
     h('div', { class: 'brand' }, 'Ressource', h('span', null, 'S')),
     ...MENU.map(([r, label, ic]) => {
@@ -86,17 +87,25 @@ function renderSidebar(active) {
   );
 }
 
-function syncBlock() {
+const hhmm = iso => { const d = new Date(iso); const today = new Date().toDateString() === d.toDateString();
+  return `${today ? '' : fmtDate(iso.slice(0, 10), { year: false }) + ' '}${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+
+/** Bloc d'échange : dans le menu de gauche (ordinateur) ou en barre compacte en haut (écran étroit). */
+function syncBlock(compact = false) {
   const m = getMeta();
-  const hhmm = iso => { const d = new Date(iso); return `${fmtDate(iso.slice(0, 10), { year: false })} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
+  const dirty = isDirty();
+  const status = dirty
+    ? h('span', { class: 'sync-status warn' }, h('span', { class: 'dot-dirty' }), 'Non sauvegardé')
+    : m.lastSave ? h('span', { class: 'sync-status ok' }, '✓ ', `Enregistré ${hhmm(m.lastSave)}`) : h('span', { class: 'sync-status' }, 'Pas encore sauvegardé');
+  const save = h('button', { type: 'button', class: `sync-save ${dirty ? 'dirty' : ''}`, onClick: () => sauvegarder(), title: 'Enregistrer ma version dans le dossier partagé' },
+    icon('upload'), h('span', null, 'Sauvegarder'));
+  const load = h('button', { type: 'button', class: 'sync-load', onClick: () => charger(), title: 'Charger les versions de l\'équipe' },
+    icon('download'), h('span', { class: compact ? 'sr-only' : null }, 'Charger'));
+  if (compact) return h('div', { class: 'sync-bar' }, status, h('div', { class: 'sync-bar-btns' }, load, save));
   return h('div', { class: 'sync' },
     h('div', { class: 'sync-title' }, 'Échange avec l\'équipe'),
-    h('button', { type: 'button', class: `nav-btn ${isDirty() ? 'dirty' : ''}`, onClick: () => sauvegarder() },
-      icon('upload'), h('span', null, 'Sauvegarder ma version'), isDirty() && h('span', { class: 'dot-dirty', title: 'Modifications non sauvegardées' })),
-    h('button', { type: 'button', class: 'nav-btn', onClick: () => charger() }, icon('download'), h('span', null, 'Charger les versions')),
-    h('div', { class: 'sync-meta' },
-      isDirty() ? h('span', { class: 'danger-text' }, 'Modifications non sauvegardées') : (m.lastSave ? `Sauvegardé ${hhmm(m.lastSave)}` : 'Jamais sauvegardé'),
-      m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
+    save, load,
+    h('div', { class: 'sync-meta' }, status, m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
 }
 
 async function render() {
@@ -152,7 +161,8 @@ async function start() {
   bannerEl = h('div', { class: 'banner', role: 'note' });
   sidebarEl = h('nav', { class: 'sidebar', 'aria-label': 'Menu principal' });
   mainEl = h('main', { id: 'main', tabindex: '-1' });
-  root.replaceChildren(bannerEl, h('div', { class: 'shell' }, sidebarEl, mainEl));
+  syncBarEl = h('div', { class: 'sync-bar-wrap' });
+  root.replaceChildren(bannerEl, syncBarEl, h('div', { class: 'shell' }, sidebarEl, mainEl));
   mainEl.replaceChildren(h('p', { class: 'muted' }, 'Chargement…'));
 
   loadSettings();
