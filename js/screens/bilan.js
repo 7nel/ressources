@@ -75,8 +75,8 @@ export function render(params) {
 
   let preuvesCard = null;
   if (type !== 'Mise en route') {
-    const p = preuves(i);
-    preuvesCard = card('Ce que dit le dossier', { cls: 'preuves', hint: 'Repères pour un bilan sur preuves. Seuils indicatifs, à valider en équipe ; aucune moyenne de C/T.' },
+    const p = preuves(i, existing?.DateBilan || refDate());
+    preuvesCard = card('Ce que dit le dossier', { cls: 'preuves', hint: `Traces jusqu'au ${fmtDate(existing?.DateBilan || refDate())}, une ligne par branche (moyenne pondérée ≥ 4 : réussite). Seuils indicatifs, à valider en équipe ; aucune moyenne de C/T.` },
       h('div', { class: 'grid grid-2' },
         h('div', null, h('h3', null, 'Réussites'), p.ok.length ? h('ul', null, p.ok.map(x => h('li', null, x))) : empty('—')),
         h('div', null, h('h3', null, 'Fragilités'), p.frag.length ? h('ul', null, p.frag.map(x => h('li', null, x))) : empty('—'))));

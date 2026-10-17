@@ -126,29 +126,40 @@ export function synthese(insc) {
 }
 
 /** Panneau « Ce que dit le dossier » pour les bilans (seuils indicatifs, à valider en équipe). */
-export function preuves(insc) {
+export function preuves(insc, jusquau = refDate()) {
+  // Seules les traces disponibles à la date du bilan comptent ; une ligne par branche.
   const ok = [], frag = [];
-  const evals = st().where('RS_Evaluations', e => e.InscriptionID === insc.ID);
-  for (const e of sortBy(evals, 'DateEval')) {
-    const c = cours(e.CoursID)?.Title || '';
-    const d = e.DateEval.split('-').reverse().slice(0, 2).join('.');
-    if (typeof e.Note === 'number') (e.Note >= 4 ? ok : frag).push(`${c} · ${e.Sujet} : ${e.Note.toFixed(1).replace('.', ',')} (${d})${e.Etayage ? ' — avec étayage' : ''}`);
-    else if (e.ResultatFormatif === 'Réussi seul') ok.push(`${c} · ${e.Sujet} : réussi seul (${d})`);
-    else if (e.ResultatFormatif === 'Pas encore') frag.push(`${c} · ${e.Sujet} : pas encore (${d})`);
+  const fmt = n => n.toFixed(1).replace('.', ',');
+  const evals = st().where('RS_Evaluations', e => e.InscriptionID === insc.ID && e.DateEval <= jusquau);
+  const parBranche = [...groupBy(sortBy(evals, 'DateEval'), e => e.CoursID)]
+    .sort((a, b) => (cours(a[0])?.Title || '').localeCompare(cours(b[0])?.Title || '', 'fr'));
+  for (const [cid, list] of parBranche) {
+    const c = cours(cid)?.Title || '';
+    const notes = list.filter(e => typeof e.Note === 'number');
+    const formatif = list.filter(e => e.ResultatFormatif);
+    if (notes.length) {
+      const avg = notes.reduce((m, e) => m + e.Note * (e.Coefficient || 1), 0) / notes.reduce((m, e) => m + (e.Coefficient || 1), 0);
+      const nEt = notes.filter(e => e.Etayage).length;
+      const etaye = nEt === notes.length ? 'avec étayage' : nEt ? 'en partie avec étayage' : '';
+      const detail = [notes.length > 1 ? `moyenne ${fmt(avg)}` : '', etaye].filter(Boolean).join(', ');
+      (avg >= 4 ? ok : frag).push(`${c} : ${notes.map(e => fmt(e.Note)).join(' → ')}${detail ? ` (${detail})` : ''}`);
+    } else if (formatif.length) {
+      const r = formatif.map(e => e.ResultatFormatif.toLowerCase()).join(', ');
+      (formatif.every(e => e.ResultatFormatif === 'Réussi seul') ? ok : formatif.some(e => e.ResultatFormatif === 'Pas encore') ? frag : ok).push(`${c} : ${r} (formatif)`);
+    }
   }
-  const sv = st().where('RS_Suivis', s => s.InscriptionID === insc.ID);
+  const sv = st().where('RS_Suivis', s => s.InscriptionID === insc.ID && s.DateSuivi <= jusquau);
   const bons = sv.filter(s => s.Comportement >= 3 && s.Travail >= 3).length;
   const bas = sv.filter(s => s.Comportement <= 2 || s.Travail <= 2);
   if (sv.length) ok.push(`${bons} séance${bons > 1 ? 's' : ''} sur ${sv.length} avec C et T à 3 ou 4`);
   if (bas.length) {
-    const parCours = [...groupBy(bas, s => s.CoursID)].map(([cid, l]) => `${cours(cid)?.Title} (${l.length})`).join(', ');
-    frag.push(`${bas.length} séance${bas.length > 1 ? 's' : ''} avec un niveau 1 ou 2 : ${parCours}`);
+    const parCours = [...groupBy(bas, s => s.CoursID)].sort((a, b) => b[1].length - a[1].length).slice(0, 4).map(([cid, l]) => `${cours(cid)?.Title} (${l.length})`).join(', ');
+    frag.push(`${bas.length} séance${bas.length > 1 ? 's' : ''} avec un niveau 1 ou 2, surtout : ${parCours}`);
   }
   const acts = st().where('RS_Actions', a => a.InscriptionID === insc.ID);
-  for (const a of acts.filter(a => a.Statut === 'Fait')) ok.push(`Action réalisée : ${a.Description}`);
-  const today = refDate();
-  for (const a of acts.filter(a => !['Fait', 'Abandonnée'].includes(a.Statut) && a.Echeance && a.Echeance < today)) frag.push(`Action en retard : ${a.Description}`);
-  const dv = st().where('RS_Devoirs', d => d.InscriptionID === insc.ID && !d.SansConsequence);
+  for (const a of acts.filter(a => a.Statut === 'Fait' && (!a.DateCloture || a.DateCloture <= jusquau))) ok.push(`Action réalisée : ${a.Description}`);
+  for (const a of acts.filter(a => !['Fait', 'Abandonnée'].includes(a.Statut) && a.Echeance && a.Echeance < jusquau)) frag.push(`Action en retard : ${a.Description}`);
+  const dv = st().where('RS_Devoirs', d => d.InscriptionID === insc.ID && !d.SansConsequence && d.DateConstat <= jusquau);
   if (dv.length) {
     const rattr = dv.filter(d => d.Statut === 'Rattrapé').length;
     frag.push(`${dv.length} devoir${dv.length > 1 ? 's' : ''} non fait${dv.length > 1 ? 's' : ''} (hors décompression), dont ${rattr} rattrapé${rattr > 1 ? 's' : ''}`);
