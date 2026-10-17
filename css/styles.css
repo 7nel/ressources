@@ -137,7 +137,6 @@ main { padding: 24px 28px 48px; min-width: 0; }
   main { padding: 16px 16px 96px; }
   .banner { font-size: .78rem; padding: 4px 10px; gap: 8px; }
   .banner-long { display: none; }
-  .btn { white-space: normal; text-align: center; }
   h1 { font-size: 1.35rem; }
 }
 
@@ -393,3 +392,5 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .date-btn:hover { color: var(--accent); border-bottom-color: var(--accent); }
 .date-btn .pen { color: var(--accent); }
 .date-hidden { position: absolute; left: 0; top: 100%; width: 1px !important; height: 1px; min-height: 0 !important; opacity: 0; pointer-events: none; padding: 0 !important; border: 0 !important; }
+
+@media (max-width: 760px) { .btn { white-space: normal; text-align: center; } }
