@@ -60,7 +60,8 @@ function parseHash() {
 }
 
 function renderBanner() {
-  if (!isSandbox()) { bannerEl.hidden = true; return; }
+  bannerEl.hidden = true; return; // bandeau retiré à la demande de l'équipe
+  // eslint-disable-next-line no-unreachable
   bannerEl.replaceChildren(
     h('strong', null, 'VERSION DE TEST'),
     h('span', { class: 'banner-long' }, 'Élèves fictifs uniquement : ne saisissez aucun vrai nom d\'élève.'),

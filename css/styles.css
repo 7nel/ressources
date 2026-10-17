@@ -91,7 +91,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .banner strong { letter-spacing: .02em; }
 .banner button { background: transparent; border: 1px solid currentColor; color: inherit; border-radius: 999px; padding: 1px 10px; cursor: pointer; font-size: .8rem; }
 
-.shell { display: grid; grid-template-columns: 220px 1fr; min-height: calc(100vh - 32px); }
+.shell { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
 .sidebar {
   background: var(--card); border-right: 1px solid var(--line);
   padding: 18px 12px; display: flex; flex-direction: column; gap: 4px;
