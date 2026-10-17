@@ -188,12 +188,12 @@ function buildExemples({ add, rnd, pick, clamp, T, C, coursByTitle, V5 }) {
 
   const E = ELEVES_EX.map(x => {
     const pr = PROFILS[x.prof];
-    const e = add('RS_Eleves', { Title: `${x.n} ${x.p}`, Nom: x.n, Prenom: x.p, CleDoublon: cleDoublon(x.n, x.p), Statut: 'Actif' }, CRE);
+    const e = add('RS_Eleves', { Title: `${x.n} ${x.p}`, Nom: x.n, Prenom: x.p, CleDoublon: cleDoublon(x.n, x.p), Statut: 'Archivé' }, CRE);
     const i = add('RS_Inscriptions', {
       Title: `${x.n} ${x.p} – ${V5.Title}`, EleveID: e.ID, VoleeID: V5.ID, CleUnique: `E${e.ID}-V${V5.ID}`,
       Degre: x.deg, ClasseOrigine: x.cl, Titulaire: x.tit,
       ProfFrancais: pick(SIGLES), ProfAllemand: pick(SIGLES), ProfAnglais: pick(SIGLES), ProfMaths: pick(SIGLES), ProfSciences: pick(SIGLES),
-      StatutInscription: 'En cours',
+      StatutInscription: 'Terminée',
     }, CRE);
     // talent par branche : décalage fixe, pour que les branches ne soient pas toutes identiques
     const talent = Object.fromEntries(C.map(c => [c.rec.Title, (rnd() - 0.5) * 0.8]));

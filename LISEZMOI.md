@@ -20,7 +20,7 @@ Pour mettre à jour : **Add file → Upload files** à nouveau, avec les fichier
 ## 2. Ce que les collègues doivent savoir
 
 - Chacun·e choisit **ses initiales** au premier lancement (PL, ME, CM, ET, DAH, OG, DA, VO, XG) : cela simule la connexion Microsoft et affiche ses propres cours. PL et ME ont le rôle coordination.
-- **Départ à vide** : aucun élève ; enseignant·es, cours et volées sont déjà en place. Pour retrouver des élèves fictifs d'exemple : `DONNEES_EXEMPLE: true` dans `js/config.js`.
+- **Élèves d'exemple** : six élèves fictifs **archivés** dans la volée terminée 2025-26 V5 (Élèves → filtre « Archivé » ; Notes → volée « 2025-26 V5 »). Profils : sans évolution, deux petites améliorations, nette amélioration, aggravation, bon niveau stable. Notes dans toutes les branches, bilans et CPS complets. Pour les retirer : `DONNEES_EXEMPLE: false` dans `js/config.js`.
 - **Réglages → Date simulée** : par défaut le 26.10.2026 (début de V2). Les boutons
   « Décompression », « Remobilisation », « Ré-exposition » permettent de tester chaque phase.
 - **Échange avec l'équipe** (menu de gauche) : voir la section 2 bis.
