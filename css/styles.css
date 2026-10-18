@@ -435,3 +435,14 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .moy { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 22px; padding: 0 6px; border-radius: 999px; font-weight: 700; font-size: .78rem; font-variant-numeric: tabular-nums; }
 .moy.l1 { background: var(--l1); color: var(--l1-ink); } .moy.l2 { background: var(--l2); color: var(--l2-ink); }
 .moy.l3 { background: var(--l3); color: var(--l3-ink); } .moy.l4 { background: var(--l4); color: var(--l4-ink); }
+
+/* Profil et mode clair/sombre (bas du menu) */
+.whoami { display: flex; align-items: center; gap: 6px; }
+.who-btn { flex: 1; display: inline-flex; align-items: center; gap: 8px; background: none; border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; color: var(--ink); font-weight: 700; min-height: 38px; }
+.who-btn svg { width: 18px; height: 18px; color: var(--accent); }
+.who-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+.theme-btn { width: 38px; height: 38px; border-radius: 50%; border: 1.5px solid var(--line); background: none; color: var(--ink); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.theme-btn svg { width: 18px; height: 18px; }
+.theme-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
+.welcome-list { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
+@media (max-width: 760px) { .sync-bar .theme-btn { width: 36px; height: 36px; } }

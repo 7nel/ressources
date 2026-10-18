@@ -103,7 +103,10 @@ export function aFaire(date, v, { restreint, coursIds }) {
     }
   }
   // Mes tâches en tête : toutes celles qui me sont attribuées et pas terminées, par échéance (sans échéance : à la fin).
-  const mesTaches = st().where('RS_Taches', t => t.Statut !== 'Terminée' && m && t.Responsable === m.Title)
+  // Tâches d'exemple : visibles seulement quand on regarde la volée d'exemple (sinon elles resteraient « en retard » pour toujours)
+  const v0 = v;
+  const visible = t => !String(t.UID || '').startsWith('seed-') || (v0 && t.Echeance && v0.DateDebut <= t.Echeance && t.Echeance <= v0.DateFin);
+  const mesTaches = st().where('RS_Taches', t => t.Statut !== 'Terminée' && m && t.Responsable === m.Title && visible(t))
     .sort((a, b) => (a.Echeance || '9999').localeCompare(b.Echeance || '9999'));
   for (const t of mesTaches) {
     const late = t.Echeance && t.Echeance < date;
@@ -113,7 +116,7 @@ export function aFaire(date, v, { restreint, coursIds }) {
   }
   // Coordination : tâches de l'équipe de la semaine ou en retard (hors les miennes, déjà listées)
   if (isCoord()) {
-    for (const t of tachesDeLaSemaine(date).filter(t => t.Responsable !== m?.Title)) {
+    for (const t of tachesDeLaSemaine(date).filter(t => t.Responsable !== m?.Title && visible(t))) {
       const late = t.Echeance < date;
       items.push({ prio: late ? 1 : 5, kind: late ? 'Tâche de l\'équipe en retard' : 'Tâche de l\'équipe', title: t.Title, meta: `${t.Responsable} · ${t.Echeance.split('-').reverse().join('.')}`, late, go: ['taches', { id: t.ID }] });
     }

@@ -21,10 +21,9 @@ Pour mettre à jour : **Add file → Upload files** à nouveau, avec les fichier
 
 - Chacun·e choisit **ses initiales** au premier lancement (PL, ME, CM, ET, DAH, OG, DA, VO, XG) : cela simule la connexion Microsoft et affiche ses propres cours. PL et ME ont le rôle coordination.
 - **Élèves d'exemple** : six élèves fictifs **archivés** dans la volée terminée 2025-26 V5 (Élèves → filtre « Archivé » ; Notes → volée « 2025-26 V5 »). Profils : sans évolution, deux petites améliorations, nette amélioration, aggravation, bon niveau stable. Notes dans toutes les branches, bilans et CPS complets. Pour les retirer : `DONNEES_EXEMPLE: false` dans `js/config.js`.
-- **Réglages → Date simulée** : par défaut le 26.10.2026 (début de V2). Les boutons
-  « Décompression », « Remobilisation », « Ré-exposition » permettent de tester chaque phase.
+- **Date** : l'app s'ouvre à la date du jour ; un clic sur la date de l'accueil permet d'en choisir une autre, « voir la volée d'exemple » ouvre la semaine du 15.06.2026.
 - **Échange avec l'équipe** (menu de gauche) : voir la section 2 bis.
-- **Réglages → Tout effacer** : repart à vide sur cet appareil.
+- **Profil** : clic sur ses initiales en bas du menu (ou en haut sur téléphone). **Mode clair / sombre** : bouton lune / soleil à côté.
 - **Aucun vrai nom d'élève**, même pour essayer : le code est public et la version de test n'est pas validée (LIPDA).
 
 ## 2 ter. Navigateur et installation comme application
@@ -76,7 +75,7 @@ Un point orange signale des modifications non sauvegardées ; le navigateur aver
 | Saisie | Saisie de groupe (cotations ou évaluation), saisie individuelle, évaluation selon la phase (R5) |
 | Notes | Filtres, moyennes pondérées, graphique ; Ma branche |
 | Tâches | Mes tâches, toutes, terminées |
-| Réglages | Profil, date simulée, libellés des niveaux, volées, enseignant·es, cours, données |
+| (hors menu) | Page de réglages pour la coordination, par l'adresse `…/ressources/#/parametres` : volées, enseignant·es, cours et familles, libellés des niveaux, dossier d'échange |
 
 Règles reprises du cahier des charges : R1 à R13 (phase calculée, retenue, doublons, correction 7 jours, pas de moyenne C/T, CPS 4 regards…).
 
@@ -103,14 +102,14 @@ e-mail dans `RS_Enseignants` ; les permissions réelles restent celles du site S
 ## 4 bis. Familles de cours et coaching
 
 - Chaque cours appartient à une famille : **Branches** (français, maths, sciences, langues), **Projet** (ACM, arts visuels,
-  musique, sport, théâtre) ou **Méthodo / Orientation**. Réglages → Cours → Famille. La synthèse du dossier affiche la
+  musique, sport, théâtre) ou **Méthodo / Orientation**. page de réglages (`#/parametres`) → Cours → Famille. La synthèse du dossier affiche la
   moyenne hebdomadaire de C et de T par famille, avec un graphique de tendance.
 - Le **coaching** n'a ni cotation C/T ni note : seulement le suivi écrit (travaillé, progrès / vigilance).
 - SharePoint : ajouter à la liste `RS_Cours` une colonne Choix `Groupe` (Branches, Projet, Méthodo / Orientation).
 
 ## 5. Points à vérifier
 
-- Dates de phases des volées V2 à V5 : proposition, à corriger dans Réglages → Volées.
+- Dates de phases des volées V2 à V5 : proposition, à corriger dans la page de réglages (`#/parametres`) → Volées.
 - Seuils arbitraires : écart CPS ≥ 1,5 ; bilan intermédiaire « à faire » dès remobilisation + 14 jours ; final dans les 10 derniers jours.
 - La police Atkinson Hyperlegible est chargée depuis Google Fonts (l'adresse IP du visiteur est transmise à Google).
   Pour la version réelle, l'héberger dans le dépôt.

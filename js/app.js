@@ -43,11 +43,12 @@ const ROUTES = {
   cps: { mod: CPS, nav: 'eleves' },
   cpssaisie: { mod: CPSSaisie, nav: 'eleves' },
   coaching: { mod: Coaching, nav: 'eleves' },
-  parametres: { mod: Parametres, nav: 'parametres' },
+  parametres: { mod: Parametres, nav: 'parametres' }, // plus dans le menu ; accessible par #/parametres (coordination)
+  profil: { mod: { render: () => welcome(true) }, nav: 'profil' },
 };
 const MENU = [
   ['accueil', 'Accueil', 'home'], ['eleves', 'Élèves', 'users'], ['groupe', 'Saisie', 'pen'],
-  ['notes', 'Notes', 'chart'], ['taches', 'Tâches', 'check'], ['parametres', 'Réglages', 'gear'],
+  ['notes', 'Notes', 'chart'], ['taches', 'Tâches', 'check'],
 ];
 
 let mainEl, sidebarEl, bannerEl, syncBarEl;
@@ -71,7 +72,7 @@ function renderBanner() {
 
 function renderSidebar(active) {
   const m = moi();
-  if (syncBarEl) syncBarEl.replaceChildren(isSandbox() && S.settings.moiId ? syncBlock(true) : '');
+  if (syncBarEl) syncBarEl.replaceChildren(isSandbox() && S.settings.moiId ? syncBlock(true) : h('div', { class: 'sync-bar' }, h('span'), themeBtn()));
   sidebarEl.replaceChildren(
     h('div', { class: 'brand' }, 'Ressource', h('span', null, 'S')),
     ...MENU.map(([r, label, ic]) => {
@@ -82,8 +83,10 @@ function renderSidebar(active) {
       }, icon(ic), h('span', null, label));
     }),
     h('div', { class: 'spacer' }),
-    isSandbox() && syncBlock(),
-    h('div', { class: 'whoami' }, 'Connecté·e : ', h('strong', { style: { display: 'inline' } }, m ? m.Title : '—')),
+    isSandbox() && S.settings.moiId && syncBlock(),
+    S.settings.moiId && h('div', { class: 'whoami' },
+      h('button', { type: 'button', class: 'who-btn', onClick: () => nav('profil'), title: 'Changer de profil' }, icon('user'), h('span', null, m ? m.Title : '—')),
+      themeBtn()),
   );
 }
 
@@ -91,6 +94,17 @@ const hhmm = iso => { const d = new Date(iso); const today = new Date().toDateSt
   return `${today ? '' : fmtDate(iso.slice(0, 10), { year: false }) + ' '}${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
 
 /** Bloc d'échange : dans le menu de gauche (ordinateur) ou en barre compacte en haut (écran étroit). */
+/** Bascule clair / sombre (le seul réglage laissé à l'écran). */
+function isDark() {
+  const t = S.settings.theme;
+  return t === 'dark' || (t !== 'light' && window.matchMedia?.('(prefers-color-scheme: dark)').matches);
+}
+function themeBtn() {
+  const dark = isDark();
+  return h('button', { type: 'button', class: 'theme-btn', 'aria-label': dark ? 'Passer en mode clair' : 'Passer en mode sombre', title: dark ? 'Mode clair' : 'Mode sombre',
+    onClick: () => { S.settings.theme = isDark() ? 'light' : 'dark'; saveSettings(); applyTheme(); render(); } }, icon(dark ? 'sun' : 'moon'));
+}
+
 function syncBlock(compact = false) {
   const m = getMeta();
   const dirty = isDirty();
@@ -101,7 +115,9 @@ function syncBlock(compact = false) {
     icon('upload'), h('span', null, 'Sauvegarder'));
   const load = h('button', { type: 'button', class: 'sync-load', onClick: () => charger(), title: 'Charger les versions de l\'équipe' },
     icon('download'), h('span', { class: compact ? 'sr-only' : null }, 'Charger'));
-  if (compact) return h('div', { class: 'sync-bar' }, status, h('div', { class: 'sync-bar-btns' }, load, save));
+  if (compact) return h('div', { class: 'sync-bar' }, status, h('div', { class: 'sync-bar-btns' },
+    h('button', { type: 'button', class: 'sync-load', onClick: () => nav('profil'), title: 'Changer de profil' }, h('span', null, moi()?.Title || '—')),
+    themeBtn(), load, save));
   return h('div', { class: 'sync' },
     h('div', { class: 'sync-title' }, 'Échange avec l\'équipe'),
     save, load,
@@ -115,6 +131,7 @@ async function render() {
   renderBanner();
   renderSidebar(route.nav === 'saisie' ? 'groupe' : route.nav);
   if (!S.settings.moiId && name !== 'parametres') { mainEl.replaceChildren(welcome()); return; }
+  if (name === 'profil') { mainEl.replaceChildren(welcome(true)); return; }
   if (isSandbox() && S.settings.sansCopie !== false && !wasLoadedThisSession() && name !== 'parametres') { mainEl.replaceChildren(gate()); return; }
   try {
     const page = await route.mod.render(params);
@@ -140,20 +157,25 @@ function gate() {
         btn('Commencer sans charger', () => { dismissLoad(); render(); }, 'ghost'))));
 }
 
-function welcome() {
-  const sel = select([{ value: '', label: 'Choisir…' }, ...enseignantsActifs().map(e => ({ value: e.ID, label: e.Title }))], '');
+function welcome(changer = false) {
+  const sel = select([{ value: '', label: 'Choisir…' }, ...enseignantsActifs().map(e => ({ value: e.ID, label: e.Title }))], S.settings.moiId || '');
+  const ok = () => {
+    if (!sel.value) return;
+    S.settings.moiId = Number(sel.value); S.settings.vueTout = false; saveSettings(); nav('accueil'); render();
+  };
   return h('div', { class: 'page welcome' },
     card(null, {},
-      h('h1', null, 'Bienvenue dans RessourceS'),
-      h('p', { class: 'muted', style: { marginTop: '8px' } },
-        'Ceci est une version de test. Saisissez uniquement des élèves fictifs.'),
-      notice('Ne saisissez aucun vrai nom d\'élève, même pour essayer.', 'warn'),
+      h('h1', null, changer ? 'Changer de profil' : 'Bienvenue dans RessourceS'),
+      h('p', { style: { marginTop: '10px' } }, 'Choisissez vos initiales. L\'application s\'adapte alors à votre travail :'),
+      h('ul', { class: 'welcome-list' },
+        h('li', null, h('strong', null, 'Accueil'), ' : vos cours, vos alertes et vos retenues, et vos tâches en tête de « À faire ».'),
+        h('li', null, h('strong', null, 'Saisie'), ' : la saisie de groupe s\'ouvre directement sur votre cours.'),
+        h('li', null, h('strong', null, 'Suivis et notes'), ' : vos saisies sont enregistrées à vos initiales ; vous pouvez corriger les vôtres pendant 7 jours.'),
+        h('li', null, h('strong', null, 'Échange'), ' : votre version est enregistrée dans le dossier partagé sous votre nom (RessourceS_initiales.json).')),
       h('div', { class: 'form', style: { marginTop: '14px' } },
-        field('Vos initiales', sel, { help: 'Ce choix simule la connexion Microsoft : l\'accueil affiche vos cours. Vous pourrez en changer dans Réglages.' }),
-        h('div', null, btn('Commencer', () => {
-          if (!sel.value) return;
-          S.settings.moiId = Number(sel.value); saveSettings(); nav('accueil'); render();
-        })))));
+        field('Vos initiales', sel),
+        h('div', { class: 'btn-row' }, btn(changer ? 'Valider' : 'Commencer', ok), changer && btn('Annuler', () => nav('accueil'), 'secondary'))),
+      h('p', { class: 'hint', style: { marginTop: '12px' } }, 'Vous pourrez changer de profil à tout moment en cliquant sur vos initiales, en bas du menu.')));
 }
 
 async function start() {
