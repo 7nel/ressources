@@ -55,6 +55,22 @@ function tile(num, mot, label, { alert = false, onClick } = {}) {
   return t;
 }
 
+/** Amène une zone de l'accueil à l'écran et y place le focus (pour le clavier et les lecteurs d'écran). */
+function vers(el) {
+  if (!el) return;
+  const calme = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.scrollIntoView({ behavior: calme ? 'auto' : 'smooth', block: 'start' });
+  el.setAttribute('tabindex', '-1');
+  el.focus({ preventScroll: true });
+}
+/** Mène au premier élément d'un type de « À faire » (ouvre le groupe s'il est replié). */
+function versAFaire(kind) {
+  const el = document.querySelector(`#carte-afaire [data-kind="${kind}"]`);
+  if (!el) return vers(document.getElementById('carte-afaire'));
+  if (el.getAttribute('aria-expanded') === 'false') el.click();
+  vers(el);
+}
+
 export function render() {
   const date = refDate();
   // Volée d'exemple (élèves fictifs archivés) : permet de voir l'accueil « en vrai » en dehors des volées.
@@ -126,22 +142,22 @@ export function render() {
   };
   // Deux signaux à suivre dans une même tuile : élèves sans suivi et élèves au niveau 1.
   const tuileSuivi = () => {
-    const ligne = (n, label) => h('div', { class: `ligne-suivi ${n > 0 ? 'alert' : ''}` },
+    const ligne = (n, label, onClick) => h(n > 0 ? 'button' : 'div', { class: `ligne-suivi ${n > 0 ? 'alert' : ''}`, type: n > 0 ? 'button' : null, onClick: n > 0 ? onClick : null },
       h('div', { class: 'num' }, n, h('span', { class: 'mot' }, pl(n, 'élève', 'élèves'))), h('div', { class: 'lab' }, label));
     return h('div', { class: 'tile tile-multi' },
-      ligne(sans, restreint ? 'sans suivi dans mes cours' : 'sans suivi cette semaine'),
-      ligne(al.length, 'au niveau 1 cette semaine'));
+      ligne(sans, restreint ? 'sans suivi dans mes cours' : 'sans suivi cette semaine', () => versAFaire('Sans suivi cette semaine')),
+      ligne(al.length, 'au niveau 1 cette semaine', () => vers(document.getElementById('carte-niveau1'))));
   };
   const tiles = [
     // Pas de retenue en décompression : la tuile serait toujours à zéro.
-    phaseNow !== 'Décompression' && tile(col.length, pl(col.length, 'élève', 'élèves'), `${pl(col.length, 'retenu', 'retenus')} vendredi`),
+    phaseNow !== 'Décompression' && tile(col.length, pl(col.length, 'élève', 'élèves'), `${pl(col.length, 'retenu', 'retenus')} vendredi`, { onClick: col.length ? () => vers(document.getElementById('carte-retenue')) : null }),
     v && tuileTravaux(),
     tuileSuivi(),
   ].filter(Boolean);
 
   /* ---- Alertes ---- */
   const L = labels();
-  const alertCard = card('Niveau 1 cette semaine', { hint: 'Un niveau 1 en comportement ou en travail cette semaine. Indicateur de tendance, à discuter.' },
+  const alertCard = card('Niveau 1 cette semaine', { id: 'carte-niveau1', hint: 'Un niveau 1 en comportement ou en travail cette semaine. Indicateur de tendance, à discuter.' },
     al.length ? h('ul', { class: 'list' }, al.map(a => h('li', null,
       h('button', { type: 'button', class: 'item', onClick: () => nav('dossier', { eleve: a.eleveId }) },
         pastille(1),
@@ -171,7 +187,7 @@ export function render() {
   }
 
   /* ---- Retenue du vendredi ---- */
-  const retenueCard = card('Retenue du vendredi', { hint: 'Durée = min(60 ; 15 + 5 × (n − 1)) minutes, n = devoirs non faits de la semaine. Pas de retenue en décompression.' },
+  const retenueCard = card('Retenue du vendredi', { id: 'carte-retenue', hint: 'Durée = min(60 ; 15 + 5 × (n − 1)) minutes, n = devoirs non faits de la semaine. Pas de retenue en décompression.' },
     phaseNow === 'Décompression' ? notice('Décompression : devoirs enregistrés sans conséquence.', 'info') : null,
     col.length ? h('ul', { class: 'list' }, col.map(c => h('li', null,
       h('button', { type: 'button', class: 'item', onClick: () => nav('dossier', { eleve: c.eleveId }) },
@@ -182,7 +198,7 @@ export function render() {
 
   /* ---- À faire ---- */
   const todo = aFaire(date, v, { restreint, coursIds });
-  const afItem = (t, imbrique = false) => h('button', { type: 'button', class: `item ${t.late ? 'late' : ''}`, onClick: () => nav(...t.go) },
+  const afItem = (t, imbrique = false) => h('button', { type: 'button', 'data-kind': t.kind, class: `item ${t.late ? 'late' : ''}`, onClick: () => nav(...t.go) },
     h('div', { class: 'main' }, !imbrique && h('div', { class: 'meta' }, t.kind), h('div', { class: 'title' }, t.title), t.meta && h('div', { class: 'meta' }, t.meta)),
     h('span', { 'aria-hidden': 'true', class: 'muted' }, '›'));
   // Les types répétitifs (un élève ou un bilan par ligne) sont regroupés en une ligne qui se déplie.
@@ -196,6 +212,7 @@ export function render() {
   // Trois sections (mes tâches, élèves, équipe) ; à l'intérieur, l'ordre de priorité reste celui de aFaire().
   const kindDe = r => r.t ? r.t.kind : r.g.kind;
   const parSection = todoRows.map((r, i) => ({ r, i, sec: sectionDe(kindDe(r)) })).sort((a, b) => a.sec - b.sec || a.i - b.i);
+  let majBascule = () => {};
   const todoLis = parSection.flatMap(({ r, sec }, k) => {
     const entete = k === 0 || parSection[k - 1].sec !== sec ? [h('li', { class: 'todo-section' }, h('h3', null, SECTIONS[sec]))] : [];
     return [...entete, ligne(r)];
@@ -211,19 +228,33 @@ export function render() {
     const detail = h('div', { id: detailId, class: 'sub-list', hidden: !ouvert }, h('ul', { class: 'list' }, items.map(t => h('li', null, afItem(t, true)))));
     const fleche = h('span', { 'aria-hidden': 'true', class: 'muted', style: { transform: ouvert ? 'rotate(-90deg)' : 'rotate(90deg)' } }, '›'); // vers le bas : déplie ; vers le haut : replie ; « › » droit reste réservé aux liens
     const apercu = late ? items.slice(0, 3).map(t => t.title).join(' · ') : '';
-    const entete = h('button', { type: 'button', class: `item ${late ? 'late' : ''}`, 'aria-expanded': String(ouvert), 'aria-controls': detailId, onClick: e => {
+    const entete = h('button', { type: 'button', 'data-kind': kind, class: `item ${late ? 'late' : ''}`, 'aria-expanded': String(ouvert), 'aria-controls': detailId, onClick: e => {
       const ouvre = detail.hidden;
       detail.hidden = !ouvre;
       ouverts.set(kind, ouvre);
       e.currentTarget.setAttribute('aria-expanded', String(ouvre));
       fleche.style.transform = ouvre ? 'rotate(-90deg)' : 'rotate(90deg)';
+      majBascule();
     } },
     h('div', { class: 'main' }, h('div', { class: 'title' }, REGROUPE[kind](items.length, restreint)), apercu && h('div', { class: 'meta apercu' }, apercu)),
     late && badge('en retard', 'danger'), fleche);
     return h('li', null, entete, detail);
   }
-  const todoCard = card('À faire', { hint: restreint ? 'Limité à vos cours, à vos actions et à vos tâches.' : null, actions: [btn('Mes tâches', () => nav('taches'), 'secondary small')] },
+  // « Tout déplier » / « Tout replier » : un seul bouton pour lire toute la journée.
+  const entetes = () => [...todoCard.querySelectorAll('button.item[aria-controls]')];
+  const basculeTout = h('button', { type: 'button', class: 'btn ghost small' });
+  const plie = () => entetes().every(b => b.getAttribute('aria-expanded') === 'true');
+  majBascule = () => { basculeTout.textContent = plie() ? 'Tout replier' : 'Tout déplier'; };
+  basculeTout.addEventListener('click', () => {
+    const ouvre = !plie();
+    entetes().forEach(b => { if ((b.getAttribute('aria-expanded') === 'true') !== ouvre) b.click(); });
+    majBascule();
+  });
+  const nbGroupes = parSection.filter(({ r }) => r.g && r.g.items.length > 1).length;
+  basculeTout.textContent = 'Tout déplier';
+  const todoCard = card('À faire', { id: 'carte-afaire', hint: restreint ? 'Limité à vos cours, à vos actions et à vos tâches.' : null, actions: [nbGroupes > 0 && basculeTout, btn('Mes tâches', () => nav('taches'), 'secondary small')] },
     todoLis.length ? h('ul', { class: 'list' }, todoLis) : empty('Rien en attente.'));
+  majBascule();
 
   const syncNotice = isSandbox() && S.settings.sansCopie === false && !wasLoadedThisSession()
     ? h('div', { class: 'notice info btn-row', style: { justifyContent: 'space-between' } },

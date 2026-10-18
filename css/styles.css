@@ -163,7 +163,7 @@ button.tile:hover { border-color: var(--accent); }
 .tile .lab { color: var(--muted); font-size: .9rem; margin-top: 2px; }
 .tile-duo { min-width: 0; }
 /* Tuiles de l'accueil : la large (devoirs et évaluations) au milieu ; si la place manque, elle passe en haut sur toute la largeur
-   et les deux étroites se mettent côte à côte ; en dessous de ~360 px, trois lignes pleine largeur. */
+   et les deux étroites se mettent côte à côte ; en dessous de ~300 px, trois lignes pleine largeur. */
 .tiles-wrap { container-type: inline-size; }
 .tiles { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); }
 .tiles-2 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
@@ -173,7 +173,7 @@ button.tile:hover { border-color: var(--accent); }
   .tiles-3 > .tile-large { grid-column: 1 / -1; order: -1; }
 }
 @container (max-width: 519px) { .tiles-2 { grid-template-columns: minmax(0, 1fr); } }
-@container (max-width: 359px) { .tiles-3 { grid-template-columns: minmax(0, 1fr); } }
+@container (max-width: 299px) { .tiles-3 { grid-template-columns: minmax(0, 1fr); } }
 .tile-duo .duo { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 20px; }
 .tile-duo .num, .tile-multi .num { font-size: 1.5rem; }
 .ligne-suivi + .ligne-suivi { margin-top: 8px; }
@@ -421,7 +421,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 
 /* ---------- Échange avec l'équipe ---------- */
 .sync { border-top: 1px solid var(--line); padding-top: 12px; margin-top: 8px; display: flex; flex-direction: column; gap: 8px; }
-.sync-title { font-size: .72rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; padding: 0 4px; }
+.sync-title { font-size: .82rem; font-weight: 700; color: var(--muted); padding: 0 4px; }
 .sync-save, .sync-load {
   display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
   border-radius: 999px; padding: 9px 14px; min-height: 42px; cursor: pointer; font-weight: 700; font-size: .92rem;
@@ -502,3 +502,8 @@ main:focus, main h1:focus { outline: none; }
 .todo-section { padding: 14px 2px 2px; }
 .todo-section:first-child { padding-top: 0; }
 .todo-section h3 { margin: 0; font-size: .9rem; font-weight: 700; color: var(--muted); }
+button.ligne-suivi { display: block; width: 100%; background: none; border: 0; border-radius: 8px; padding: 4px 6px; color: inherit; font: inherit; text-align: center; cursor: pointer; }
+button.ligne-suivi:hover { background: var(--accent-soft); }
+
+/* Zones atteintes depuis les tuiles : ne pas finir sous la barre fixe en haut sur écran étroit */
+.card, #carte-afaire button.item { scroll-margin-top: 72px; }
