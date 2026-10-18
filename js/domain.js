@@ -31,6 +31,8 @@ export const STATUTS_TACHE = ['À faire', 'En cours', 'Terminée'];
 export const STATUTS_STAGE = ['Demandé', 'Prévu', 'Effectué', 'Annulé'];
 export const TYPES_DOC = ['CV', 'Lettre de motivation', 'Autre'];
 export const STATUTS_DOC = ['À faire', 'En cours', 'Terminé'];
+export const DEF_C = 'respect et ponctualité';
+export const DEF_T = 'matériel et mise au travail';
 export const DEFAULT_LEVEL_LABELS = ['désengagé', 'engagement fragile', 'globalement engagé', 'engagé'];
 
 /* ---------- Dates (chaînes ISO AAAA-MM-JJ, calculs en UTC pour éviter les décalages) ---------- */

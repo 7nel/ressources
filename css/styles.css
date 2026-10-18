@@ -420,3 +420,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
   .sync-bar .sync-load { padding: 6px 10px; }
   .sidebar .sync { display: none; }
 }
+
+/* Définition de C et T, au-dessus de la légende des niveaux */
+.level-legend-wrap { display: flex; flex-direction: column; gap: 6px; }
+.ct-def { display: flex; gap: 6px 20px; flex-wrap: wrap; font-size: .88rem; color: var(--ink); }
+.ct-def strong { color: var(--accent); }

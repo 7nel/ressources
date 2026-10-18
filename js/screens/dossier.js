@@ -30,7 +30,7 @@ function syntheseCard(i) {
           ? h('span', { class: 'cell' }, list.slice(0, 2).map(s => ctPair(s.Comportement, s.Travail, L)), list.length > 2 && h('span', { class: 'more' }, `+${list.length - 2}`))
           : h('span', { class: 'none', 'aria-label': 'aucun suivi' }, '·')))))));
   return card('Synthèse hebdomadaire', {
-    hint: 'Toutes les cotations en pastilles, aucune moyenne (R10). C = comportement, T = travail. Bandes : phase de la semaine.',
+    hint: 'Toutes les cotations en pastilles, aucune moyenne (R10). C = comportement (respect et ponctualité), T = travail (matériel et mise au travail). Bandes : phase de la semaine.',
   }, h('div', { class: 'scroll-x' }, table));
 }
 

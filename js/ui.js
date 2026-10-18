@@ -1,5 +1,5 @@
 // Petits outils d'affichage. Tout texte passe par textContent : pas d'injection possible.
-import { PHASE_CLASS } from './domain.js';
+import { PHASE_CLASS, DEF_C, DEF_T } from './domain.js';
 
 export function h(tag, props, ...children) {
   const el = document.createElement(tag);
@@ -50,7 +50,7 @@ export function pastille(level, { sm = false, title } = {}) {
   return h('span', { class: `pastille l${lv} ${sm ? 'sm' : ''}`, title: title || `niveau ${lv}` }, lv);
 }
 export function ctPair(c, t, labels, sm = true) {
-  return h('span', { class: 'ct', title: `Comportement ${c} (${labels[c - 1] || ''}) · Travail ${t} (${labels[t - 1] || ''})` },
+  return h('span', { class: 'ct', title: `Comportement (${DEF_C}) : ${c} – ${labels[c - 1] || ''} · Travail (${DEF_T}) : ${t} – ${labels[t - 1] || ''}` },
     h('span', { class: 'k' }, 'C'), pastille(c, { sm }), h('span', { class: 'k' }, 'T'), pastille(t, { sm }));
 }
 export function phaseBadge(phase) {
@@ -107,7 +107,11 @@ export function levelPicker(value, onChange, { labels, compact = false, name = '
   return wrap;
 }
 export function levelLegend(labels) {
-  return h('div', { class: 'level-legend' }, [1, 2, 3, 4].map(n => h('span', null, pastille(n, { sm: true }), labels[n - 1])));
+  return h('div', { class: 'level-legend-wrap' },
+    h('div', { class: 'ct-def' },
+      h('span', null, h('strong', null, 'C'), ` = comportement : ${DEF_C}`),
+      h('span', null, h('strong', null, 'T'), ` = travail : ${DEF_T}`)),
+    h('div', { class: 'level-legend' }, [1, 2, 3, 4].map(n => h('span', null, pastille(n, { sm: true }), labels[n - 1]))));
 }
 
 /* ---------- Modale, confirmation, toast ---------- */

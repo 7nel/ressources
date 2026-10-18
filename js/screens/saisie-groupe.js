@@ -61,8 +61,8 @@ export function render(params) {
       const r = rows[e.ID] ||= { c: null, t: null, dv: false };
       return h('div', { class: `grp-row ${done ? 'done' : ''}` },
         h('div', { class: 'who' }, nomEleve(e), h('small', null, done ? 'déjà saisi pour ce cours et cette date' : `${i.Degre} · ${i.ClasseOrigine}`)),
-        done ? h('span') : h('div', { class: 'pk' }, h('span', { class: 'lab' }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
-        done ? h('span') : h('div', { class: 'pk' }, h('span', { class: 'lab' }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
+        done ? h('span') : h('div', { class: 'pk' }, h('span', { class: 'lab', title: 'Comportement : respect et ponctualité' }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
+        done ? h('span') : h('div', { class: 'pk' }, h('span', { class: 'lab', title: 'Travail : matériel et mise au travail' }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
         done ? h('span') : checkbox('devoir non fait', r.dv, val => { r.dv = val; }));
     }));
     async function save() {
