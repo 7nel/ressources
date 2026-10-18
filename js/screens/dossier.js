@@ -4,7 +4,7 @@ import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, d
 import { synthese, bilanDe, cpsDe } from '../queries.js';
 
 // Affichage du dossier : revient au défaut à chaque ouverture (changement d'adresse), pas lors d'un simple rafraîchissement.
-const DEFAUT = () => ({ showAll: false, chrono: false, graph: true, table: 'moyennes', cours: [], menuCours: false });
+const DEFAUT = () => ({ showAll: false, chrono: false, graph: true, table: true, groupes: [], aide: false, cours: [], menuCours: false });
 const state = DEFAUT();
 window.addEventListener('hashchange', () => Object.assign(state, DEFAUT()));
 const basculer = (arr, id) => (arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]);
@@ -66,10 +66,18 @@ function syntheseCard(i) {
   const nowCls = k => weeks[k].sk === nowSk ? 'now' : null;
   const body = [];
   for (const m of moyennes) {
+    const ouvert = state.groupes.includes(m.groupe);
+    const nCours = rows.filter(r => r.groupe === m.groupe).length;
     body.push(h('tr', { class: 'grp-head' },
-      h('th', { scope: 'row' }, h('span', { class: 'dot', style: { background: GROUPE_COULEUR[m.groupe], marginRight: '6px' } }), `${m.groupe} · moyenne`),
+      h('th', { scope: 'row' }, h('button', {
+        type: 'button', class: 'grp-toggle', 'aria-expanded': String(ouvert),
+        title: ouvert ? 'Replier les cours' : `Afficher les ${nCours} cours`,
+        onClick: () => { state.groupes = basculer(state.groupes, m.groupe); refresh(); },
+      }, h('span', { class: 'chevron', 'aria-hidden': 'true' }, ouvert ? '▾' : '▸'),
+        h('span', { class: 'dot', style: { background: GROUPE_COULEUR[m.groupe], marginRight: '6px' } }), `${m.groupe} · moyenne`,
+        h('span', { class: 'muted', style: { fontWeight: 400 } }, ` (${nCours})`))),
       m.semaines.map((w, k) => h('td', { class: nowCls(k) }, w.n ? h('span', { class: 'cell row' }, moyChip('C', w.c), moyChip('T', w.t)) : h('span', { class: 'none' }, '·')))));
-    if (state.table === 'complet') for (const r of rows.filter(r => r.groupe === m.groupe)) {
+    if (ouvert) for (const r of rows.filter(r => r.groupe === m.groupe)) {
       body.push(h('tr', null,
         h('th', { scope: 'row', class: 'sub' }, h('span', { class: 'dot', style: { background: r.cours.Couleur || 'var(--muted)', marginRight: '6px' } }), r.cours.Title),
         r.cells.map((list, k) => h('td', { class: nowCls(k) },
@@ -94,21 +102,23 @@ function syntheseCard(i) {
     h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '560px' }, svg: tendanceSVG(weeks, moyennes, nowSk) })));
   drawChart();
 
-  // Par défaut : graphique + tableau des seules moyennes ; « Complet » ajoute une ligne par cours.
-  const reglages = h('div', { class: 'btn-row syn-ctrl' },
-    btn(state.graph ? 'Masquer le graphique' : 'Afficher le graphique', () => { state.graph = !state.graph; refresh(); }, 'ghost small', { 'aria-pressed': String(state.graph) }),
-    h('span', { class: 'small muted' }, 'Tableau :'),
-    seg([{ value: 'moyennes', label: 'Moyennes' }, { value: 'complet', label: 'Complet' }, { value: 'masque', label: 'Masqué' }], state.table, v => { state.table = v; refresh(); }, 'Tableau'));
-  return card('Synthèse hebdomadaire', {},
-    levelLegend(L, { compact: true }),
-    h('details', { class: 'sub-fold' },
-      h('summary', null, 'Comment lire cette synthèse'),
-      h('p', { class: 'hint' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; le tableau complet ajoute les pastilles de chaque cours. Le coaching n'est pas coté.`)),
-    reglages,
+  // Par défaut : graphique + tableau des seules moyennes ; un clic sur une moyenne déplie ses cours.
+  const aide = h('button', {
+    type: 'button', class: 'aide-rond', 'aria-expanded': String(state.aide), 'aria-label': 'Comment lire cette synthèse',
+    title: 'Comment lire cette synthèse', onClick: () => { state.aide = !state.aide; refresh(); },
+  }, '?');
+  return card('Synthèse hebdomadaire', {
+    actions: [
+      btn(state.graph ? 'Masquer le graphique' : 'Afficher le graphique', () => { state.graph = !state.graph; refresh(); }, 'ghost small', { 'aria-pressed': String(!state.graph) }),
+      btn(state.table ? 'Masquer le tableau' : 'Afficher le tableau', () => { state.table = !state.table; refresh(); }, 'ghost small', { 'aria-pressed': String(!state.table) }),
+    ],
+  },
+    h('div', { class: 'syn-legende' }, aide, levelLegend(L, { compact: true })),
+    state.aide && h('p', { class: 'hint aide-texte' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; cliquez sur une moyenne pour voir les pastilles de chaque cours. Le coaching n'est pas coté.`),
     state.graph ? chartBox : null,
-    state.table !== 'masque' ? [h('div', { class: 'scroll-x' }, table),
+    state.table ? [h('div', { class: 'scroll-x' }, table),
       h('p', { class: 'hint scroll-note' }, 'Faites défiler le tableau vers la droite pour voir les autres semaines.')] : null,
-    !state.graph && state.table === 'masque' ? h('p', { class: 'hint' }, 'Graphique et tableau masqués.') : null);
+    !state.graph && !state.table ? h('p', { class: 'hint' }, 'Graphique et tableau masqués.') : null);
 }
 
 /** Fil des 14 derniers jours : suivis, devoirs, évaluations et actions, jour par jour, du plus récent au plus ancien. */
