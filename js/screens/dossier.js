@@ -14,25 +14,24 @@ export function canEditSuivi(s) {
 
 const GROUPE_COULEUR = { 'Branches': 'var(--cat1)', 'Projet': 'var(--cat2)', 'Méthodo / Orientation': 'var(--cat3)' };
 const fmt1 = v => v == null ? '' : v.toFixed(1).replace('.', ',');
-const niveau = v => Math.max(1, Math.min(4, Math.round(v)));
 function moyChip(lettre, v) {
   if (v == null) return null;
-  return h('span', { class: 'ct' }, h('span', { class: 'k' }, lettre), h('span', { class: `moy l${niveau(v)}` }, fmt1(v)));
+  return h('span', { class: 'ct' }, h('span', { class: 'k' }, lettre), h('span', { class: 'moy' }, fmt1(v)));
 }
 
 /** Tendance : moyenne hebdomadaire par famille de cours, C, T ou les deux. */
 const tendState = { vue: 'CT' };
 function tendanceSVG(weeks, moyennes, nowSk) {
-  const W = 760, H = 250, pl = 40, pr = 150, pt = 16, pb = 40;
+  const W = 760, H = 250, pl = 40, pr = 170, pt = 16, pb = 40;
   const n = weeks.length;
   const x = k => pl + (n === 1 ? (W - pl - pr) / 2 : (W - pl - pr) * k / (n - 1));
   const y = v => pt + (H - pt - pb) * (1 - (v - 1) / 3);
   const val = m => tendState.vue === 'C' ? m.c : tendState.vue === 'T' ? m.t : (m.c == null ? null : (m.c + m.t) / 2);
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tendance hebdomadaire des cotations par famille de cours, de 1 à 4. Les valeurs sont dans le tableau ci-dessous.">`;
-  for (let v = 1; v <= 4; v++) s += `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl - 10}" y="${y(v) + 4}" text-anchor="end" font-size="12" fill="var(--muted)">${v}</text>`;
+  for (let v = 1; v <= 4; v++) s += `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl - 10}" y="${y(v) + 4}" text-anchor="end" font-size="14" fill="var(--muted)">${v}</text>`;
   weeks.forEach((w, k) => {
     if (w.sk === nowSk) s += `<rect x="${x(k) - 14}" y="${pt}" width="28" height="${H - pt - pb}" fill="var(--accent-soft)"/>`;
-    s += `<text x="${x(k)}" y="${H - pb + 18}" text-anchor="middle" font-size="12" fill="var(--muted)">S${w.n}</text>`;
+    s += `<text x="${x(k)}" y="${H - pb + 18}" text-anchor="middle" font-size="14" fill="var(--muted)">S${w.n}</text>`;
     s += `<rect x="${x(k) - 14}" y="${H - pb + 26}" width="28" height="4" rx="2" fill="var(--${({ 'Décompression': 'ph1', 'Remobilisation': 'ph2', 'Ré-exposition': 'ph3' })[w.phase]}-strong)"/>`;
   });
   const labels = [];
@@ -51,7 +50,7 @@ function tendanceSVG(weeks, moyennes, nowSk) {
   // étiquettes directes à droite, écartées pour ne pas se chevaucher
   labels.sort((a, b) => a.y - b.y);
   for (let k = 1; k < labels.length; k++) if (labels[k].y - labels[k - 1].y < 18) labels[k].y = labels[k - 1].y + 18;
-  for (const l of labels) s += `<circle cx="${W - pr + 14}" cy="${l.y}" r="5" fill="${l.col}"/><text x="${W - pr + 24}" y="${l.y + 4}" font-size="13" fill="var(--ink)">${l.text}</text>`;
+  for (const l of labels) s += `<circle cx="${W - pr + 14}" cy="${l.y}" r="5" fill="${l.col}"/><text x="${W - pr + 24}" y="${l.y + 4}" font-size="14" fill="var(--ink)">${l.text}</text>`;
   return s + '</svg>';
 }
 

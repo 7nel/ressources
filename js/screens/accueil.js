@@ -7,8 +7,7 @@ import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
 import { retenues, alertes, progres, sansSuivi, aFaire, travauxSemaine } from '../queries.js';
 
 const fmt1 = v => v.toFixed(1).replace('.', ',');
-const niveau = v => Math.max(1, Math.min(4, Math.round(v)));
-const moy = v => h('span', { class: `moy l${niveau(v)}` }, fmt1(v));
+const moy = v => h('span', { class: 'moy' }, fmt1(v));
 /** « C 2,0 → 3,0 » : moyenne hebdomadaire avant et après. */
 const hausse = (lettre, [avant, apres]) => h('span', { class: 'ct' },
   h('span', { class: 'k' }, lettre), moy(avant), h('span', { 'aria-hidden': 'true', class: 'muted' }, '→'), h('span', { class: 'sr-only' }, 'vers'), moy(apres));
