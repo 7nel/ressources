@@ -15,12 +15,12 @@ export function render(params) {
   const editing = params.id ? S.store.get('RS_Suivis', params.id) : null;
   if (editing) {
     const allowed = isCoord() || (moi()?.ID === editing.EnseignantID && daysBetween(String(editing.Created).slice(0, 10), refDate()) <= 7);
-    if (!allowed) return h('div', { class: 'page' }, notice('Ce suivi ne peut plus être modifié : l\'auteur dispose de 7 jours, ensuite seule la coordination peut corriger (R7).', 'warn'), btn('Retour', () => back('accueil'), 'secondary'));
+    if (!allowed) return h('div', { class: 'page' }, notice('Ce suivi ne peut plus être modifié : l\'auteur dispose de 7 jours, ensuite seule la coordination peut corriger.', 'warn'), btn('Retour', () => back('accueil'), 'secondary'));
   }
   const mine = mesCours();
   const f = editing ? { ...editing } : {
     EleveID: params.eleve ? Number(params.eleve) : null,
-    CoursID: params.cours ? Number(params.cours) : (mine[0]?.ID || null),
+    CoursID: params.cours ? Number(params.cours) : (mine.length === 1 ? mine[0].ID : null), // plusieurs cours : à choisir, pas de présélection au hasard
     DateSuivi: refDate(), Portee: 'Séance', Comportement: null, Travail: null,
     Observation: '', CoachTravaille: '', CoachProgres: '',
   };
@@ -96,7 +96,7 @@ export function render(params) {
         h('div', { class: 'row' }, field('Élève', eleveSel), field('Cours', coursSel)),
         h('div', { class: 'row' },
           field('Date', dateIn, { help: phase ? null : undefined }),
-          field('Portée', seg(['Séance', 'Semaine'], f.Portee, val => { f.Portee = val; draw(); }, 'Portée'), { help: 'Par séance ou pour la semaine, au choix (R3).' })),
+          field('Portée', seg(['Séance', 'Semaine'], f.Portee, val => { f.Portee = val; draw(); }, 'Portée'), { help: 'Par séance ou pour la semaine, au choix.' })),
         h('div', { class: 'btn-row' }, h('span', { class: 'muted small' }, 'Phase :'), phaseBadge(phase),
           v && h('span', { class: 'muted small' }, `${v.Title}`),
           f.EleveID && !i && h('span', { class: 'danger-text small' }, 'Date hors de la volée de cet élève.')),

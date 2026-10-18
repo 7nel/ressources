@@ -95,7 +95,7 @@ export function render() {
       h('h1', null, `Bonjour ${m ? m.Title.split(' ')[0] : ''}`),
       h('div', { class: 'sub date-line' },
         h('button', { type: 'button', class: 'date-btn', onClick: openPicker, title: 'Choisir une autre date' },
-          `${fmtDateLong(date)} · semaine ${sk % 100}`, h('span', { 'aria-hidden': 'true', class: 'pen' }, ' ✎')),
+          `${fmtDateLong(date)} · semaine ${sk % 100}`),
         picker,
         !isToday && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(null); nav('accueil'); } }, 'revenir à aujourd\'hui'),
         exemple && !(exemple.DateDebut <= date && date <= exemple.DateFin) && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(DATE_EXEMPLE); nav('accueil'); } }, 'voir la volée d\'exemple'))),
