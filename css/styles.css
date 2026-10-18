@@ -303,7 +303,7 @@ button.item { min-height: 44px; }
 .empty { color: var(--muted); font-style: italic; padding: 8px 2px; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { border: 1.5px solid var(--line-strong); background: var(--card); border-radius: 10px; padding: 6px 12px; cursor: pointer; text-align: left; }
-.chip[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.chip[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); } /* sélection : bordure seulement, pas de fond */
 .chip .meta { font-size: .875rem; color: var(--muted); display: block; }
 
 table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
@@ -423,7 +423,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .radar-grid.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .radar-grid.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .radar-item { margin: 0; padding: 10px; border: 1.5px solid var(--line); border-radius: 10px; min-width: 0; }
-.radar-item.current { border-color: var(--accent); background: var(--accent-soft); }
+.radar-item.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .radar-item figcaption { text-align: center; }
 .radar-item .radar-wrap svg { width: 100%; }
 @media (max-width: 900px) { .radar-grid.n3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
