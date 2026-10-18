@@ -101,6 +101,13 @@ export class LocalAdapter {
       const byUid = new Map(local.map(r => [r.UID, r]));
       for (const src of incoming[list] || []) {
         if (!src || !src.UID) continue;
+        // Données d'exemple : générées par le code, identiques pour tous. On ne les fusionne pas
+        // (un fichier d'une version précédente ne doit pas les ramener) ; on garde seulement la correspondance des ID.
+        if (String(src.UID).startsWith('seed-')) {
+          const ex = byUid.get(src.UID);
+          if (ex) idMap[list].set(src.ID, ex.ID);
+          continue;
+        }
         const inc = { ...src };
         for (const [k, target] of Object.entries(FK)) {
           if (inc[k] != null && idMap[target]?.has(inc[k])) inc[k] = idMap[target].get(inc[k]);

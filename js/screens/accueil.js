@@ -2,7 +2,7 @@ import { S, isSandbox, refDate, setDateCourante, voleeAt, volees, inscriptionsEn
 import { h, card, btn, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
 import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, nextVolee, lastVolee, mondayOf, addDays, weeksOfVolee } from '../domain.js';
 import { CONFIG } from '../config.js';
-const DATE_EXEMPLE = '2026-06-10'; // mercredi, semaine 4 de la volée d'exemple (ré-exposition)
+const DATE_EXEMPLE = '2026-06-17'; // mercredi de la dernière semaine de la volée d'exemple
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
 import { retenues, alertes, sansSuivi, devoirsOuverts, aFaire, suivisDeSemaine } from '../queries.js';
 
@@ -73,7 +73,7 @@ export function render() {
       notice(`Pas de volée à cette date (vacances ou pause).${nv ? ` Prochaine volée : ${nv.Title}, dès le ${fmtDate(nv.DateDebut)}.` : ''}`, 'info'),
       lv && h('div', { class: 'btn-row', style: { marginTop: '10px' } },
         btn(`Afficher la dernière semaine de ${lv.Title}`, () => { setDateCourante(addDays(lv.DateFin, -2)); nav('accueil'); }, 'secondary'),
-        exemple && lv.ID !== exemple.ID && btn('Voir la volée d\'exemple (élèves fictifs)', () => { setDateCourante(DATE_EXEMPLE); nav('accueil'); }, 'secondary')));
+        exemple && lv.ID !== exemple.ID && btn('Voir la volée d\'exemple (semaine du 15.06.2026)', () => { setDateCourante(DATE_EXEMPLE); nav('accueil'); }, 'secondary')));
   }
 
   /* ---- Tuiles ---- */

@@ -204,13 +204,15 @@ function buildExemples({ add, rnd, pick, clamp, T, C, coursByTitle, V5 }) {
   });
 
   /* ---- Suivis et devoirs, toute la volée ---- */
+  const AUJ = '2026-06-17'; // la volée d'exemple est vue au mercredi de sa dernière semaine
   for (let monday = V5.DateDebut; monday <= V5.DateFin; monday = plus(monday, 7)) {
     for (const c of C) {
       for (const day of c.days) {
         const date = plus(monday, day);
-        if (date < V5.DateDebut || date > V5.DateFin) continue;
+        if (date < V5.DateDebut || date > AUJ) continue; // rien après le « jour même » de l'exemple
         const phase = phaseOf(date, V5);
         for (const s of E) {
+          if (s.prof === 'petit1' && date >= '2026-06-15') continue; // en stage cette semaine : « sans suivi » sur l'accueil
           if (rnd() < (s.prof === 'aggrave' && date > '2026-06-05' ? 0.18 : 0.05)) continue; // absences
           const base = lerp(s.pr.ct, date);
           const comp = clamp(Math.round(base + (rnd() - 0.5) * 1.1), 1, 4);
@@ -236,6 +238,21 @@ function buildExemples({ add, rnd, pick, clamp, T, C, coursByTitle, V5 }) {
         }
       }
     }
+  }
+
+  /* ---- Devoirs non faits de la dernière semaine (ouverts au 17.06 : retenue du vendredi) ---- */
+  const DEVOIRS_SEMAINE = [
+    ['aggrave', 'Mathématiques', '2026-06-15', 'Exercices 5 à 9'], ['aggrave', 'Français', '2026-06-15', 'Lecture du chapitre 3'],
+    ['aggrave', 'Mathématiques', '2026-06-17', 'Fiche de révision'], ['aggrave', 'Anglais', '2026-06-17', 'Fiche de vocabulaire'],
+    ['stable', 'Mathématiques', '2026-06-15', 'Exercices p. 34'], ['petit2', 'Allemand', '2026-06-16', 'Wortschatz Einheit 4'],
+  ];
+  for (const [prof, titre, date, desc] of DEVOIRS_SEMAINE) {
+    const s = E.find(x => x.prof === prof), c = coursByTitle[titre];
+    if (!s || !c) continue;
+    add('RS_Devoirs', {
+      Title: `${s.p} ${s.n} · ${titre} · ${date}`, EleveID: s.e.ID, InscriptionID: s.i.ID, CoursID: c.ID, EnseignantID: c.EnseignantID,
+      DateConstat: date, SemaineCle: semaineCle(date), Phase: phaseOf(date, V5), SansConsequence: false, Description: desc, Statut: 'Ouvert', DateResolution: null,
+    }, date);
   }
 
   /* ---- Évaluations : toutes les branches (formatif en décompression, puis 2 notes étayées, puis 2 notes normales) ---- */
@@ -274,7 +291,7 @@ function buildExemples({ add, rnd, pick, clamp, T, C, coursByTitle, V5 }) {
     });
     add('RS_Bilans', { ...common('Mise en route', '2026-05-20'), DomainesPrioritaires: b.dom.map(d => DOMAINES[d - 1]), Objectif: b.obj, PointsAppui: b.appui, Fragilites: b.frag }, '2026-05-20');
     add('RS_Bilans', { ...common('Intermédiaire', '2026-06-03'), Avancee: b.avancee, AjustementObjectif: b.ajust, PlanRetour: b.esquisse }, '2026-06-03');
-    add('RS_Bilans', { ...common('Final', '2026-06-16'), PlanRetour: b.plan, ObjectifSortie: b.sortie, PassationTitulaire: true, DatePassation: '2026-06-18' }, '2026-06-16');
+    add('RS_Bilans', { ...common('Final', '2026-06-16'), PlanRetour: b.plan, ObjectifSortie: b.sortie, PassationTitulaire: true, DatePassation: '2026-06-17' }, '2026-06-16');
   }
 
   /* ---- CPS : entrée et sortie pour chacun ---- */
@@ -306,12 +323,35 @@ function buildExemples({ add, rnd, pick, clamp, T, C, coursByTitle, V5 }) {
     aggrave: [['Venir avec le matériel complet', 'Élève', 'Abandonnée'], ['Point avec la famille sur la deuxième volée', 'ME', 'À faire'], ['Retour partiel en sport et musique', 'Titulaire', 'En cours']],
     bon: [['Préparer un exposé de 5 minutes', 'Élève', 'Fait'], ['Confirmer le stage ASE', 'ET', 'Fait']],
   };
+  // Échéances déjà passées le 17.06 : elles remontent en « Action en retard » sur l'accueil
+  const ECH_RETARD = { aggrave: '2026-06-12', petit1: '2026-06-15' };
   for (const s of E) {
     A[s.prof].forEach(([desc, resp, st], k) => add('RS_Actions', {
       Title: desc.slice(0, 60), EleveID: s.e.ID, InscriptionID: s.i.ID, Description: desc, Responsable: resp, Statut: st,
-      Origine: k === 0 ? 'Mise en route' : 'Bilan final', Echeance: k === 0 ? '2026-06-05' : '2026-06-26', NotesSuivi: '',
+      Origine: k === 0 ? 'Mise en route' : 'Bilan final', Echeance: k === 0 ? '2026-06-05' : (st === 'Fait' ? '2026-06-26' : ECH_RETARD[s.prof] || '2026-06-26'), NotesSuivi: '',
       DateCloture: ['Fait', 'Abandonnée'].includes(st) ? (k === 0 ? '2026-06-04' : '2026-06-17') : null,
     }, k === 0 ? '2026-05-20' : '2026-06-16'));
+  }
+
+  /* ---- Tâches de l'équipe, dernière semaine de la volée ---- */
+  const TACHES = [
+    ['Préparer les passations aux titulaires', 'PL', 'En cours', '2026-06-17', 'Kenan'],
+    ['Envoyer le bilan de volée à la direction', 'PL', 'À faire', '2026-06-19', null],
+    ['Compléter les CPS de sortie manquants', 'PL', 'À faire', '2026-06-16', null],
+    ['Organiser la réunion de fin de volée', 'ME', 'À faire', '2026-06-18', null],
+    ['Appeler la famille de Kenan (deuxième volée)', 'ME', 'À faire', '2026-06-15', 'Kenan'],
+    ['Saisir les notes de l\'évaluation d\'équations', 'CM', 'En cours', '2026-06-16', null],
+    ['Relancer l\'atelier pour le retour de stage de Timéo', 'ET', 'À faire', '2026-06-15', 'Timéo'],
+    ['Préparer la présentation finale de théâtre', 'OG', 'En cours', '2026-06-19', null],
+    ['Rendre les travaux d\'ACM aux élèves', 'DA', 'À faire', '2026-06-18', null],
+    ['Exposer les portraits d\'arts visuels', 'VO', 'À faire', '2026-06-19', null],
+    ['Ranger le matériel de sport prêté', 'XG', 'Terminée', '2026-06-12', null],
+  ];
+  for (const [t, resp, st, ech, prenom] of TACHES) {
+    add('RS_Taches', {
+      Title: t, Description: '', Responsable: resp, Statut: st, CreePar: 'PL', Echeance: ech,
+      DateCloture: st === 'Terminée' ? ech : null, EleveID: prenom ? E.find(x => x.p === prenom)?.e.ID ?? null : null,
+    }, '2026-06-08');
   }
 
   /* ---- Orientation (11CO) ---- */
