@@ -269,6 +269,8 @@ button.item { min-height: 44px; }
 .item .meta { color: var(--muted); font-size: .86rem; overflow-wrap: anywhere; }
 .item .end { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .item.late .meta { color: var(--danger); }
+.item[aria-expanded="true"] .apercu { display: none; }
+.item .apercu { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .empty { color: var(--muted); font-style: italic; padding: 8px 2px; }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { border: 1.5px solid var(--line-strong); background: var(--card); border-radius: 10px; padding: 6px 12px; cursor: pointer; text-align: left; }

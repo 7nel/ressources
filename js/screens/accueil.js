@@ -1,5 +1,5 @@
 import { S, isSandbox, refDate, setDateCourante, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
-import { h, card, btn, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
+import { h, card, btn, badge, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
 import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, mondayOf, addDays, weeksOfVolee } from '../domain.js';
 import { CONFIG } from '../config.js';
 const DATE_EXEMPLE = '2026-06-17'; // mercredi de la dernière semaine de la volée d'exemple
@@ -13,6 +13,7 @@ const moy = v => h('span', { class: `moy l${niveau(v)}` }, fmt1(v));
 const hausse = (lettre, [avant, apres]) => h('span', { class: 'ct' },
   h('span', { class: 'k' }, lettre), moy(avant), h('span', { 'aria-hidden': 'true', class: 'muted' }, '→'), h('span', { class: 'sr-only' }, 'vers'), moy(apres));
 const NB_PROGRES = 5;
+const ouverts = new Map(); // groupes de « À faire » dépliés ou repliés par la personne, gardés d'un affichage à l'autre
 const REGROUPE = {
   'Bilan à faire': n => `${n} bilans à faire`,
   'Sans suivi cette semaine': (n, restreint) => restreint ? `${n} cours avec des élèves sans suivi` : `${n} élèves sans suivi cette semaine`,
@@ -193,14 +194,22 @@ export function render() {
   const todoLis = todoRows.map(r => {
     if (r.t) return h('li', null, afItem(r.t));
     if (r.g.items.length === 1) return h('li', null, afItem(r.g.items[0]));
-    const detail = h('div', { class: 'sub-list', hidden: true }, h('ul', { class: 'list' }, r.g.items.map(t => h('li', null, afItem(t, true)))));
-    const fleche = h('span', { 'aria-hidden': 'true', class: 'muted' }, '›');
-    const entete = h('button', { type: 'button', class: `item ${r.g.items[0].late ? 'late' : ''}`, 'aria-expanded': 'false', onClick: e => {
+    const { kind, items } = r.g;
+    const late = !!items[0].late;
+    // Ouvert d'office : mes tâches et tout ce qui est en retard ; le reste (volume) reste replié. Le choix de la personne est mémorisé.
+    const ouvert = ouverts.has(kind) ? ouverts.get(kind) : late || kind.startsWith('Ma tâche');
+    const detail = h('div', { class: 'sub-list', hidden: !ouvert }, h('ul', { class: 'list' }, items.map(t => h('li', null, afItem(t, true)))));
+    const fleche = h('span', { 'aria-hidden': 'true', class: 'muted', style: ouvert ? { transform: 'rotate(90deg)' } : null }, '›');
+    const apercu = late ? items.slice(0, 3).map(t => t.title).join(' · ') : '';
+    const entete = h('button', { type: 'button', class: `item ${late ? 'late' : ''}`, 'aria-expanded': String(ouvert), onClick: e => {
       const ouvre = detail.hidden;
       detail.hidden = !ouvre;
+      ouverts.set(kind, ouvre);
       e.currentTarget.setAttribute('aria-expanded', String(ouvre));
       fleche.style.transform = ouvre ? 'rotate(90deg)' : '';
-    } }, h('div', { class: 'main' }, h('div', { class: 'title' }, REGROUPE[r.g.kind](r.g.items.length, restreint))), fleche);
+    } },
+    h('div', { class: 'main' }, h('div', { class: 'title' }, REGROUPE[kind](items.length, restreint)), apercu && h('div', { class: 'meta apercu' }, apercu)),
+    late && badge('en retard', 'danger'), fleche);
     return h('li', null, entete, detail);
   });
   const todoCard = card('À faire', { hint: restreint ? 'Limité à vos cours, à vos actions et à vos tâches.' : null, actions: [btn('Mes tâches', () => nav('taches'), 'secondary small')] },
