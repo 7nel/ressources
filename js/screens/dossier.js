@@ -1,9 +1,9 @@
 import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
 import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, seg, menu, levelLegend } from '../ui.js';
-import { DEF_C, DEF_T, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
+import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
 
-const state = { showAll: false };
+const state = { showAll: false, jours: false };
 
 export function canEditSuivi(s) {
   if (isCoord()) return true;
@@ -103,6 +103,65 @@ function syntheseCard(i) {
       h('p', { class: 'hint scroll-note' }, 'Faites défiler le tableau vers la droite pour voir les autres semaines.')));
 }
 
+/** Fil des 14 derniers jours : suivis, devoirs, évaluations et actions, jour par jour, du plus récent au plus ancien. */
+function chronologieCard(i) {
+  const fin = refDate(), debut = addDays(fin, -13);
+  const dans = d => d && d >= debut && d <= fin;
+  const L = labels();
+  const v = volee(i.VoleeID);
+  const ev = []; // { date, ordre, node }
+
+  for (const s of S.store.where('RS_Suivis', x => x.InscriptionID === i.ID && dans(x.DateSuivi))) {
+    const texte = s.Observation || s.CoachTravaille || '';
+    const editable = canEditSuivi(s);
+    ev.push({ date: s.DateSuivi, ordre: 0, node: h('li', null, h(editable ? 'button' : 'div', {
+      type: editable ? 'button' : null, class: 'item', onClick: editable ? () => nav('saisie', { id: s.ID }) : null,
+    },
+    typeof s.Comportement === 'number' ? ctPair(s.Comportement, s.Travail, L, false) : badge('Coaching'),
+    h('div', { class: 'main' }, h('div', { class: 'title' }, cours(s.CoursID)?.Title || ''), texte && h('div', { class: 'meta clip' }, texte)))) });
+  }
+  for (const d of S.store.where('RS_Devoirs', x => x.InscriptionID === i.ID && dans(x.DateConstat))) {
+    ev.push({ date: d.DateConstat, ordre: 1, node: h('li', null, h('div', { class: 'item' },
+      badge('Devoir non fait', d.SansConsequence ? 'neutral' : 'warn'),
+      h('div', { class: 'main' }, h('div', { class: 'title' }, `${cours(d.CoursID)?.Title} · ${d.Description}`), d.SansConsequence && h('div', { class: 'meta' }, 'sans conséquence')),
+      h('div', { class: 'end' }, badge(d.Statut, d.Statut === 'Rattrapé' ? 'ok' : d.Statut === 'Ouvert' ? 'warn' : 'danger')))) });
+  }
+  for (const x of S.store.where('RS_Evaluations', e => e.InscriptionID === i.ID && dans(e.DateEval))) {
+    ev.push({ date: x.DateEval, ordre: 2, node: h('li', null, h('button', { type: 'button', class: 'item', onClick: () => nav('evaluation', { id: x.ID }) },
+      badge('Évaluation'),
+      h('div', { class: 'main' }, h('div', { class: 'title' }, `${cours(x.CoursID)?.Title} · ${x.Sujet}`)),
+      h('div', { class: 'end' }, typeof x.Note === 'number'
+        ? h('strong', { class: x.Note < 4 ? 'danger-text' : null }, fmtNote(x.Note))
+        : badge(x.ResultatFormatif || '—', x.ResultatFormatif === 'Pas encore' ? 'warn' : 'ok')))) });
+  }
+  for (const a of S.store.where('RS_Actions', x => x.InscriptionID === i.ID && dans(x.Echeance))) {
+    ev.push({ date: a.Echeance, ordre: 3, node: h('li', null, h('button', { type: 'button', class: 'item', onClick: () => nav('action', { id: a.ID }) },
+      badge('Action échue'),
+      h('div', { class: 'main' }, h('div', { class: 'title' }, a.Description), h('div', { class: 'meta' }, a.Responsable)),
+      h('div', { class: 'end' }, badge(a.Statut, a.Statut === 'Fait' ? 'ok' : a.Statut === 'Abandonnée' ? 'neutral' : 'warn')))) });
+  }
+
+  const jours = [...new Set(ev.map(e => e.date))].sort().reverse();
+  const hint = `Du ${fmtDate(debut)} au ${fmtDate(fin)}.`;
+  if (!jours.length) return card('Ces deux dernières semaines', { hint }, empty('Rien à signaler sur cette période.'));
+
+  const montres = state.jours ? jours : jours.slice(0, 3);
+  const rows = [];
+  const silence = (n, texte) => n >= 2 && rows.push(h('li', { class: 'chrono-gap' }, texte(n)));
+  silence(daysBetween(montres[0], fin), n => `Rien depuis ${n} jours.`);
+  montres.forEach((date, k) => {
+    if (k) silence(daysBetween(date, montres[k - 1]) - 1, n => `${n} jours sans événement.`);
+    const phase = v ? phaseOf(date, v) : null;
+    rows.push(h('li', { class: 'chrono-day' },
+      h('h3', null, fmtDate(date, { day: true }), phase && phaseBadge(phase)),
+      h('ul', { class: 'list' }, ev.filter(e => e.date === date).sort((a, b) => a.ordre - b.ordre).map(e => e.node))));
+  });
+  return card('Ces deux dernières semaines', { hint },
+    h('ol', { class: 'chrono' }, rows),
+    jours.length > 3 && h('div', { style: { marginTop: '8px' } },
+      btn(state.jours ? 'Voir seulement les 3 derniers jours' : `Voir les ${jours.length} jours`, () => { state.jours = !state.jours; refresh(); }, 'ghost small')));
+}
+
 function devoirsCard(i) {
   const dv = sortBy(S.store.where('RS_Devoirs', d => d.InscriptionID === i.ID), '-DateConstat');
   const setStatut = async (d, statut) => {
@@ -177,7 +236,7 @@ function suivisCard(i, e) {
   const L = labels();
   const sv = sortBy(S.store.where('RS_Suivis', s => s.InscriptionID === i.ID), '-DateSuivi', 'CoursID');
   const shown = state.showAll ? sv : sv.slice(0, 12);
-  return card(`Suivis (${sv.length})`, { hint: 'Un suivi se modifie pendant 7 jours par son auteur·e, ensuite par la coordination.' },
+  return card(`Tous les suivis (${sv.length})`, { hint: 'Un suivi se modifie pendant 7 jours par son auteur·e, ensuite par la coordination.' },
     sv.length ? h('ul', { class: 'list' }, shown.map(s => {
       const c = cours(s.CoursID);
       const texts = [s.Observation, s.CoachTravaille && `Travaillé : ${s.CoachTravaille}`, s.CoachProgres && `Progrès / vigilance : ${s.CoachProgres}`].filter(Boolean);
@@ -287,6 +346,7 @@ export function render(params) {
     !enCours && notice(`Inscription ${i.StatutInscription.toLowerCase()} : dossier en lecture seule. Pour reprendre le suivi, ajoutez une nouvelle inscription (menu Plus).`, 'info'),
     alerteSemaine.length ? notice(`Niveau 1 cette semaine, à discuter : ${alerteSemaine.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(', ')}.`, 'danger') : null,
     nRetenue ? notice(`Retenue du vendredi : ${retenueMinutes(nRetenue)} minutes (${nRetenue} devoir${nRetenue > 1 ? 's' : ''} non fait${nRetenue > 1 ? 's' : ''} cette semaine).`, 'warn') : null,
+    chronologieCard(i),
     syntheseCard(i),
     h('div', { class: 'cols-dossier suivis-d-abord' },
       h('div', { class: 'stack' }, suivisCard(i, e), evaluationsCard(i, e)),

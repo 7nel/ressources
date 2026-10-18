@@ -83,7 +83,7 @@ Un point orange signale des modifications non sauvegardées ; le navigateur aver
 | Menu | Écrans |
 |---|---|
 | Accueil | Rampe de la volée, tuiles (dont devoirs à rendre et évaluations de la semaine), accès rapide aux cours, niveau 1 de la semaine, ce qui va mieux, retenue du vendredi, À faire |
-| Élèves | Liste, nouvel élève (alerte de doublon), dossier : synthèse hebdomadaire avec légende des niveaux, suivis, évaluations, devoirs, actions, bilans, inscription (repliée). Le bouton « + Nouveau suivi » est toujours en haut ; le menu **Plus** regroupe orientation, fiche coaching imprimable, CPS, modification du dossier, nouvelle inscription et clôture. Après « Rattrapé » ou « Non rattrapé », le message propose **Annuler** pendant 9 secondes |
+| Élèves | Liste, nouvel élève (alerte de doublon), dossier : chronologie des deux dernières semaines (suivis, devoirs non faits, évaluations et actions échues, jour par jour), synthèse hebdomadaire avec légende des niveaux, tous les suivis, évaluations, devoirs, actions, bilans, inscription (repliée). Le bouton « + Nouveau suivi » est toujours en haut ; le menu **Plus** regroupe orientation, fiche coaching imprimable, CPS, modification du dossier, nouvelle inscription et clôture. Après « Rattrapé » ou « Non rattrapé », le message propose **Annuler** pendant 9 secondes |
 | Saisie | Saisie de groupe (cotations ou évaluation), saisie individuelle, évaluation selon la phase (R5) |
 | Notes | Filtres, moyennes pondérées, graphique ; Ma branche |
 | Tâches | Mes tâches, toutes, terminées |
