@@ -182,8 +182,11 @@ export function render() {
     syncNotice,
     head,
     voleeBlock,
-    h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' } }, tiles),
-    h('div', { class: 'cols-dossier' },
-      h('div', { class: 'stack' }, progresCard, alertCard, retenueCard),
-      h('div', { class: 'stack' }, todoCard)));
+    // Hors volée : ni tuiles à zéro ni cartes vides, seulement les tâches à faire.
+    v && h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' } }, tiles),
+    v
+      ? h('div', { class: 'cols-dossier' },
+        h('div', { class: 'stack' }, progresCard, alertCard, retenueCard),
+        h('div', { class: 'stack' }, todoCard))
+      : todoCard);
 }

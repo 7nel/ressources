@@ -27,7 +27,10 @@ export function render() {
             i && i.StatutInscription === 'En cours' && phaseBadge(phaseInscription(i)),
             e.Statut !== 'Actif' && badge(e.Statut))));
       }))
-      : empty(state.q ? 'Aucun élève ne correspond à la recherche.' : 'Aucun élève dans cette catégorie.'));
+      : h('div', null,
+        empty(state.q ? 'Aucun élève ne correspond à la recherche.' : `Aucun élève au statut « ${state.statut} ».`),
+        !state.q && state.statut !== 'Tous' && S.store.all('RS_Eleves').length
+          ? btn('Voir tous les dossiers', () => { state.statut = 'Tous'; nav('eleves'); }, 'secondary') : null));
   };
 
   const search = h('input', {
