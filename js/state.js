@@ -44,8 +44,12 @@ export const enseignantsActifs = () => sortBy(st().where('RS_Enseignants', e => 
 export function nomEleve(e) { return e ? `${e.Prenom} ${e.Nom}` : '(élève inconnu)'; }
 export function nomEleveId(id) { return nomEleve(eleve(id)); }
 
+/**
+ * Élèves de la volée affichée : en cours, ou ayant terminé la volée (pour revoir une volée passée
+ * telle qu'elle était). Les inscriptions interrompues sont exclues.
+ */
 export function inscriptionsEnCours(voleeId) {
-  return st().where('RS_Inscriptions', i => i.VoleeID === voleeId && i.StatutInscription === 'En cours');
+  return st().where('RS_Inscriptions', i => i.VoleeID === voleeId && i.StatutInscription !== 'Interrompue');
 }
 export function inscriptionsEleve(eleveId) {
   const list = st().where('RS_Inscriptions', i => i.EleveID === eleveId);

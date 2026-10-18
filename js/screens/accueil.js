@@ -1,6 +1,8 @@
 import { S, isSandbox, refDate, setDateCourante, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
 import { h, card, btn, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
 import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, nextVolee, lastVolee, mondayOf, addDays, weeksOfVolee } from '../domain.js';
+import { CONFIG } from '../config.js';
+const DATE_EXEMPLE = '2026-06-10'; // mercredi, semaine 4 de la volée d'exemple (ré-exposition)
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
 import { retenues, alertes, sansSuivi, devoirsOuverts, aFaire, suivisDeSemaine } from '../queries.js';
 
@@ -29,6 +31,8 @@ function tile(num, label, { alert = false, onClick } = {}) {
 
 export function render() {
   const date = refDate();
+  // Volée d'exemple (élèves fictifs archivés) : permet de voir l'accueil « en vrai » en dehors des volées.
+  const exemple = CONFIG.DONNEES_EXEMPLE ? volees().find(v => v.Title === '2025-26 V5') : null;
   const sk = semaineCle(date);
   const v = voleeAt(date);
   const m = moi();
@@ -51,7 +55,8 @@ export function render() {
         h('button', { type: 'button', class: 'date-btn', onClick: openPicker, title: 'Choisir une autre date' },
           `${fmtDateLong(date)} · semaine ${sk % 100}`, h('span', { 'aria-hidden': 'true', class: 'pen' }, ' ✎')),
         picker,
-        !isToday && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(null); nav('accueil'); } }, 'revenir à aujourd\'hui'))),
+        !isToday && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(null); nav('accueil'); } }, 'revenir à aujourd\'hui'),
+        exemple && !(exemple.DateDebut <= date && date <= exemple.DateFin) && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(DATE_EXEMPLE); nav('accueil'); } }, 'voir la volée d\'exemple'))),
     h('div', { class: 'btn-row' },
       !isCoord() && mine.length ? btn(S.settings.vueTout ? 'Ma vue' : 'Tout voir', () => { S.settings.vueTout = !S.settings.vueTout; saveSettings(); nav('accueil'); }, 'secondary') : null,
       btn('+ Saisie de groupe', () => nav('groupe'))));
@@ -67,7 +72,8 @@ export function render() {
     voleeBlock = card(null, {},
       notice(`Pas de volée à cette date (vacances ou pause).${nv ? ` Prochaine volée : ${nv.Title}, dès le ${fmtDate(nv.DateDebut)}.` : ''}`, 'info'),
       lv && h('div', { class: 'btn-row', style: { marginTop: '10px' } },
-        btn(`Afficher la dernière semaine de ${lv.Title}`, () => { setDateCourante(addDays(lv.DateFin, -2)); nav('accueil'); }, 'secondary')));
+        btn(`Afficher la dernière semaine de ${lv.Title}`, () => { setDateCourante(addDays(lv.DateFin, -2)); nav('accueil'); }, 'secondary'),
+        exemple && lv.ID !== exemple.ID && btn('Voir la volée d\'exemple (élèves fictifs)', () => { setDateCourante(DATE_EXEMPLE); nav('accueil'); }, 'secondary')));
   }
 
   /* ---- Tuiles ---- */
@@ -77,7 +83,7 @@ export function render() {
     : sansSuivi(sk, inscs).length;
   const al = alertes(sk, inscIds, coursIds);
   const tiles = [
-    tile(inscs.length, 'élèves actifs', { onClick: () => nav('eleves') }),
+    tile(inscs.length, 'élèves dans la volée', { onClick: () => nav('eleves') }),
     tile(dv.length, restreint ? 'devoirs ouverts (mes cours)' : 'devoirs ouverts', { alert: false }),
     tile(sans, restreint ? 'sans suivi dans mes cours' : 'sans suivi cette semaine', { alert: true }),
     tile(al.length, 'alertes « désengagé »', { alert: true }),
