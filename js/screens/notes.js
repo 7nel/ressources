@@ -1,9 +1,11 @@
 import { S, voleeParDefaut, nav, eleve, cours, volee, volees, refDate, voleeAt, nomEleve, coursActifs } from '../state.js';
 import { h, card, btn, field, select, badge, empty, esc, phaseBadge } from '../ui.js';
 import { fmtDate, fmtNote, weightedAvg, sortBy, groupBy, lastVolee } from '../domain.js';
-import { notesChartCard } from './notes-chart.js';
+import { notesChartCard, eleveSlot } from './notes-chart.js';
 
-const state = { eleveId: '', voleeId: null, coursId: '', tri: 'date' };
+// Filtres cumulables : plusieurs élèves × plusieurs branches (liste vide = tous).
+const state = { eleves: [], voleeId: null, cours: [], tri: 'date' };
+const toggle = (arr, id) => (arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]);
 
 export function noteChart(evals, { height = 220 } = {}) {
   const pts = sortBy(evals.filter(e => typeof e.Note === 'number'), 'DateEval');
@@ -30,8 +32,9 @@ export function render() {
   if (state.voleeId == null) state.voleeId = String(voleeParDefaut(ref)?.ID || '');
   let ev = S.store.all('RS_Evaluations');
   if (state.voleeId) ev = ev.filter(e => S.store.get('RS_Inscriptions', e.InscriptionID)?.VoleeID === Number(state.voleeId));
-  if (state.eleveId) ev = ev.filter(e => e.EleveID === Number(state.eleveId));
-  if (state.coursId) ev = ev.filter(e => e.CoursID === Number(state.coursId));
+  const evVolee = ev;
+  if (state.eleves.length) ev = ev.filter(e => state.eleves.includes(e.EleveID));
+  if (state.cours.length) ev = ev.filter(e => state.cours.includes(e.CoursID));
   const sorted = {
     date: () => sortBy(ev, '-DateEval'),
     branche: () => [...ev].sort((a, b) => (cours(a.CoursID)?.Title || '').localeCompare(cours(b.CoursID)?.Title || '', 'fr') || b.DateEval.localeCompare(a.DateEval)),
@@ -39,28 +42,40 @@ export function render() {
     note: () => [...ev].sort((a, b) => (a.Note ?? 99) - (b.Note ?? 99)),
   }[state.tri]();
 
-  const elevesOpts = sortBy(S.store.all('RS_Eleves'), 'Nom').map(e => ({ value: e.ID, label: nomEleve(e) }));
   const set = (k) => e => { state[k] = e.target.value; nav('notes'); };
+  // Élèves proposés : ceux qui ont une évaluation dans la volée choisie (sinon tous).
+  const avecNotes = new Set(evVolee.map(e => e.EleveID));
+  const elevesDispo = sortBy(S.store.all('RS_Eleves').filter(e => !state.voleeId || avecNotes.has(e.ID) || state.eleves.includes(e.ID)), 'Nom');
+  const branchesDispo = coursActifs().filter(c => !c.EstCoaching);
+  const puces = (titre, items, choisis, cle, couleur, label) => h('div', { class: 'filtre-puces' },
+    h('div', { class: 'filtre-titre' }, h('span', { class: 'label' }, titre),
+      h('button', { type: 'button', class: 'btn ghost sm', 'aria-pressed': String(!choisis.length), onClick: () => { state[cle] = []; nav('notes'); } }, choisis.length ? `Tout afficher (${choisis.length} choisi${choisis.length > 1 ? 's' : ''})` : 'Tous')),
+    h('div', { class: 'chips', role: 'group', 'aria-label': titre }, items.map(it => h('button', {
+      type: 'button', class: 'chip puce', 'aria-pressed': String(choisis.includes(it.ID)),
+      onClick: () => { state[cle] = toggle(state[cle], it.ID); nav('notes'); },
+    }, h('span', { class: 'dot', style: { background: couleur(it) } }), label(it)))));
 
-  const filters = card(null, {}, h('div', { class: 'row' },
-    field('Élève', select([{ value: '', label: 'Tous les élèves' }, ...elevesOpts], state.eleveId, { onChange: set('eleveId') })),
-    field('Volée', select([{ value: '', label: 'Toutes' }, ...volees().map(v => ({ value: v.ID, label: v.Title }))], state.voleeId, { onChange: set('voleeId') })),
-    field('Branche', select([{ value: '', label: 'Toutes' }, ...coursActifs().filter(c => !c.EstCoaching).map(c => ({ value: c.ID, label: c.Title }))], state.coursId, { onChange: set('coursId') })),
-    field('Tri', select([{ value: 'date', label: 'Date' }, { value: 'branche', label: 'Branche' }, { value: 'eleve', label: 'Élève' }, { value: 'note', label: 'Note' }], state.tri, { onChange: set('tri') }))));
+  const filters = card(null, { hint: 'Cliquez pour choisir un ou plusieurs élèves et une ou plusieurs branches ; les filtres se cumulent. Rien de choisi = tous.' },
+    h('div', { class: 'row' },
+      field('Volée', select([{ value: '', label: 'Toutes' }, ...volees().map(v => ({ value: v.ID, label: v.Title }))], state.voleeId, { onChange: set('voleeId') })),
+      field('Tri de la liste', select([{ value: 'date', label: 'Date' }, { value: 'branche', label: 'Branche' }, { value: 'eleve', label: 'Élève' }, { value: 'note', label: 'Note' }], state.tri, { onChange: set('tri') }))),
+    puces('Élèves', elevesDispo, state.eleves, 'eleves', e => eleveSlot(e.ID), nomEleve),
+    puces('Branches', branchesDispo, state.cours, 'cours', c => c.Couleur || 'var(--muted)', c => c.Title));
 
   let moyennes;
-  if (state.eleveId) {
+  const seulEleve = state.eleves.length === 1 ? state.eleves[0] : null;
+  if (seulEleve) {
     const byC = groupBy(ev.filter(e => typeof e.Note === 'number'), e => e.CoursID);
     const avgs = [...byC].map(([cid, list]) => ({ c: cours(cid), avg: weightedAvg(list), n: list.length })).sort((a, b) => a.c.Title.localeCompare(b.c.Title, 'fr'));
     const gen = avgs.length ? avgs.reduce((a, x) => a + x.avg, 0) / avgs.length : null;
-    moyennes = card(`Moyennes pondérées · ${nomEleve(eleve(Number(state.eleveId)))}`, { hint: 'Notes uniquement (le formatif n\'entre pas dans les moyennes). La moyenne générale est la moyenne des branches : indicative.' },
+    moyennes = card(`Moyennes pondérées · ${nomEleve(eleve(seulEleve))}`, { hint: 'Notes uniquement (le formatif n\'entre pas dans les moyennes). La moyenne générale est la moyenne des branches : indicative.' },
       avgs.length ? h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' } },
         avgs.map(a => h('div', { class: 'tile', style: { borderTop: `5px solid ${a.c.Couleur || 'var(--muted)'}` } },
           h('div', { class: 'num', style: a.avg < 4 ? { color: 'var(--danger)' } : null }, fmtNote(Math.round(a.avg * 10) / 10)),
           h('div', { class: 'lab' }, `${a.c.Title} · ${a.n} note${a.n > 1 ? 's' : ''}`))),
         h('div', { class: 'tile' }, h('div', { class: 'num' }, fmtNote(Math.round(gen * 10) / 10)), h('div', { class: 'lab' }, 'générale (indicative)'))) : empty('Aucune note.'));
   } else moyennes = null;
-  const graph = card('Graphique', { hint: 'Tous les élèves et toutes les branches correspondant aux filtres ci-dessus.' }, notesChartCard(ev));
+  const graph = card('Graphique', { hint: 'Élèves et branches choisis ci-dessus.' }, notesChartCard(ev));
 
   const list = card(`Évaluations (${ev.length})`, {},
     sorted.length ? h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' },
