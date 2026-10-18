@@ -18,7 +18,7 @@ export function retenues(sk, inscIds, coursIds) {
     .sort((a, b) => b.minutes - a.minutes);
 }
 
-/** Alertes « désengagé » (R10) : un niveau 1 en comportement ou en travail. */
+/** Niveau 1 de la semaine (R10) : un niveau 1 en comportement ou en travail. */
 export function alertes(sk, inscIds, coursIds) {
   const cset = coursIds && new Set(coursIds);
   const sv = suivisDeSemaine(sk, inscIds).filter(s => (s.Comportement === 1 || s.Travail === 1) && (!cset || cset.has(s.CoursID)));

@@ -274,7 +274,7 @@ export function render(params) {
       inscs.map(x => h('button', { type: 'button', class: 'chip', 'aria-pressed': String(x.ID === i.ID), onClick: () => nav('dossier', { eleve: e.ID, insc: x.ID }) },
         volee(x.VoleeID)?.Title, h('span', { class: 'meta' }, `${x.Degre} · ${x.StatutInscription}`)))),
     actionsBar,
-    alerteSemaine.length ? notice(`Alerte « désengagé » cette semaine : ${alerteSemaine.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(', ')}.`, 'danger') : null,
+    alerteSemaine.length ? notice(`Niveau 1 cette semaine :${alerteSemaine.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(', ')}.`, 'danger') : null,
     nRetenue ? notice(`Retenue du vendredi : ${retenueMinutes(nRetenue)} minutes (${nRetenue} devoir${nRetenue > 1 ? 's' : ''} non fait${nRetenue > 1 ? 's' : ''} cette semaine).`, 'warn') : null,
     syntheseCard(i),
     h('div', { class: 'cols-dossier' },

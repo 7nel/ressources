@@ -23,7 +23,7 @@ export function render() {
             h('div', { class: 'title' }, nomEleve(e)),
             h('div', { class: 'meta' }, i ? `${v?.Title} · ${i.Degre} · classe ${i.ClasseOrigine} · ${i.StatutInscription}` : 'Aucune inscription')),
           h('div', { class: 'end' },
-            alerte && badge('alerte', 'danger'),
+            alerte && badge('niveau 1', 'danger'),
             i && i.StatutInscription === 'En cours' && phaseBadge(phaseInscription(i)),
             e.Statut !== 'Actif' && badge(e.Statut))));
       }))
