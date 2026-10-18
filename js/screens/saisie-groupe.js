@@ -40,8 +40,9 @@ export function render(params) {
     if (!c) body = card(null, {}, empty('Choisissez un cours.'));
     else if (!v) body = card(null, {}, notice('Aucune volée à cette date (vacances ou pause). Changez la date.', 'info'));
     else if (!inscs.length) body = card(null, {}, empty('Aucun élève en cours dans cette volée.'));
+    else if (c.EstCoaching && state.mode === 'eval') body = card(null, {}, notice('Le coaching n\'a pas de note.', 'info'));
     else if (c.EstCoaching && state.mode === 'cot') {
-      body = card('Coaching : saisie individuelle', { hint: 'Le coaching a ses propres champs (travaillé, progrès). Il se saisit élève par élève.' },
+      body = card('Coaching : saisie individuelle', { hint: 'Le coaching n\'a ni cotation C/T ni note : seulement un suivi écrit (travaillé, progrès). Il se saisit élève par élève.' },
         h('div', { class: 'btn-row' }, inscs.map(({ e }) => btn(nomEleve(e), () => nav('saisie', { eleve: e.ID, cours: c.ID }), 'secondary'))));
     } else if (state.mode === 'cot') body = cotations(c, v, phase, inscs, L);
     else body = evaluations(c, v, phase, inscs);

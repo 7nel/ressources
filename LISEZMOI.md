@@ -100,6 +100,14 @@ Ensuite : remplir `js/config.js` (`MODE: 'sharepoint'`, identifiants), ajouter l
 (`@azure/msal-browser`, à héberger dans le dépôt) dans `index.html`. La personne est alors reconnue par son
 e-mail dans `RS_Enseignants` ; les permissions réelles restent celles du site SharePoint.
 
+## 4 bis. Familles de cours et coaching
+
+- Chaque cours appartient à une famille : **Branches** (français, maths, sciences, langues), **Projet** (ACM, arts visuels,
+  musique, sport, théâtre) ou **Méthodo / Orientation**. Réglages → Cours → Famille. La synthèse du dossier affiche la
+  moyenne hebdomadaire de C et de T par famille, avec un graphique de tendance.
+- Le **coaching** n'a ni cotation C/T ni note : seulement le suivi écrit (travaillé, progrès / vigilance).
+- SharePoint : ajouter à la liste `RS_Cours` une colonne Choix `Groupe` (Branches, Projet, Méthodo / Orientation).
+
 ## 5. Points à vérifier
 
 - Dates de phases des volées V2 à V5 : proposition, à corriger dans Réglages → Volées.

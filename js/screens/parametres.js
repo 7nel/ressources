@@ -1,6 +1,6 @@
 import { S, saveSettings, nav, refresh, isSandbox, refDate, enseignantsActifs, volees, ens, coursActifs, applyTheme, moi } from '../state.js';
 import { h, card, btn, field, select, input, checkbox, seg, modal, toast, confirmDlg, notice, levelLegend } from '../ui.js';
-import { fmtDate, todayISO, DEFAULT_LEVEL_LABELS } from '../domain.js';
+import { fmtDate, todayISO, DEFAULT_LEVEL_LABELS, GROUPES, groupeCours } from '../domain.js';
 import { sauvegarder, charger, chooseFolder, folderStatus, supportsFolder, myFileName } from '../sync.js';
 
 function editVolee(v) {
@@ -51,15 +51,17 @@ function editCours(c) {
   const ensSel = select(enseignantsActifs().map(e => ({ value: e.ID, label: e.Title })), c?.EnseignantID);
   const col = input('color', c?.Couleur || '#2F6F63', { style: 'max-width:90px;padding:2px' });
   let coaching = !!c?.EstCoaching;
+  const grp = select(GROUPES, c ? (groupeCours(c) === 'Coaching' ? 'Branches' : groupeCours(c)) : 'Branches');
   modal(c ? 'Modifier le cours' : 'Nouveau cours', h('div', { class: 'form' },
     field('Nom du cours', t),
     h('div', { class: 'row' }, field('Enseignant·e', ensSel, { help: 'Remplit « Mes cours » sur l\'accueil.' }), field('Couleur', col)),
-    checkbox('Cours de coaching (champs « travaillé » et « progrès »)', coaching, v => { coaching = v; })), [
+    field('Famille', grp, { help: 'Pour les moyennes hebdomadaires de la synthèse : branches, projet, ou méthodo / orientation.' }),
+    checkbox('Cours de coaching (suivi écrit seulement, ni cotation ni note)', coaching, v => { coaching = v; })), [
     { label: 'Annuler', variant: 'secondary' },
     {
       label: 'Enregistrer', onClick: async () => {
         if (!t.value.trim()) { toast('Nom obligatoire', 'err'); return false; }
-        const rec = { Title: t.value.trim(), EnseignantID: Number(ensSel.value), Couleur: col.value.toUpperCase(), EstCoaching: coaching };
+        const rec = { Title: t.value.trim(), EnseignantID: Number(ensSel.value), Couleur: col.value.toUpperCase(), EstCoaching: coaching, Groupe: grp.value };
         if (c) await S.store.update('RS_Cours', c.ID, rec); else await S.store.add('RS_Cours', rec);
         toast('Enregistré'); refresh();
       },
@@ -140,11 +142,11 @@ export function render() {
           h('td', null, btn('Modifier', () => editEns(e), 'ghost small')))))))),
     card('Cours', { actions: [btn('+ Cours', () => editCours(null), 'secondary small')] },
       h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' },
-        h('thead', null, h('tr', null, ['Cours', 'Enseignant·e', 'Coaching', ''].map(x => h('th', null, x)))),
+        h('thead', null, h('tr', null, ['Cours', 'Enseignant·e', 'Famille', ''].map(x => h('th', null, x)))),
         h('tbody', null, coursActifs().map(c => h('tr', null,
           h('td', null, h('span', { class: 'dot', style: { background: c.Couleur, marginRight: '8px' } }), c.Title),
           h('td', null, ens(c.EnseignantID)?.Title || h('span', { class: 'danger-text' }, 'aucun')),
-          h('td', null, c.EstCoaching ? 'oui' : ''),
+          h('td', null, groupeCours(c)),
           h('td', null, btn('Modifier', () => editCours(c), 'ghost small')))))))),
     isSandbox() && echangeCard(),
     isSandbox() && card('Données de ce navigateur (avancé)', { hint: 'Importer REMPLACE toutes vos données par celles du fichier (contrairement à « Charger les versions », qui fusionne).' },

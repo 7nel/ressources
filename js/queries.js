@@ -1,6 +1,6 @@
 // Calculs partagés entre écrans (accueil, dossier, bilans). Rien n'est stocké : tout est recalculé.
 import { S, volee, cours, eleve, nomEleve, inscriptionsEnCours, moi, ens, isCoord, refDate } from './state.js';
-import { semaineCle, retenueMinutes, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy } from './domain.js';
+import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy } from './domain.js';
 
 const st = () => S.store;
 
@@ -116,13 +116,25 @@ export function synthese(insc) {
     const ref = mon < v.DateDebut ? v.DateDebut : mon;
     return { n: k + 1, monday: mon, sk: semaineCle(mon), phase: phaseOf(ref, v) };
   });
-  const sv = st().where('RS_Suivis', s => s.InscriptionID === insc.ID);
+  // Le coaching n'a pas de cotation : il n'apparaît pas dans la synthèse (voir la fiche coaching).
+  const sv = st().where('RS_Suivis', s => s.InscriptionID === insc.ID && estCote(s) && groupeCours(cours(s.CoursID)) !== 'Coaching');
   const byCours = groupBy(sv, s => s.CoursID);
-  const rows = sortBy([...byCours.keys()].map(id => cours(id)).filter(Boolean), 'Title').map(c => ({
-    cours: c,
-    cells: weeks.map(w => sortBy(byCours.get(c.ID).filter(s => s.SemaineCle === w.sk), 'DateSuivi')),
-  }));
-  return { volee: v, weeks, rows };
+  const ordre = c => GROUPES.indexOf(groupeCours(c));
+  const rows = [...byCours.keys()].map(id => cours(id)).filter(Boolean)
+    .sort((a, b) => ordre(a) - ordre(b) || a.Title.localeCompare(b.Title, 'fr'))
+    .map(c => ({
+      cours: c, groupe: groupeCours(c),
+      cells: weeks.map(w => sortBy(byCours.get(c.ID).filter(s => s.SemaineCle === w.sk), 'DateSuivi')),
+    }));
+  // Moyenne de la semaine par famille (indicateur de tendance ; les pastilles restent la référence).
+  const moyennes = GROUPES.map(g => ({
+    groupe: g,
+    semaines: weeks.map(w => {
+      const l = sv.filter(s => s.SemaineCle === w.sk && groupeCours(cours(s.CoursID)) === g);
+      return { n: l.length, c: moyenne(l.map(s => s.Comportement)), t: moyenne(l.map(s => s.Travail)) };
+    }),
+  })).filter(m => m.semaines.some(x => x.n));
+  return { volee: v, weeks, rows, moyennes };
 }
 
 /** Panneau « Ce que dit le dossier » pour les bilans (seuils indicatifs, à valider en équipe). */
@@ -148,7 +160,7 @@ export function preuves(insc, jusquau = refDate()) {
       (formatif.every(e => e.ResultatFormatif === 'Réussi seul') ? ok : formatif.some(e => e.ResultatFormatif === 'Pas encore') ? frag : ok).push(`${c} : ${r} (formatif)`);
     }
   }
-  const sv = st().where('RS_Suivis', s => s.InscriptionID === insc.ID && s.DateSuivi <= jusquau);
+  const sv = st().where('RS_Suivis', s => s.InscriptionID === insc.ID && s.DateSuivi <= jusquau && estCote(s));
   const bons = sv.filter(s => s.Comportement >= 3 && s.Travail >= 3).length;
   const bas = sv.filter(s => s.Comportement <= 2 || s.Travail <= 2);
   if (sv.length) ok.push(`${bons} séance${bons > 1 ? 's' : ''} sur ${sv.length} avec C et T à 3 ou 4`);

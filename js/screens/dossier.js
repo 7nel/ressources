@@ -1,5 +1,5 @@
 import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
-import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, confirmDlg } from '../ui.js';
+import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, confirmDlg, seg } from '../ui.js';
 import { fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
 
@@ -12,26 +12,88 @@ export function canEditSuivi(s) {
   return daysBetween(String(s.Created).slice(0, 10), refDate()) <= 7; // R7
 }
 
+const GROUPE_COULEUR = { 'Branches': 'var(--cat1)', 'Projet': 'var(--cat2)', 'Méthodo / Orientation': 'var(--cat3)' };
+const fmt1 = v => v == null ? '' : v.toFixed(1).replace('.', ',');
+const niveau = v => Math.max(1, Math.min(4, Math.round(v)));
+function moyChip(lettre, v) {
+  if (v == null) return null;
+  return h('span', { class: 'ct' }, h('span', { class: 'k' }, lettre), h('span', { class: `moy l${niveau(v)}` }, fmt1(v)));
+}
+
+/** Tendance : moyenne hebdomadaire par famille de cours, C, T ou les deux. */
+const tendState = { vue: 'CT' };
+function tendanceSVG(weeks, moyennes, nowSk) {
+  const W = 760, H = 250, pl = 40, pr = 150, pt = 16, pb = 40;
+  const n = weeks.length;
+  const x = k => pl + (n === 1 ? (W - pl - pr) / 2 : (W - pl - pr) * k / (n - 1));
+  const y = v => pt + (H - pt - pb) * (1 - (v - 1) / 3);
+  const val = m => tendState.vue === 'C' ? m.c : tendState.vue === 'T' ? m.t : (m.c == null ? null : (m.c + m.t) / 2);
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Tendance hebdomadaire des cotations par famille de cours, de 1 à 4">`;
+  for (let v = 1; v <= 4; v++) s += `<line x1="${pl}" x2="${W - pr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${pl - 10}" y="${y(v) + 4}" text-anchor="end" font-size="12" fill="var(--muted)">${v}</text>`;
+  weeks.forEach((w, k) => {
+    if (w.sk === nowSk) s += `<rect x="${x(k) - 14}" y="${pt}" width="28" height="${H - pt - pb}" fill="var(--accent-soft)"/>`;
+    s += `<text x="${x(k)}" y="${H - pb + 18}" text-anchor="middle" font-size="12" fill="var(--muted)">S${w.n}</text>`;
+    s += `<rect x="${x(k) - 14}" y="${H - pb + 26}" width="28" height="4" rx="2" fill="var(--${({ 'Décompression': 'ph1', 'Remobilisation': 'ph2', 'Ré-exposition': 'ph3' })[w.phase]}-strong)"/>`;
+  });
+  const labels = [];
+  for (const m of moyennes) {
+    const col = GROUPE_COULEUR[m.groupe];
+    const pts = m.semaines.map((w, k) => ({ k, v: val(w) })).filter(p => p.v != null);
+    // segments seulement entre semaines consécutives renseignées
+    let run = [];
+    const flush = () => { if (run.length > 1) s += `<polyline points="${run.map(p => `${x(p.k).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ')}" fill="none" stroke="${col}" stroke-width="2.5" stroke-linejoin="round"/>`; run = []; };
+    pts.forEach((p, j) => { if (j && p.k !== pts[j - 1].k + 1) flush(); run.push(p); });
+    flush();
+    for (const p of pts) s += `<circle cx="${x(p.k).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="5" fill="${col}" stroke="var(--card)" stroke-width="2"><title>${m.groupe} · S${weeks[p.k].n} : ${fmt1(p.v)}</title></circle>`;
+    const last = pts.at(-1);
+    if (last) labels.push({ y: y(last.v), text: `${m.groupe === 'Méthodo / Orientation' ? 'Méthodo' : m.groupe} ${fmt1(last.v)}`, col });
+  }
+  // étiquettes directes à droite, écartées pour ne pas se chevaucher
+  labels.sort((a, b) => a.y - b.y);
+  for (let k = 1; k < labels.length; k++) if (labels[k].y - labels[k - 1].y < 18) labels[k].y = labels[k - 1].y + 18;
+  for (const l of labels) s += `<circle cx="${W - pr + 14}" cy="${l.y}" r="5" fill="${l.col}"/><text x="${W - pr + 24}" y="${l.y + 4}" font-size="13" fill="var(--ink)">${l.text}</text>`;
+  return s + '</svg>';
+}
+
 function syntheseCard(i) {
-  const { weeks, rows } = synthese(i);
+  const { weeks, rows, moyennes } = synthese(i);
   const L = labels();
   const nowSk = semaineCle(refDate());
-  if (!rows.length) return card('Synthèse hebdomadaire', {}, empty('Aucun suivi pour cette inscription.'));
+  if (!rows.length) return card('Synthèse hebdomadaire', {}, empty('Aucune cotation pour cette inscription.'));
+  const nowCls = k => weeks[k].sk === nowSk ? 'now' : null;
+  const body = [];
+  for (const m of moyennes) {
+    body.push(h('tr', { class: 'grp-head' },
+      h('th', { scope: 'row' }, h('span', { class: 'dot', style: { background: GROUPE_COULEUR[m.groupe], marginRight: '6px' } }), `${m.groupe} · moyenne`),
+      m.semaines.map((w, k) => h('td', { class: nowCls(k) }, w.n ? h('span', { class: 'cell row' }, moyChip('C', w.c), moyChip('T', w.t)) : h('span', { class: 'none' }, '·')))));
+    for (const r of rows.filter(r => r.groupe === m.groupe)) {
+      body.push(h('tr', null,
+        h('th', { scope: 'row', class: 'sub' }, h('span', { class: 'dot', style: { background: r.cours.Couleur || 'var(--muted)', marginRight: '6px' } }), r.cours.Title),
+        r.cells.map((list, k) => h('td', { class: nowCls(k) },
+          list.length
+            ? h('span', { class: 'cell' }, list.slice(0, 2).map(s => ctPair(s.Comportement, s.Travail, L)), list.length > 2 && h('span', { class: 'more' }, `+${list.length - 2}`))
+            : h('span', { class: 'none', 'aria-label': 'aucun suivi' }, '·')))));
+    }
+  }
   const table = h('table', { class: 'syn' },
     h('thead', null, h('tr', null,
       h('th', { scope: 'col' }, 'Cours'),
       weeks.map(w => h('th', { scope: 'col', class: w.sk === nowSk ? 'now' : null, title: w.phase },
         `S${w.n}`, h('br'), h('span', { style: { fontWeight: 400 } }, fmtDate(w.monday, { year: false })),
         h('span', { class: `band ${PHASE_CLASS[w.phase]}` }))))),
-    h('tbody', null, rows.map(r => h('tr', null,
-      h('th', { scope: 'row' }, h('span', { class: 'dot', style: { background: r.cours.Couleur || 'var(--muted)', marginRight: '6px' } }), r.cours.Title),
-      r.cells.map((list, k) => h('td', { class: weeks[k].sk === nowSk ? 'now' : null },
-        list.length
-          ? h('span', { class: 'cell' }, list.slice(0, 2).map(s => ctPair(s.Comportement, s.Travail, L)), list.length > 2 && h('span', { class: 'more' }, `+${list.length - 2}`))
-          : h('span', { class: 'none', 'aria-label': 'aucun suivi' }, '·')))))));
+    h('tbody', null, body));
+
+  const chartBox = h('div');
+  const drawChart = () => chartBox.replaceChildren(
+    h('div', { class: 'btn-row', style: { marginBottom: '6px' } },
+      h('span', { class: 'small muted' }, 'Tendance :'),
+      seg([{ value: 'CT', label: 'C et T' }, { value: 'C', label: 'Comportement' }, { value: 'T', label: 'Travail' }], tendState.vue, v => { tendState.vue = v; drawChart(); }, 'Afficher')),
+    h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '560px' }, svg: tendanceSVG(weeks, moyennes, nowSk) })));
+  drawChart();
+
   return card('Synthèse hebdomadaire', {
-    hint: 'Toutes les cotations en pastilles, aucune moyenne (R10). C = comportement (respect et ponctualité), T = travail (matériel et mise au travail). Bandes : phase de la semaine.',
-  }, h('div', { class: 'scroll-x' }, table));
+    hint: 'C = comportement (respect et ponctualité), T = travail (matériel et mise au travail). Ligne « moyenne » : moyenne de la semaine par famille de cours, indicateur de tendance ; les pastilles restent le détail. Le coaching n\'est pas coté. Bandes : phase de la semaine.',
+  }, chartBox, h('div', { class: 'scroll-x', style: { marginTop: '12px' } }, table));
 }
 
 function devoirsCard(i) {
@@ -114,7 +176,7 @@ function suivisCard(i, e) {
         type: editable ? 'button' : null, class: 'item', onClick: editable ? () => nav('saisie', { id: s.ID }) : null,
         title: editable ? 'Modifier ce suivi' : 'Modification réservée à l\'auteur (7 jours) puis à la coordination (R7)',
       },
-      ctPair(s.Comportement, s.Travail, L, false),
+      typeof s.Comportement === 'number' ? ctPair(s.Comportement, s.Travail, L, false) : h('span', { class: 'badge neutral' }, 'coaching'),
       h('div', { class: 'main' },
         h('div', { class: 'title' }, `${c?.Title}`, h('span', { class: 'muted', style: { fontWeight: 400 } }, ` · ${fmtDate(s.DateSuivi, { day: true })}${s.Portee === 'Semaine' ? ' (semaine)' : ''}`)),
         h('div', { class: 'meta' }, ens(s.EnseignantID)?.Title || ''),

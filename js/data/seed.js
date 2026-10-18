@@ -1,7 +1,7 @@
 // Bac à sable : enseignant·es = initiales réelles de l'équipe ; ÉLÈVES FICTIFS (noms inventés, plantes des Alpes).
 // Générées de façon déterministe : chaque testeur part du même jeu de données.
 import { CONFIG } from '../config.js';
-import { addDays, semaineCle, phaseOf, cleDoublon, DOMAINES } from '../domain.js';
+import { addDays, semaineCle, phaseOf, cleDoublon, DOMAINES, groupeCours } from '../domain.js';
 
 function mulberry32(a) {
   return function () {
@@ -50,7 +50,7 @@ export function buildSeed({ exemples = CONFIG.DONNEES_EXEMPLE } = {}) {
     ['Arts visuels', VO, false, '#D08C2E', 'Semaine', [2]],
     ['Sport', XG, false, '#4F7CAC', 'Séance', [1]],
   ].map(([title, t, coach, col, portee, days]) => ({
-    rec: add('RS_Cours', { Title: title, EnseignantID: T[t].ID, EstCoaching: coach, Couleur: col }), portee, days,
+    rec: add('RS_Cours', { Title: title, EnseignantID: T[t].ID, EstCoaching: coach, Couleur: col, Groupe: coach ? '' : groupeCours({ Title: title }) }), portee, days,
   }));
   const coursByTitle = Object.fromEntries(C.map(c => [c.rec.Title, c.rec]));
 
@@ -218,7 +218,7 @@ function buildExemples({ add, rnd, pick, clamp, T, C, coursByTitle, V5 }) {
           const coaching = c.rec.EstCoaching;
           add('RS_Suivis', {
             Title: `${s.p} ${s.n} · ${c.rec.Title} · ${date}`, EleveID: s.e.ID, InscriptionID: s.i.ID, CoursID: c.rec.ID, EnseignantID: c.rec.EnseignantID,
-            DateSuivi: date, SemaineCle: semaineCle(date), Portee: c.portee, Phase: phase, Comportement: comp, Travail: trav,
+            DateSuivi: date, SemaineCle: semaineCle(date), Portee: c.portee, Phase: phase, Comportement: coaching ? null : comp, Travail: coaching ? null : trav,
             Observation: !coaching && rnd() < 0.25 ? pick(OBS_BY_TREND[comp <= 2 && s.trend === 'down' ? 'down' : s.trend]) : '',
             CoachTravaille: coaching ? pick(COACH_T[phase]) : '',
             CoachProgres: coaching ? (s.trend === 'down' && phase !== 'Décompression' ? 'Point de vigilance : objectif non tenu cette semaine.' : s.trend === 'up' ? 'Progrès : a tenu son objectif cette semaine.' : 'Stable : objectif tenu en partie.') : '',

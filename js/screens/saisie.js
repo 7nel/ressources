@@ -59,7 +59,8 @@ export function render(params) {
       if (!f.EleveID) errs.push('Choisissez un élève.');
       if (!f.CoursID) errs.push('Choisissez un cours.');
       if (f.EleveID && !i) errs.push('Cette date est hors de la volée de l\'élève.');
-      if (!f.Comportement || !f.Travail) errs.push('Les deux cotations (comportement et travail) sont obligatoires.');
+      if (!coaching && (!f.Comportement || !f.Travail)) errs.push('Les deux cotations (comportement et travail) sont obligatoires.');
+      if (coaching && !f.CoachTravaille.trim() && !f.CoachProgres.trim()) errs.push('Indiquez ce qui a été travaillé ou un progrès / point de vigilance.');
       if (dv.on && !dv.desc.trim()) errs.push('Indiquez le devoir attendu.');
       if (errs.length) { errBox.replaceChildren(notice(errs.join(' '), 'danger')); return; }
       const m = moi();
@@ -69,7 +70,7 @@ export function render(params) {
         EleveID: f.EleveID, InscriptionID: i.ID, CoursID: f.CoursID,
         EnseignantID: editing ? editing.EnseignantID : (m?.ID ?? c.EnseignantID),
         DateSuivi: f.DateSuivi, SemaineCle: semaineCle(f.DateSuivi), Portee: f.Portee, Phase: phase,
-        Comportement: f.Comportement, Travail: f.Travail,
+        Comportement: coaching ? null : f.Comportement, Travail: coaching ? null : f.Travail,
         Observation: coaching ? '' : f.Observation.trim(),
         CoachTravaille: coaching ? f.CoachTravaille.trim() : '', CoachProgres: coaching ? f.CoachProgres.trim() : '',
       };
@@ -100,10 +101,11 @@ export function render(params) {
           v && h('span', { class: 'muted small' }, `${v.Title}`),
           f.EleveID && !i && h('span', { class: 'danger-text small' }, 'Date hors de la volée de cet élève.')),
         doublon && notice(`Un suivi existe déjà pour ce cours à cette date (${fmtDate(f.DateSuivi)}). Vous pouvez en ajouter un second ou modifier le premier depuis le dossier.`, 'warn'),
-        levelLegend(L),
-        h('div', { class: 'row' },
-          field('Comportement (C)', levelPicker(f.Comportement, val => { f.Comportement = val; }, { labels: L, name: 'Comportement' })),
-          field('Travail (T)', levelPicker(f.Travail, val => { f.Travail = val; }, { labels: L, name: 'Travail' }))),
+        coaching ? notice('Coaching : pas de cotation C/T ni de note, seulement le suivi écrit.', 'info') : [
+          levelLegend(L),
+          h('div', { class: 'row' },
+            field('Comportement (C)', levelPicker(f.Comportement, val => { f.Comportement = val; }, { labels: L, name: 'Comportement' })),
+            field('Travail (T)', levelPicker(f.Travail, val => { f.Travail = val; }, { labels: L, name: 'Travail' })))],
         coaching
           ? [field('Ce qui a été travaillé / notion ciblée', textarea(f.CoachTravaille, { onInput: ev => { f.CoachTravaille = ev.target.value; } })),
             field('Progrès · point de vigilance', textarea(f.CoachProgres, { onInput: ev => { f.CoachProgres = ev.target.value; } }))]

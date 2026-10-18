@@ -31,6 +31,23 @@ export const STATUTS_TACHE = ['À faire', 'En cours', 'Terminée'];
 export const STATUTS_STAGE = ['Demandé', 'Prévu', 'Effectué', 'Annulé'];
 export const TYPES_DOC = ['CV', 'Lettre de motivation', 'Autre'];
 export const STATUTS_DOC = ['À faire', 'En cours', 'Terminé'];
+/* ---------- Familles de cours (moyennes hebdomadaires C/T) ---------- */
+export const GROUPES = ['Branches', 'Projet', 'Méthodo / Orientation'];
+const PROJET = ['acm', 'arts visuels', 'artv', 'musique', 'sport', 'theatre', 'education physique'];
+const METHODO = ['methodo', 'orientation'];
+/** Famille d'un cours : champ Groupe s'il existe, sinon déduite du nom. Le coaching n'a aucune cotation. */
+export function groupeCours(c) {
+  if (!c) return null;
+  if (c.EstCoaching) return 'Coaching';
+  if (c.Groupe && (GROUPES.includes(c.Groupe))) return c.Groupe;
+  const t = String(c.Title || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (METHODO.some(k => t.includes(k))) return 'Méthodo / Orientation';
+  if (PROJET.some(k => t.includes(k))) return 'Projet';
+  return 'Branches';
+}
+export const estCote = s => typeof s.Comportement === 'number' && typeof s.Travail === 'number';
+export function moyenne(xs) { return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; }
+
 export const DEF_C = 'respect et ponctualité';
 export const DEF_T = 'matériel et mise au travail';
 export const DEFAULT_LEVEL_LABELS = ['désengagé', 'engagement fragile', 'globalement engagé', 'engagé'];

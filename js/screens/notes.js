@@ -45,7 +45,7 @@ export function render() {
   const filters = card(null, {}, h('div', { class: 'row' },
     field('Élève', select([{ value: '', label: 'Tous les élèves' }, ...elevesOpts], state.eleveId, { onChange: set('eleveId') })),
     field('Volée', select([{ value: '', label: 'Toutes' }, ...volees().map(v => ({ value: v.ID, label: v.Title }))], state.voleeId, { onChange: set('voleeId') })),
-    field('Branche', select([{ value: '', label: 'Toutes' }, ...coursActifs().map(c => ({ value: c.ID, label: c.Title }))], state.coursId, { onChange: set('coursId') })),
+    field('Branche', select([{ value: '', label: 'Toutes' }, ...coursActifs().filter(c => !c.EstCoaching).map(c => ({ value: c.ID, label: c.Title }))], state.coursId, { onChange: set('coursId') })),
     field('Tri', select([{ value: 'date', label: 'Date' }, { value: 'branche', label: 'Branche' }, { value: 'eleve', label: 'Élève' }, { value: 'note', label: 'Note' }], state.tri, { onChange: set('tri') }))));
 
   let moyennes;

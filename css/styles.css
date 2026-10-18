@@ -425,3 +425,13 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .level-legend-wrap { display: flex; flex-direction: column; gap: 6px; }
 .ct-def { display: flex; gap: 6px 20px; flex-wrap: wrap; font-size: .88rem; color: var(--ink); }
 .ct-def strong { color: var(--accent); }
+
+/* Synthèse : lignes de moyenne par famille */
+.syn tr.grp-head th, .syn tr.grp-head td { background: var(--accent-soft); border-top: 2px solid var(--line-strong); }
+.syn tr.grp-head th { font-weight: 700; color: var(--ink); }
+.syn tr.grp-head td.now { background: var(--accent-soft); }
+.syn th.sub { padding-left: 22px; font-weight: 400; }
+.syn .cell.row { flex-direction: row; gap: 8px; }
+.moy { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 22px; padding: 0 6px; border-radius: 999px; font-weight: 700; font-size: .78rem; font-variant-numeric: tabular-nums; }
+.moy.l1 { background: var(--l1); color: var(--l1-ink); } .moy.l2 { background: var(--l2); color: var(--l2-ink); }
+.moy.l3 { background: var(--l3); color: var(--l3-ink); } .moy.l4 { background: var(--l4); color: var(--l4-ink); }

@@ -24,7 +24,7 @@ export function render(params) {
       return vv && vv.DateDebut <= f.DateEval && f.DateEval <= vv.DateFin;
     }).map(x => eleve(x.EleveID)).filter(Boolean), 'Nom');
     if (f.EleveID && !candidats.find(e => e.ID === f.EleveID) && eleve(f.EleveID)) candidats.unshift(eleve(f.EleveID));
-    const coursOpts = [...mine, ...coursActifs().filter(x => !mine.includes(x))];
+    const coursOpts = [...mine, ...coursActifs().filter(x => !mine.includes(x))].filter(x => !x.EstCoaching); // le coaching n'a pas de note
     const errBox = h('div');
 
     async function save() {
