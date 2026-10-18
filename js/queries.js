@@ -102,11 +102,23 @@ export function aFaire(date, v, { restreint, coursIds }) {
       items.push({ prio: 4, kind: 'Devoirs ouverts', title: `${nomEleve(eleve(eid))} : ${list.length} devoir${list.length > 1 ? 's' : ''}`, meta: list.map(d => cours(d.CoursID)?.Title).join(', '), go: ['dossier', { eleve: eid }] });
     }
   }
-  for (const t of tachesDeLaSemaine(date, isCoord() ? null : m?.Title)) {
-    const late = t.Echeance < date;
-    items.push({ prio: late ? 1 : 5, kind: late ? 'Tâche en retard' : 'Tâche de la semaine', title: t.Title, meta: `${t.Responsable} · ${t.Echeance.split('-').reverse().join('.')}`, late, go: ['taches', { id: t.ID }] });
+  // Mes tâches en tête : toutes celles qui me sont attribuées et pas terminées, par échéance (sans échéance : à la fin).
+  const mesTaches = st().where('RS_Taches', t => t.Statut !== 'Terminée' && m && t.Responsable === m.Title)
+    .sort((a, b) => (a.Echeance || '9999').localeCompare(b.Echeance || '9999'));
+  for (const t of mesTaches) {
+    const late = t.Echeance && t.Echeance < date;
+    items.push({ prio: 0, kind: late ? 'Ma tâche · en retard' : 'Ma tâche', title: t.Title,
+      meta: [t.Echeance ? `échéance ${t.Echeance.split('-').reverse().join('.')}` : 'sans échéance', t.Statut === 'En cours' ? 'en cours' : ''].filter(Boolean).join(' · '),
+      late, go: ['taches', { id: t.ID }] });
   }
-  return items.sort((a, b) => a.prio - b.prio);
+  // Coordination : tâches de l'équipe de la semaine ou en retard (hors les miennes, déjà listées)
+  if (isCoord()) {
+    for (const t of tachesDeLaSemaine(date).filter(t => t.Responsable !== m?.Title)) {
+      const late = t.Echeance < date;
+      items.push({ prio: late ? 1 : 5, kind: late ? 'Tâche de l\'équipe en retard' : 'Tâche de l\'équipe', title: t.Title, meta: `${t.Responsable} · ${t.Echeance.split('-').reverse().join('.')}`, late, go: ['taches', { id: t.ID }] });
+    }
+  }
+  return items.sort((a, b) => a.prio - b.prio); // tri stable : l'ordre par échéance est conservé
 }
 
 /** Synthèse hebdomadaire d'une inscription (R10) : semaines × cours, pastilles, aucune moyenne. */
