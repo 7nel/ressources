@@ -361,7 +361,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 
 /* ---------- Impression (fiche coaching) ---------- */
 @media print {
-  .banner, .sidebar, .no-print, .toasts { display: none !important; }
+  .banner, .sidebar, .no-print, .toasts, .sync-bar-wrap { display: none !important; }
+  .qr-fiche { break-inside: avoid; page-break-inside: avoid; border: 1px dashed #666 !important; }
+  .qr-list { gap: 0 !important; }
   .shell { display: block; }
   main { padding: 0; }
   body { background: #fff; color: #000; font-size: 11pt; }
@@ -471,3 +473,14 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .skip-link { position: absolute; left: 8px; top: -60px; z-index: 1000; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; background: var(--accent); color: var(--accent-ink); border-radius: 8px; font-weight: 700; text-decoration: none; }
 .skip-link:focus { top: 8px; }
 main:focus, main h1:focus { outline: none; }
+
+/* ---------- Forms CPS : fiches QR, fiche imprimable ---------- */
+.mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; letter-spacing: .04em; }
+.qr-list { display: flex; flex-direction: column; gap: 16px; }
+.qr-fiche { display: grid; grid-template-columns: minmax(0, 190px) minmax(0, 1fr); gap: 20px; align-items: center; }
+.qr-fiche .qr-img svg { width: 100%; height: auto; display: block; }
+.qr-fiche .qr-txt { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.qr-fiche h2, .qr-fiche p { margin: 0; }
+@media (max-width: 560px) { .qr-fiche { grid-template-columns: 1fr; } .qr-fiche .qr-img { max-width: 220px; } }
+.print-tbl .c { text-align: center; }
+.cps-fiche-tbl th.c { font-size: .78rem; width: 9%; }

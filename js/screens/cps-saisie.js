@@ -49,7 +49,7 @@ export function render(params) {
     h('h1', null, `Nouvelle passation CPS · ${nomEleve(e)}`),
     card(null, {}, h('div', { class: 'form' },
       h('div', { class: 'row' }, field('Date de passation', date), field('Moment', moment)),
-      h('p', { class: 'hint' }, 'Reportez les scores par domaine calculés dans le classeur Excel (items inversés déjà traités). Un regard laissé vide ne sera pas tracé. Classeur en pièce jointe : disponible avec SharePoint.'),
+      h('p', { class: 'hint' }, 'Pour la boussole, ou un questionnaire rempli sur papier : reportez les scores par domaine calculés dans le classeur Excel (items inversés déjà traités). Les questionnaires Forms s\'intègrent depuis « Réponses Forms ». Un regard laissé vide ne sera pas tracé.'),
       grid,
       errBox,
       h('div', { class: 'btn-row' }, btn('Enregistrer', save), btn('Annuler', () => back('cps', { eleve: e.ID }), 'secondary')))));

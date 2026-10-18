@@ -25,6 +25,9 @@ import * as Orientation from './screens/orientation.js';
 import * as Bilan from './screens/bilan.js';
 import * as CPS from './screens/cps.js';
 import * as CPSSaisie from './screens/cps-saisie.js';
+import * as CPSForms from './screens/cps-forms.js';
+import * as CPSQr from './screens/cps-qr.js';
+import * as CPSFiche from './screens/cps-fiche.js';
 import * as Parametres from './screens/parametres.js';
 import * as Coaching from './screens/fiche-coaching.js';
 
@@ -46,6 +49,9 @@ const ROUTES = {
   bilan: { mod: Bilan, nav: 'eleves' },
   cps: { mod: CPS, nav: 'eleves' },
   cpssaisie: { mod: CPSSaisie, nav: 'eleves' },
+  cpsforms: { mod: CPSForms, nav: 'eleves' },
+  cpsqr: { mod: CPSQr, nav: 'eleves' },
+  cpsfiche: { mod: CPSFiche, nav: 'eleves' },
   coaching: { mod: Coaching, nav: 'eleves' },
   parametres: { mod: Parametres, nav: 'parametres' }, // plus dans le menu ; accessible par #/parametres (coordination)
   profil: { mod: { render: () => welcome(true) }, nav: 'profil' },

@@ -66,6 +66,18 @@ Un point orange signale des modifications non sauvegardées ; le navigateur aver
 
 ⚠ Solution provisoire, pour données fictives uniquement : des fichiers JSON dans un dossier ne protègent pas des données réelles d'élèves.
 
+## 2 quater. Questionnaires CPS par Microsoft Forms
+
+- Trois Forms (élève, titulaire, parents), compte edu.vs.ch, sans connexion demandée. Leurs réponses arrivent seules dans
+  `CPS_Eleve.xlsx`, `CPS_Titulaire.xlsx`, `CPS_Parents.xlsx`, dans le sous-dossier **CPS** du dossier d'échange.
+- **QR codes** : dossier de l'élève → CPS → « QR codes Forms ». Choisir le moment (Entrée / Sortie / Autre), imprimer,
+  remettre chaque fiche en main propre. Le code de l'élève (6 caractères) est créé à la première impression et partagé avec l'équipe.
+- **Intégrer** : CPS → « Réponses Forms » (Chrome/Edge : lecture directe du dossier ; ailleurs : choisir les 3 classeurs).
+  Le site calcule les 5 scores (items inversés 6 − x) et ne garde que ces scores. Doublons et codes inconnus sont signalés.
+- **Fiche imprimable** : bouton « Fiche » sur chaque réponse (30 items + scores), relue dans le classeur, pour le dossier papier.
+- La boussole reste saisie à la main (« + Saisie à la main »).
+- Si un Forms est recréé : recopier `id`, `qCode`, `qMoment` de son nouveau lien prérempli dans `js/config.js` (CPS_FORMS).
+
 ## 3. Contenu
 
 | Menu | Écrans |

@@ -243,6 +243,12 @@ export async function charger() {
   [{ label: 'Annuler', variant: 'secondary' }, { label: 'Choisir les fichiers', onClick: () => { choisir(); } }]);
 }
 
+/** Dossier d'échange relié et autorisé (Chrome/Edge), pour lire les classeurs Forms CPS ; null sinon. */
+export async function dossierEchange(interactive = false) {
+  if (!supportsFolder()) return null;
+  try { return await folderReady(interactive); } catch (e) { if (e?.name === 'AbortError') return null; throw e; }
+}
+
 /** À l'ouverture : si le dossier est relié et déjà autorisé, charge sans rien demander. */
 export async function chargerAuDemarrage() {
   if (!isSandbox() || !supportsFolder()) return false;
