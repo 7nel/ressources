@@ -118,7 +118,7 @@ export function render() {
       h('div', { class: 'duo' },
         h('div', { class: 'num' }, c.nd, h('span', { class: 'mot' }, pl(c.nd, 'devoir à rendre', 'devoirs à rendre'))),
         h('div', { class: 'num' }, c.ne, h('span', { class: 'mot' }, pl(c.ne, 'évaluation', 'évaluations')))));
-    return h('button', { type: 'button', class: 'tile tile-duo', title: 'Voir les devoirs et évaluations à venir', onClick: () => nav('travaux') },
+    return h('button', { type: 'button', class: 'tile tile-duo tile-large', title: 'Voir les devoirs et évaluations à venir', onClick: () => nav('travaux') },
       tous.n
         ? [miens && ligne('Mes cours', miens), ligne(miens ? 'Tous les cours' : null, tous)]
         : h('div', { class: 'num' }, '–'),
@@ -237,7 +237,7 @@ export function render() {
     head,
     voleeBlock,
     // Hors volée : ni tuiles à zéro ni cartes vides, seulement les tâches à faire.
-    v && h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' } }, tiles),
+    v && h('div', { class: 'tiles-wrap' }, h('div', { class: `tiles tiles-${tiles.length}` }, tiles)),
     v
       ? h('div', { class: 'cols-dossier' },
         h('div', { class: 'stack' }, progresCard, alertCard, retenueCard),
