@@ -4,7 +4,7 @@ import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, monda
 import { CONFIG } from '../config.js';
 const DATE_EXEMPLE = '2026-06-17'; // mercredi de la dernière semaine de la volée d'exemple
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
-import { retenues, alertes, progres, sansSuivi, devoirsOuverts, aFaire, suivisDeSemaine } from '../queries.js';
+import { retenues, alertes, progres, sansSuivi, aFaire, suivisDeSemaine } from '../queries.js';
 
 const fmt1 = v => v.toFixed(1).replace('.', ',');
 const niveau = v => Math.max(1, Math.min(4, Math.round(v)));
@@ -13,6 +13,11 @@ const moy = v => h('span', { class: `moy l${niveau(v)}` }, fmt1(v));
 const hausse = (lettre, [avant, apres]) => h('span', { class: 'ct' },
   h('span', { class: 'k' }, lettre), moy(avant), h('span', { 'aria-hidden': 'true', class: 'muted' }, '→'), h('span', { class: 'sr-only' }, 'vers'), moy(apres));
 const NB_PROGRES = 5;
+const REGROUPE = {
+  'Bilan à faire': n => `${n} bilans à faire`,
+  'Sans suivi cette semaine': (n, restreint) => restreint ? `${n} cours avec des élèves sans suivi` : `${n} élèves sans suivi cette semaine`,
+  'Devoirs ouverts': n => `${n} élèves avec des devoirs ouverts`,
+};
 
 
 export function ramp(v, date) {
@@ -67,6 +72,7 @@ export function render() {
         exemple && !(exemple.DateDebut <= date && date <= exemple.DateFin) && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(DATE_EXEMPLE); nav('accueil'); } }, 'voir la volée d\'exemple'))),
     h('div', { class: 'btn-row' },
       !isCoord() && mine.length ? btn(S.settings.vueTout ? 'Ma vue' : 'Tout voir', () => { S.settings.vueTout = !S.settings.vueTout; saveSettings(); nav('accueil'); }, 'secondary') : null,
+      mine.map(c => btn(c.Title, () => nav(c.EstCoaching ? 'saisie' : 'groupe', { cours: c.ID }), 'secondary', { title: 'Ouvre la saisie préréglée pour ce cours' })),
       btn('+ Saisie de groupe', () => nav('groupe'))));
 
   /* ---- Volée et rampe ---- */
@@ -77,14 +83,12 @@ export function render() {
   }
 
   /* ---- Tuiles ---- */
-  const dv = devoirsOuverts(inscIds, coursIds);
   const sans = restreint
     ? new Set(mine.flatMap(c => sansSuivi(sk, inscs, c.ID).map(i => i.ID))).size
     : sansSuivi(sk, inscs).length;
   const al = alertes(sk, inscIds, coursIds);
   const tiles = [
     tile(inscs.length, 'élèves dans la volée', { onClick: () => nav('eleves') }),
-    tile(dv.length, restreint ? 'devoirs ouverts (mes cours)' : 'devoirs ouverts', { alert: false }),
     tile(sans, restreint ? 'sans suivi dans mes cours' : 'sans suivi cette semaine', { alert: true }),
     tile(al.length, 'alertes « désengagé »', { alert: true }),
   ];
@@ -93,12 +97,6 @@ export function render() {
     const total = S.store.all('RS_Cours').length;
     tiles.push(tile(`${suivisCours}/${total}`, 'cours suivis cette semaine'));
   }
-
-  /* ---- Mes cours ---- */
-  const mesCoursCard = mine.length
-    ? card('Mes cours', { hint: 'Un clic ouvre la saisie de groupe préréglée.' },
-      h('div', { class: 'btn-row' }, mine.map(c => btn(c.Title, () => nav(c.EstCoaching ? 'saisie' : 'groupe', { cours: c.ID }), 'secondary'))))
-    : null;
 
   /* ---- Alertes ---- */
   const L = labels();
@@ -145,11 +143,32 @@ export function render() {
 
   /* ---- À faire ---- */
   const todo = aFaire(date, v, { restreint, coursIds });
+  const afItem = (t, imbrique = false) => h('button', { type: 'button', class: `item ${t.late ? 'late' : ''}`, onClick: () => nav(...t.go) },
+    h('div', { class: 'main' }, !imbrique && h('div', { class: 'meta' }, t.kind), h('div', { class: 'title' }, t.title), t.meta && h('div', { class: 'meta' }, t.meta)),
+    h('span', { 'aria-hidden': 'true', class: 'muted' }, '›'));
+  // Les types répétitifs (un élève ou un bilan par ligne) sont regroupés en une ligne qui se déplie.
+  const todoRows = [];
+  const groupes = new Map();
+  for (const t of todo) {
+    if (!REGROUPE[t.kind]) { todoRows.push({ t }); continue; }
+    if (!groupes.has(t.kind)) { const g = { kind: t.kind, items: [] }; groupes.set(t.kind, g); todoRows.push({ g }); }
+    groupes.get(t.kind).items.push(t);
+  }
+  const todoLis = todoRows.map(r => {
+    if (r.t) return h('li', null, afItem(r.t));
+    if (r.g.items.length === 1) return h('li', null, afItem(r.g.items[0]));
+    const detail = h('div', { class: 'sub-list', hidden: true }, h('ul', { class: 'list' }, r.g.items.map(t => h('li', null, afItem(t, true)))));
+    const fleche = h('span', { 'aria-hidden': 'true', class: 'muted' }, '›');
+    const entete = h('button', { type: 'button', class: 'item', 'aria-expanded': 'false', onClick: e => {
+      const ouvre = detail.hidden;
+      detail.hidden = !ouvre;
+      e.currentTarget.setAttribute('aria-expanded', String(ouvre));
+      fleche.style.transform = ouvre ? 'rotate(90deg)' : '';
+    } }, h('div', { class: 'main' }, h('div', { class: 'title' }, REGROUPE[r.g.kind](r.g.items.length, restreint))), fleche);
+    return h('li', null, entete, detail);
+  });
   const todoCard = card('À faire', { hint: restreint ? 'Limité à vos cours, à vos actions et à vos tâches.' : null, actions: [btn('Mes tâches', () => nav('taches'), 'secondary small')] },
-    todo.length ? h('ul', { class: 'list' }, todo.map(t => h('li', null,
-      h('button', { type: 'button', class: `item ${t.late ? 'late' : ''}`, onClick: () => nav(...t.go) },
-        h('div', { class: 'main' }, h('div', { class: 'meta' }, t.kind), h('div', { class: 'title' }, t.title), t.meta && h('div', { class: 'meta' }, t.meta)),
-        h('span', { 'aria-hidden': 'true', class: 'muted' }, '›'))))) : empty('Rien en attente.'));
+    todoLis.length ? h('ul', { class: 'list' }, todoLis) : empty('Rien en attente.'));
 
   const syncNotice = isSandbox() && S.settings.sansCopie === false && !wasLoadedThisSession()
     ? h('div', { class: 'notice info btn-row', style: { justifyContent: 'space-between' } },
@@ -164,7 +183,6 @@ export function render() {
     head,
     voleeBlock,
     h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' } }, tiles),
-    mesCoursCard,
     h('div', { class: 'cols-dossier' },
       h('div', { class: 'stack' }, progresCard, alertCard, retenueCard),
       h('div', { class: 'stack' }, todoCard)));

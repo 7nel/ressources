@@ -215,6 +215,7 @@ input.invalid { border-color: var(--danger); }
 .pastille.empty { background: transparent; border-color: var(--line-strong); color: var(--muted); }
 .ct { display: inline-flex; align-items: center; gap: 3px; }
 .ct .k { font-size: .72rem; color: var(--muted); font-weight: 700; }
+.sub-list { margin-left: 14px; }
 .prog { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
 
 .picker { display: flex; gap: 6px; flex-wrap: wrap; }
