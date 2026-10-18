@@ -207,10 +207,11 @@ export function render() {
     const late = !!items[0].late;
     // Ouvert d'office : mes tâches et tout ce qui est en retard ; le reste (volume) reste replié. Le choix de la personne est mémorisé.
     const ouvert = ouverts.has(kind) ? ouverts.get(kind) : late || kind.startsWith('Ma tâche');
-    const detail = h('div', { class: 'sub-list', hidden: !ouvert }, h('ul', { class: 'list' }, items.map(t => h('li', null, afItem(t, true)))));
+    const detailId = `af-${sectionDe(kind)}-${items[0].kind.replace(/\W+/g, '-')}`;
+    const detail = h('div', { id: detailId, class: 'sub-list', hidden: !ouvert }, h('ul', { class: 'list' }, items.map(t => h('li', null, afItem(t, true)))));
     const fleche = h('span', { 'aria-hidden': 'true', class: 'muted', style: { transform: ouvert ? 'rotate(-90deg)' : 'rotate(90deg)' } }, '›'); // vers le bas : déplie ; vers le haut : replie ; « › » droit reste réservé aux liens
     const apercu = late ? items.slice(0, 3).map(t => t.title).join(' · ') : '';
-    const entete = h('button', { type: 'button', class: `item ${late ? 'late' : ''}`, 'aria-expanded': String(ouvert), onClick: e => {
+    const entete = h('button', { type: 'button', class: `item ${late ? 'late' : ''}`, 'aria-expanded': String(ouvert), 'aria-controls': detailId, onClick: e => {
       const ouvre = detail.hidden;
       detail.hidden = !ouvre;
       ouverts.set(kind, ouvre);
