@@ -62,7 +62,8 @@ export function pastille(level, { sm = false, title } = {}) {
   return h('span', { class: `pastille l${lv} ${sm ? 'sm' : ''}`, title: title || `niveau ${lv}` }, lv);
 }
 export function ctPair(c, t, labels, sm = true) {
-  return h('span', { class: 'ct', title: `Comportement (${DEF_C}) : ${c} – ${labels[c - 1] || ''} · Travail (${DEF_T}) : ${t} – ${labels[t - 1] || ''}` },
+  const desc = `Comportement (${DEF_C}) : ${c} – ${labels[c - 1] || ''} · Travail (${DEF_T}) : ${t} – ${labels[t - 1] || ''}`;
+  return h('span', { class: 'ct', title: desc, role: 'img', 'aria-label': desc },
     h('span', { class: 'k' }, 'C'), pastille(c, { sm }), h('span', { class: 'k' }, 'T'), pastille(t, { sm }));
 }
 export function phaseBadge(phase) {
@@ -149,12 +150,48 @@ export function confirmDlg(title, text, okLabel = 'Confirmer') {
     ], () => res(false)); // une promesse ne se résout qu'une fois : la fermeture après « OK » ne change rien
   });
 }
-export function toast(msg, kind = 'ok') {
+/** `undo` : { label, onClick } ajoute un bouton dans le message, qui reste affiché plus longtemps. */
+export function toast(msg, kind = 'ok', undo) {
   let box = document.querySelector('.toasts');
   if (!box) { box = h('div', { class: 'toasts', 'aria-live': 'polite' }); document.body.appendChild(box); }
-  const t = h('div', { class: `toast ${kind}` }, msg);
+  const t = h('div', { class: `toast ${kind}` }, h('span', null, msg),
+    undo && h('button', { type: 'button', class: 'toast-undo', onClick: async () => { t.remove(); await undo.onClick(); } }, undo.label));
   box.appendChild(t);
-  setTimeout(() => t.remove(), kind === 'err' ? 6000 : 3200);
+  setTimeout(() => t.remove(), undo ? 9000 : kind === 'err' ? 6000 : 3200);
+}
+
+/**
+ * Menu d'actions secondaires : un bouton qui déplie une liste. Se ferme avec Échap,
+ * un clic à côté ou le choix d'une entrée. items : { label, onClick, danger?, sep? }
+ */
+export function menu(label, items) {
+  const list = h('div', { class: 'menu-list', role: 'menu', hidden: true });
+  const trigger = h('button', { type: 'button', class: 'btn secondary', 'aria-haspopup': 'menu', 'aria-expanded': 'false' }, label, h('span', { 'aria-hidden': 'true', class: 'chevron' }));
+  const wrap = h('div', { class: 'menu' }, trigger, list);
+  const close = (focus = false) => {
+    list.hidden = true; trigger.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('click', onDoc); document.removeEventListener('keydown', onKey);
+    if (focus) trigger.focus();
+  };
+  const onDoc = e => { if (!wrap.contains(e.target)) close(); };
+  const onKey = e => {
+    if (e.key === 'Escape') { e.preventDefault(); close(true); return; }
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const els = [...list.querySelectorAll('button')], i = els.indexOf(document.activeElement);
+    els[(i + (e.key === 'ArrowDown' ? 1 : els.length - 1)) % els.length]?.focus();
+  };
+  for (const it of items.filter(Boolean)) {
+    if (it.sep) { list.appendChild(h('hr', { class: 'menu-sep', role: 'separator' })); continue; }
+    list.appendChild(h('button', { type: 'button', role: 'menuitem', class: it.danger ? 'danger-text' : null, onClick: () => { close(); it.onClick(); } }, it.label));
+  }
+  trigger.addEventListener('click', () => {
+    if (!list.hidden) return close();
+    list.hidden = false; trigger.setAttribute('aria-expanded', 'true');
+    document.addEventListener('click', onDoc); document.addEventListener('keydown', onKey);
+    list.querySelector('button')?.focus();
+  });
+  return wrap;
 }
 
 /* ---------- Icônes (traits simples) ---------- */
