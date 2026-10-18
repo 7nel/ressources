@@ -290,7 +290,9 @@ button.item, a.item { cursor: pointer; border-radius: 8px; padding: 10px 8px; te
 button.item:hover, a.item:hover { background: var(--accent-soft); }
 button.item { min-height: 44px; }
 .item .main { flex: 1; min-width: 0; }
-.item .title { font-weight: 700; overflow-wrap: anywhere; }
+.item .title { font-weight: 700; overflow-wrap: break-word; hyphens: auto; }
+.item.devoir { flex-wrap: wrap; }
+.item.devoir .end { flex-basis: 100%; justify-content: flex-start; }
 .item .meta { color: var(--muted); font-size: .86rem; overflow-wrap: anywhere; }
 .item .end { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
 .item.late .meta { color: var(--danger); }
@@ -443,9 +445,10 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
   transition: background-color .15s, border-color .15s, color .15s, box-shadow .15s;
 }
 .sync-save svg, .sync-load svg { width: 18px; height: 18px; flex: none; }
-.sync-save { background: var(--accent); color: var(--accent-ink); border: 1.5px solid var(--accent); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
-.sync-save:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.sync-save { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.sync-save:hover { background: var(--accent-soft); }
 .sync-save.dirty { background: var(--warn); border-color: var(--warn); color: #fff; box-shadow: 0 0 0 4px var(--warn-soft); }
+.sync-save.dirty:hover { background: var(--warn); }
 .sync-load { background: transparent; color: var(--accent); border: 1.5px solid var(--line-strong); }
 .sync-load:hover { border-color: var(--accent); background: var(--accent-soft); }
 .sync-meta { font-size: .78rem; color: var(--muted); display: flex; flex-direction: column; gap: 2px; padding: 0 4px; }
@@ -494,7 +497,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 
 /* Écrans tactiles (tablette) : cibles de 44 px */
 @media (pointer: coarse) {
-  .btn.small, .seg button, .who-btn { min-height: 44px; }
+  .btn.small, .seg button, .who-btn, .back, .sync-bar .sync-save, .sync-bar .sync-load { min-height: 44px; }
   .theme-btn, .sync-bar .theme-btn { width: 44px; height: 44px; }
 }
 
@@ -536,7 +539,7 @@ button.ligne-suivi:hover { background: var(--accent-soft); }
 /* ---------- Menu « Plus » et cartes repliables ---------- */
 .menu { position: relative; }
 .menu .chevron { width: 8px; height: 8px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-2px); margin-left: 2px; }
-.menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 250px; padding: 6px; background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: 0 8px 28px rgba(37, 52, 51, .18); display: flex; flex-direction: column; }
+.menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 250px; padding: 6px; background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: 0 6px 14px rgba(37, 52, 51, .14); display: flex; flex-direction: column; }
 .menu-list button { background: none; border: 0; text-align: left; padding: 10px 12px; min-height: 44px; border-radius: 8px; cursor: pointer; color: var(--ink); }
 .menu-list button:hover, .menu-list button:focus-visible { background: var(--accent-soft); }
 .menu-list .danger-text { color: var(--danger); }
@@ -547,3 +550,10 @@ details.fold > summary::before { content: ""; width: 8px; height: 8px; border: s
 details.fold[open] > summary::before { transform: rotate(45deg); }
 details.fold[open] > summary { margin-bottom: 10px; }
 @media (prefers-reduced-motion: reduce) { details.fold > summary::before { transition: none; } }
+
+/* ---------- Synthèse : blocs repliables et indice de défilement ---------- */
+details.sub-fold { margin: 6px 0; }
+details.sub-fold > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; color: var(--accent); font-weight: 700; font-size: .92rem; }
+details.sub-fold > .hint { margin: 0 0 8px; }
+.scroll-note { display: none; margin: 6px 0 0; }
+@media (max-width: 760px) { .scroll-note { display: block; } }
