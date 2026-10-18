@@ -318,7 +318,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .ramp .p3 { background: var(--ph3); color: var(--ph3-ink); }
 .ramp-wrap { position: relative; padding-top: 22px; }
 .ramp-marker { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; font-size: .75rem; font-weight: 700; color: var(--ink); pointer-events: none; }
-.ramp-marker::after { content: ""; width: 2px; height: 40px; background: var(--ink); margin-top: 2px; }
+.ramp-marker::after { content: ""; width: 2px; height: 36px; background: var(--ink); margin-top: 2px; } /* s'arrête au bas de la rampe, sans mordre sur les dates */
 .ramp-dates { display: flex; justify-content: space-between; color: var(--muted); font-size: .8rem; margin-top: 4px; }
 
 /* ---------- Synthèse hebdomadaire ---------- */
