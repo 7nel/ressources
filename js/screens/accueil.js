@@ -19,6 +19,11 @@ const REGROUPE = {
   'Devoirs ouverts': n => `${n} élèves avec des devoirs ouverts`,
   'Devoir à contrôler': n => `${n} devoirs à contrôler`,
   'Évaluation à saisir': n => `${n} évaluations à saisir`,
+  'Ma tâche · en retard': n => `${n} de mes tâches en retard`,
+  'Ma tâche': n => `${n} de mes tâches`,
+  'Action en retard': n => `${n} actions en retard`,
+  'Tâche de l\'équipe en retard': n => `${n} tâches de l'équipe en retard`,
+  'Tâche de l\'équipe': n => `${n} tâches de l'équipe cette semaine`,
 };
 
 
@@ -190,7 +195,7 @@ export function render() {
     if (r.g.items.length === 1) return h('li', null, afItem(r.g.items[0]));
     const detail = h('div', { class: 'sub-list', hidden: true }, h('ul', { class: 'list' }, r.g.items.map(t => h('li', null, afItem(t, true)))));
     const fleche = h('span', { 'aria-hidden': 'true', class: 'muted' }, '›');
-    const entete = h('button', { type: 'button', class: 'item', 'aria-expanded': 'false', onClick: e => {
+    const entete = h('button', { type: 'button', class: `item ${r.g.items[0].late ? 'late' : ''}`, 'aria-expanded': 'false', onClick: e => {
       const ouvre = detail.hidden;
       detail.hidden = !ouvre;
       e.currentTarget.setAttribute('aria-expanded', String(ouvre));
