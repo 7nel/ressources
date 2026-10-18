@@ -73,7 +73,7 @@ function renderBanner() {
 function renderSidebar(active) {
   const m = moi();
   if (syncBarEl) syncBarEl.replaceChildren(isSandbox() && S.settings.moiId ? syncBlock(true) : h('div', { class: 'sync-bar' }, h('span'), themeBtn()));
-  sidebarEl.replaceChildren(
+  sidebarEl.replaceChildren(...[
     h('div', { class: 'brand' }, 'Ressource', h('span', null, 'S')),
     ...MENU.map(([r, label, ic]) => {
       const isActive = active === r || (r === 'groupe' && active === 'saisie');
@@ -87,7 +87,7 @@ function renderSidebar(active) {
     S.settings.moiId && h('div', { class: 'whoami' },
       h('button', { type: 'button', class: 'who-btn', onClick: () => nav('profil'), title: 'Changer de profil' }, icon('user'), h('span', null, m ? m.Title : '—')),
       themeBtn()),
-  );
+  ].filter(Boolean));
 }
 
 const hhmm = iso => { const d = new Date(iso); const today = new Date().toDateString() === d.toDateString();

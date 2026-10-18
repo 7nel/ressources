@@ -445,4 +445,4 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .theme-btn svg { width: 18px; height: 18px; }
 .theme-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
 .welcome-list { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
-@media (max-width: 760px) { .sync-bar .theme-btn { width: 36px; height: 36px; } }
+@media (max-width: 760px) { .sync-bar .theme-btn { width: 36px; height: 36px; } .whoami { display: none; } }
