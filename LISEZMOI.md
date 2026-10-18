@@ -7,7 +7,7 @@ Application de suivi des élèves de la Classe RessourceS, reprise de l'app Powe
 
 1. Sur github.com : **New repository** → nom `ressources` → *Public* → **Create repository**.
    (Dépôt privé : GitHub Pages l'accepte avec un compte payant ou l'offre étudiante GitHub Education.)
-2. **Add file → Upload files** → glisser **le contenu** du dossier (`index.html`, `css/`, `js/`, `LISEZMOI.md`), pas le dossier lui-même → **Commit changes**.
+2. **Add file → Upload files** → glisser **le contenu** du dossier (`index.html`, `css/`, `fonts/`, `icons/`, `js/`, `manifest.webmanifest`, `LISEZMOI.md`), pas le dossier lui-même → **Commit changes**.
 3. **Settings → Pages** → *Source* : **Deploy from a branch** → branche `main`, dossier `/ (root)` → **Save**.
 4. Après 1 à 2 minutes, l'adresse s'affiche en haut de la page Pages, par exemple
    `https://7nel.github.io/ressources/`. C'est le lien à envoyer aux collègues.
@@ -70,7 +70,7 @@ Un point orange signale des modifications non sauvegardées ; le navigateur aver
 
 - Trois Forms (élève, titulaire, parents), compte edu.vs.ch, sans connexion demandée. Leurs réponses arrivent seules dans
   `CPS_Eleve.xlsx`, `CPS_Titulaire.xlsx`, `CPS_Parents.xlsx`, dans le sous-dossier **CPS** du dossier d'échange.
-- **QR codes** : dossier de l'élève → CPS → « QR codes Forms ». Choisir le moment (Entrée / Sortie / Autre), imprimer,
+- **QR codes** : dossier de l'élève → Plus → Compétences psychosociales (CPS) → « QR codes Forms ». Choisir le moment (Entrée / Sortie / Autre), imprimer,
   remettre chaque fiche en main propre. Le code de l'élève (6 caractères) est créé à la première impression et partagé avec l'équipe.
 - **Intégrer** : CPS → « Réponses Forms » (Chrome/Edge : lecture directe du dossier ; ailleurs : choisir les 3 classeurs).
   Le site calcule les 5 scores (items inversés 6 − x) et ne garde que ces scores. Doublons et codes inconnus sont signalés.
@@ -83,7 +83,7 @@ Un point orange signale des modifications non sauvegardées ; le navigateur aver
 | Menu | Écrans |
 |---|---|
 | Accueil | Rampe de la volée, tuiles (dont devoirs à rendre et évaluations de la semaine), accès rapide aux cours, niveau 1 de la semaine, ce qui va mieux, retenue du vendredi, À faire |
-| Élèves | Liste, nouvel élève (alerte de doublon), dossier : synthèse hebdomadaire, suivis, devoirs, évaluations, actions, bilans, CPS, orientation, fiche coaching imprimable |
+| Élèves | Liste, nouvel élève (alerte de doublon), dossier : synthèse hebdomadaire avec légende des niveaux, suivis, évaluations, devoirs, actions, bilans, inscription (repliée). Le bouton « + Nouveau suivi » est toujours en haut ; le menu **Plus** regroupe orientation, fiche coaching imprimable, CPS, modification du dossier, nouvelle inscription et clôture. Après « Rattrapé » ou « Non rattrapé », le message propose **Annuler** pendant 9 secondes |
 | Saisie | Saisie de groupe (cotations ou évaluation), saisie individuelle, évaluation selon la phase (R5) |
 | Notes | Filtres, moyennes pondérées, graphique ; Ma branche |
 | Tâches | Mes tâches, toutes, terminées |
@@ -123,5 +123,5 @@ e-mail dans `RS_Enseignants` ; les permissions réelles restent celles du site S
 
 - Dates de phases des volées V2 à V5 : proposition, à corriger dans la page de réglages (`#/parametres`) → Volées.
 - Seuils arbitraires : écart CPS ≥ 1,5 ; bilan intermédiaire « à faire » dès remobilisation + 14 jours ; final dans les 10 derniers jours.
-- La police Atkinson Hyperlegible est chargée depuis Google Fonts (l'adresse IP du visiteur est transmise à Google).
-  Pour la version réelle, l'héberger dans le dépôt.
+- Les polices Atkinson Hyperlegible et Lexend sont hébergées dans le dépôt (`fonts/`) : aucune requête vers un service externe.
+- Le sigle CPS est développé « compétences psychosociales » dans le menu du dossier : à confirmer.
