@@ -25,6 +25,44 @@ export function alertes(sk, inscIds, coursIds) {
   return [...groupBy(sv, s => s.EleveID)].map(([eleveId, list]) => ({ eleveId, suivis: sortBy(list, 'DateSuivi') }));
 }
 
+const SEUIL_PROGRES = 0.5; // hausse minimale de la moyenne hebdomadaire de C ou de T (seuil arbitraire, à valider en équipe)
+
+/**
+ * Progrès de la semaine : moyenne hebdomadaire de C ou de T en hausse d'au moins 0,5 dans une famille de cours,
+ * par rapport à la dernière semaine cotée, et actions passées à « Fait » cette semaine.
+ * Indicateur de tendance : retourne des faits par élève, sans total ni classement.
+ */
+export function progres(date, inscs, { coursIds, responsable } = {}) {
+  const sk = semaineCle(date);
+  const cset = coursIds && new Set(coursIds);
+  const debut = mondayOf(date), fin = addDays(debut, 6);
+  const parEleve = new Map();
+  const ajoute = (eleveId, item) => { if (!parEleve.has(eleveId)) parEleve.set(eleveId, []); parEleve.get(eleveId).push(item); };
+  const monte = ([avant, apres]) => avant != null && apres != null && Math.round((apres - avant) * 100) / 100 >= SEUIL_PROGRES;
+
+  for (const i of inscs) {
+    const sv = st().where('RS_Suivis', s => s.InscriptionID === i.ID && estCote(s) && (!cset || cset.has(s.CoursID)));
+    for (const g of GROUPES) {
+      const dans = sv.filter(s => groupeCours(cours(s.CoursID)) === g);
+      const cetteSemaine = dans.filter(s => s.SemaineCle === sk);
+      const precedente = Math.max(0, ...dans.map(s => s.SemaineCle).filter(k => k < sk));
+      if (!cetteSemaine.length || !precedente) continue;
+      const avant = dans.filter(s => s.SemaineCle === precedente);
+      const c = [moyenne(avant.map(s => s.Comportement)), moyenne(cetteSemaine.map(s => s.Comportement))];
+      const t = [moyenne(avant.map(s => s.Travail)), moyenne(cetteSemaine.map(s => s.Travail))];
+      if (monte(c) || monte(t)) ajoute(i.EleveID, { type: 'ct', groupe: g, c: monte(c) ? c : null, t: monte(t) ? t : null });
+    }
+  }
+
+  const ids = new Set(inscs.map(i => i.ID));
+  for (const a of st().where('RS_Actions', a => a.Statut === 'Fait' && a.DateCloture && a.DateCloture >= debut && a.DateCloture <= fin
+    && ids.has(a.InscriptionID) && (!responsable || a.Responsable === responsable))) {
+    ajoute(a.EleveID, { type: 'action', description: a.Description });
+  }
+  return [...parEleve].map(([eleveId, items]) => ({ eleveId, items }))
+    .sort((a, b) => nomEleve(eleve(a.eleveId)).localeCompare(nomEleve(eleve(b.eleveId)), 'fr'));
+}
+
 /** Inscriptions sans suivi cette semaine (tous cours, ou un cours donné). */
 export function sansSuivi(sk, inscriptions, coursId) {
   const sv = suivisDeSemaine(sk, inscriptions.map(i => i.ID)).filter(s => !coursId || s.CoursID === coursId);
@@ -124,7 +162,7 @@ export function aFaire(date, v, { restreint, coursIds }) {
   return items.sort((a, b) => a.prio - b.prio); // tri stable : l'ordre par échéance est conservé
 }
 
-/** Synthèse hebdomadaire d'une inscription (R10) : semaines × cours, pastilles, aucune moyenne. */
+/** Synthèse hebdomadaire d'une inscription (R10) : semaines × cours en pastilles, plus la moyenne hebdomadaire par famille (indicateur de tendance). */
 export function synthese(insc) {
   const v = volee(insc.VoleeID);
   const weeks = weeksOfVolee(v).map((mon, k) => {

@@ -77,7 +77,7 @@ Un point orange signale des modifications non sauvegardées ; le navigateur aver
 | Tâches | Mes tâches, toutes, terminées |
 | (hors menu) | Page de réglages pour la coordination, par l'adresse `…/ressources/#/parametres` : volées, enseignant·es, cours et familles, libellés des niveaux, dossier d'échange |
 
-Règles reprises du cahier des charges : R1 à R13 (phase calculée, retenue, doublons, correction 7 jours, pas de moyenne C/T, CPS 4 regards…).
+Règles reprises du cahier des charges : R1 à R13 (phase calculée, retenue, doublons, correction 7 jours, moyenne C/T hebdomadaire par famille en indicateur de tendance, CPS 4 regards…).
 
 Absent pour l'instant : pièces jointes (PDF de bilan signé, classeur CPS) ; elles viendront avec SharePoint.
 

@@ -1,10 +1,18 @@
 import { S, isSandbox, refDate, setDateCourante, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
 import { h, card, btn, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
-import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, nextVolee, lastVolee, mondayOf, addDays, weeksOfVolee } from '../domain.js';
+import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, mondayOf, addDays, weeksOfVolee } from '../domain.js';
 import { CONFIG } from '../config.js';
 const DATE_EXEMPLE = '2026-06-17'; // mercredi de la dernière semaine de la volée d'exemple
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
-import { retenues, alertes, sansSuivi, devoirsOuverts, aFaire, suivisDeSemaine } from '../queries.js';
+import { retenues, alertes, progres, sansSuivi, devoirsOuverts, aFaire, suivisDeSemaine } from '../queries.js';
+
+const fmt1 = v => v.toFixed(1).replace('.', ',');
+const niveau = v => Math.max(1, Math.min(4, Math.round(v)));
+const moy = v => h('span', { class: `moy l${niveau(v)}` }, fmt1(v));
+/** « C 2,0 → 3,0 » : moyenne hebdomadaire avant et après. */
+const hausse = (lettre, [avant, apres]) => h('span', { class: 'ct' },
+  h('span', { class: 'k' }, lettre), moy(avant), h('span', { 'aria-hidden': 'true', class: 'muted' }, '→'), h('span', { class: 'sr-only' }, 'vers'), moy(apres));
+const NB_PROGRES = 5;
 
 
 export function ramp(v, date) {
@@ -62,18 +70,10 @@ export function render() {
       btn('+ Saisie de groupe', () => nav('groupe'))));
 
   /* ---- Volée et rampe ---- */
-  let voleeBlock;
+  let voleeBlock = null;
   if (v) {
     const wk = weeksOfVolee(v).indexOf(mondayOf(date)) + 1;
     voleeBlock = card(h('h2', null, `${v.Title} · semaine ${wk} sur ${weeksOfVolee(v).length}`), { actions: [phaseBadge(phaseOf(date, v))] }, ramp(v, date));
-  } else {
-    const nv = nextVolee(date, volees());
-    const lv = lastVolee(date, volees());
-    voleeBlock = card(null, {},
-      notice(`Pas de volée à cette date (vacances ou pause).${nv ? ` Prochaine volée : ${nv.Title}, dès le ${fmtDate(nv.DateDebut)}.` : ''}`, 'info'),
-      lv && h('div', { class: 'btn-row', style: { marginTop: '10px' } },
-        btn(`Afficher la dernière semaine de ${lv.Title}`, () => { setDateCourante(addDays(lv.DateFin, -2)); nav('accueil'); }, 'secondary'),
-        exemple && lv.ID !== exemple.ID && btn('Voir la volée d\'exemple (semaine du 15.06.2026)', () => { setDateCourante(DATE_EXEMPLE); nav('accueil'); }, 'secondary')));
   }
 
   /* ---- Tuiles ---- */
@@ -111,6 +111,26 @@ export function render() {
           h('div', { class: 'meta' }, a.suivis.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(' · '))),
         h('div', { class: 'end' }, ctPair(a.suivis[0].Comportement, a.suivis[0].Travail, L)))))) : empty('Aucune alerte cette semaine.'));
 
+  /* ---- Ce qui va mieux ---- */
+  let progresCard = null;
+  if (v) {
+    const pr = progres(date, inscs, { coursIds, responsable: restreint ? m?.Title : null });
+    const lignes = pr.map(p => h('li', null,
+      h('button', { type: 'button', class: 'item', onClick: () => nav('dossier', { eleve: p.eleveId }) },
+        h('div', { class: 'main' },
+          h('div', { class: 'title' }, nomEleve(eleve(p.eleveId))),
+          p.items.map(it => it.type === 'ct'
+            ? h('div', { class: 'meta prog' }, `${it.groupe} :`, it.c && hausse('C', it.c), it.t && hausse('T', it.t))
+            : h('div', { class: 'meta' }, `Action réalisée : ${it.description}`))))));
+    lignes.slice(NB_PROGRES).forEach(li => { li.hidden = true; });
+    const toutVoir = lignes.length > NB_PROGRES
+      ? btn(`Voir tous (${lignes.length})`, e => { lignes.forEach(li => { li.hidden = false; }); e.currentTarget.remove(); }, 'secondary small')
+      : null;
+    progresCard = card('Ce qui va mieux', { hint: 'Moyenne hebdomadaire de C ou de T en hausse d\'au moins 0,5 dans une famille de cours, ou action réalisée cette semaine. Indicateur de tendance, à discuter.' },
+      lignes.length ? h('ul', { class: 'list' }, lignes) : empty('Rien à signaler cette semaine.'),
+      toutVoir);
+  }
+
   /* ---- Retenue du vendredi ---- */
   const col = v ? retenues(sk, inscIds, coursIds) : [];
   const phaseNow = v ? phaseOf(date, v) : null;
@@ -146,6 +166,6 @@ export function render() {
     h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' } }, tiles),
     mesCoursCard,
     h('div', { class: 'cols-dossier' },
-      h('div', { class: 'stack' }, alertCard, retenueCard),
+      h('div', { class: 'stack' }, progresCard, alertCard, retenueCard),
       h('div', { class: 'stack' }, todoCard)));
 }
