@@ -4,7 +4,7 @@ import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, monda
 import { CONFIG } from '../config.js';
 const DATE_EXEMPLE = '2026-06-17'; // mercredi de la dernière semaine de la volée d'exemple
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
-import { retenues, alertes, progres, sansSuivi, aFaire, suivisDeSemaine, travauxSemaine } from '../queries.js';
+import { retenues, alertes, progres, sansSuivi, aFaire, travauxSemaine } from '../queries.js';
 
 const fmt1 = v => v.toFixed(1).replace('.', ',');
 const niveau = v => Math.max(1, Math.min(4, Math.round(v)));
@@ -38,9 +38,12 @@ export function ramp(v, date) {
     h('div', { class: 'ramp-dates' }, h('span', null, fmtDate(v.DateDebut)), h('span', null, fmtDate(v.DateFin))));
 }
 
-function tile(num, label, { alert = false, onClick } = {}) {
+const pl = (n, un, plusieurs) => n > 1 ? plusieurs : un;
+
+/** Tuile : le chiffre et son mot (« 3 élèves ») centrés en haut, puis la précision en dessous. */
+function tile(num, mot, label, { alert = false, onClick } = {}) {
   const t = h(onClick ? 'button' : 'div', { class: `tile ${alert && num > 0 ? 'alert' : ''}`, type: onClick ? 'button' : null, onClick },
-    h('div', { class: 'num' }, num), h('div', { class: 'lab' }, label));
+    h('div', { class: 'num' }, num, h('span', { class: 'mot' }, mot)), h('div', { class: 'lab' }, label));
   return t;
 }
 
@@ -91,32 +94,42 @@ export function render() {
   const al = alertes(sk, inscIds, coursIds);
   const col = v ? retenues(sk, inscIds, coursIds) : [];
   const phaseNow = v ? phaseOf(date, v) : null;
-  // Devoirs à rendre et évaluations de la semaine de la rampe (mes cours en vue restreinte).
+  // Devoirs à rendre et évaluations de la semaine de la rampe : mes cours (si j'en ai) et tous les cours.
   const tuileTravaux = () => {
-    const tr = travauxSemaine(sk, coursIds);
-    const nd = tr.filter(t => t.Type === 'Devoir').length, ne = tr.length - nd;
+    const compte = ids => {
+      const tr = travauxSemaine(sk, ids);
+      const nd = tr.filter(t => t.Type === 'Devoir').length;
+      return { nd, ne: tr.length - nd, n: tr.length };
+    };
+    const mesIds = mine.filter(c => !c.EstCoaching).map(c => c.ID); // le coaching n'a ni devoir ni note
+    const tous = compte(null), miens = mesIds.length ? compte(mesIds) : null;
     const n = weeksOfVolee(v).indexOf(mondayOf(date)) + 1;
     const sem = `${n > 0 ? `S${n} ` : ''}(${phaseNow.toLowerCase()})`;
+    const ligne = (rang, c) => h('div', { class: 'duo-row' },
+      rang && h('span', { class: 'rang' }, rang),
+      h('div', { class: 'duo' },
+        h('div', { class: 'num' }, c.nd, h('span', { class: 'mot' }, pl(c.nd, 'devoir à rendre', 'devoirs à rendre'))),
+        h('div', { class: 'num' }, c.ne, h('span', { class: 'mot' }, pl(c.ne, 'évaluation', 'évaluations')))));
     return h('button', { type: 'button', class: 'tile tile-duo', title: 'Voir les devoirs et évaluations à venir', onClick: () => nav('travaux') },
-      tr.length
-        ? h('div', { class: 'duo' },
-          h('div', null, h('div', { class: 'num' }, nd), h('div', { class: 'lab' }, nd > 1 ? 'devoirs à rendre' : 'devoir à rendre')),
-          h('div', null, h('div', { class: 'num' }, ne), h('div', { class: 'lab' }, ne > 1 ? 'évaluations' : 'évaluation')))
+      tous.n
+        ? [miens && ligne('Mes cours', miens), ligne(miens ? 'Tous les cours' : null, tous)]
         : h('div', { class: 'num' }, '–'),
-      h('div', { class: 'lab' }, tr.length ? `pour la ${sem}` : `Rien de prévu pour la ${sem}`));
+      h('div', { class: 'lab' }, tous.n ? `pour la ${sem}` : `Rien de prévu pour la ${sem}`));
+  };
+  // Deux signaux à suivre dans une même tuile : élèves sans suivi et élèves au niveau 1.
+  const tuileSuivi = () => {
+    const ligne = (n, label) => h('div', { class: `ligne-suivi ${n > 0 ? 'alert' : ''}` },
+      h('div', { class: 'num' }, n, h('span', { class: 'mot' }, pl(n, 'élève', 'élèves'))), h('div', { class: 'lab' }, label));
+    return h('div', { class: 'tile tile-multi' },
+      ligne(sans, restreint ? 'sans suivi dans mes cours' : 'sans suivi cette semaine'),
+      ligne(al.length, 'au niveau 1 cette semaine'));
   };
   const tiles = [
     // Pas de retenue en décompression : la tuile serait toujours à zéro.
-    phaseNow !== 'Décompression' && tile(col.length, col.length > 1 ? 'élèves retenus vendredi' : 'élève retenu vendredi'),
+    phaseNow !== 'Décompression' && tile(col.length, pl(col.length, 'élève', 'élèves'), `${pl(col.length, 'retenu', 'retenus')} vendredi`),
     v && tuileTravaux(),
-    tile(sans, restreint ? 'sans suivi dans mes cours' : 'sans suivi cette semaine', { alert: true }),
-    tile(al.length, al.length > 1 ? 'élèves au niveau 1 cette semaine' : 'élève au niveau 1 cette semaine', { alert: true }),
+    tuileSuivi(),
   ].filter(Boolean);
-  if (isCoord() && v) {
-    const suivisCours = new Set(suivisDeSemaine(sk, inscIds).map(s => s.CoursID)).size;
-    const total = S.store.all('RS_Cours').length;
-    tiles.push(tile(`${suivisCours}/${total}`, 'cours suivis cette semaine'));
-  }
 
   /* ---- Alertes ---- */
   const L = labels();

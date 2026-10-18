@@ -12,11 +12,12 @@ function labelSemaine(mon, ref) {
 }
 
 function ligne(t, controle = false) {
+  const mien = mesCours().some(c => c.ID === t.CoursID);
   const ouvre = controle ? () => nav('groupe', { cours: t.CoursID, travail: t.ID }) : () => nav('travail', { id: t.ID });
   return h('li', null, h('button', { type: 'button', class: 'item', onClick: ouvre },
     h('div', { class: 'main' },
       h('div', { class: 'title' }, t.Title),
-      h('div', { class: 'meta' }, `${cours(t.CoursID)?.Title} · ${fmtDate(t.Echeance, { day: true, year: false })}`)),
+      h('div', { class: 'meta' }, `${cours(t.CoursID)?.Title}${mien ? ' (mon cours)' : ''} · ${fmtDate(t.Echeance, { day: true, year: false })}`)),
     h('div', { class: 'end' }, badge(t.Type === 'Devoir' ? 'Devoir à rendre' : 'Évaluation', t.Type === 'Devoir' ? 'neutral' : 'warn'))));
 }
 
@@ -24,10 +25,10 @@ export function render() {
   const date = refDate();
   const restreint = vueRestreinte();
   const coursIds = restreint ? mesCours().map(c => c.ID) : null;
-  const cset = coursIds && new Set(coursIds);
   const aControler = travauxAControler(date, coursIds);
   const dejaListes = new Set(aControler.map(t => t.ID));
-  const aVenir = sortBy(S.store.where('RS_Travaux', t => t.Statut !== 'Annulé' && t.Echeance >= mondayOf(date) && !dejaListes.has(t.ID) && (!cset || cset.has(t.CoursID))), 'Echeance');
+  // À venir : tous les cours, pour que la liste corresponde au total de la tuile de l'accueil.
+  const aVenir = sortBy(S.store.where('RS_Travaux', t => t.Statut !== 'Annulé' && t.Echeance >= mondayOf(date) && !dejaListes.has(t.ID)), 'Echeance');
 
   const parSemaine = new Map();
   for (const t of aVenir) {
@@ -39,7 +40,7 @@ export function render() {
   return h('div', { class: 'page' },
     h('button', { type: 'button', class: 'back', onClick: () => back('accueil') }, '‹ Retour'),
     h('div', { class: 'page-head' },
-      h('div', null, h('h1', null, 'Devoirs et évaluations à venir'), h('div', { class: 'sub' }, restreint ? 'Limité à vos cours.' : 'Tous les cours.')),
+      h('div', null, h('h1', null, 'Devoirs et évaluations à venir'), h('div', { class: 'sub' }, 'Tous les cours ; les vôtres sont repérés.')),
       h('div', { class: 'btn-row' },
         btn('+ Évaluation', () => nav('travail', { type: 'Évaluation' }), 'secondary'),
         btn('+ Devoir à rendre', () => nav('travail', { type: 'Devoir' })))),

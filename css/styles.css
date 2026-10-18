@@ -157,10 +157,18 @@ main { padding: 24px 28px 48px; min-width: 0; }
 .tile { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: var(--shadow); text-align: left; cursor: default; }
 button.tile { cursor: pointer; width: 100%; }
 button.tile:hover { border-color: var(--accent); }
-.tile .num { font-size: 2rem; font-weight: 700; line-height: 1.1; }
-.tile .lab { color: var(--muted); font-size: .9rem; }
+.tile { text-align: center; display: flex; flex-direction: column; justify-content: center; }
+.tile .num { display: flex; justify-content: center; align-items: baseline; gap: 6px; font-size: 2rem; font-weight: 700; line-height: 1.1; }
+.tile .num .mot { font-size: 1rem; font-weight: 700; }
+.tile .lab { color: var(--muted); font-size: .9rem; margin-top: 2px; }
 .tile-duo { grid-column: span 2; min-width: 0; }
-.tile-duo .duo { display: flex; flex-wrap: wrap; gap: 4px 28px; }
+.tile-duo .duo { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 20px; }
+.tile-duo .num, .tile-multi .num { font-size: 1.5rem; }
+.ligne-suivi + .ligne-suivi { margin-top: 8px; }
+.ligne-suivi.alert .num { color: var(--danger); }
+.duo-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 14px; }
+.duo-row + .duo-row { margin-top: 6px; }
+.duo-row .rang { font-size: .85rem; font-weight: 700; color: var(--muted); }
 .tile.alert .num { color: var(--danger); }
 
 /* ---------- Boutons ---------- */
