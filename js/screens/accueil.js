@@ -13,6 +13,8 @@ const moy = v => h('span', { class: `moy l${niveau(v)}` }, fmt1(v));
 const hausse = (lettre, [avant, apres]) => h('span', { class: 'ct' },
   h('span', { class: 'k' }, lettre), moy(avant), h('span', { 'aria-hidden': 'true', class: 'muted' }, '→'), h('span', { class: 'sr-only' }, 'vers'), moy(apres));
 const NB_PROGRES = 5;
+const SECTIONS = ['Mes tâches', 'Élèves', 'Équipe'];
+const sectionDe = kind => kind.startsWith('Ma tâche') ? 0 : kind.startsWith('Tâche de l\'équipe') ? 2 : 1;
 const ouverts = new Map(); // groupes de « À faire » dépliés ou repliés par la personne, gardés d'un affichage à l'autre
 const REGROUPE = {
   'Bilan à faire': n => `${n} bilans à faire`,
@@ -191,7 +193,14 @@ export function render() {
     if (!groupes.has(t.kind)) { const g = { kind: t.kind, items: [] }; groupes.set(t.kind, g); todoRows.push({ g }); }
     groupes.get(t.kind).items.push(t);
   }
-  const todoLis = todoRows.map(r => {
+  // Trois sections (mes tâches, élèves, équipe) ; à l'intérieur, l'ordre de priorité reste celui de aFaire().
+  const kindDe = r => r.t ? r.t.kind : r.g.kind;
+  const parSection = todoRows.map((r, i) => ({ r, i, sec: sectionDe(kindDe(r)) })).sort((a, b) => a.sec - b.sec || a.i - b.i);
+  const todoLis = parSection.flatMap(({ r, sec }, k) => {
+    const entete = k === 0 || parSection[k - 1].sec !== sec ? [h('li', { class: 'todo-section' }, h('h3', null, SECTIONS[sec]))] : [];
+    return [...entete, ligne(r)];
+  });
+  function ligne(r) {
     if (r.t) return h('li', null, afItem(r.t));
     if (r.g.items.length === 1) return h('li', null, afItem(r.g.items[0]));
     const { kind, items } = r.g;
@@ -211,7 +220,7 @@ export function render() {
     h('div', { class: 'main' }, h('div', { class: 'title' }, REGROUPE[kind](items.length, restreint)), apercu && h('div', { class: 'meta apercu' }, apercu)),
     late && badge('en retard', 'danger'), fleche);
     return h('li', null, entete, detail);
-  });
+  }
   const todoCard = card('À faire', { hint: restreint ? 'Limité à vos cours, à vos actions et à vos tâches.' : null, actions: [btn('Mes tâches', () => nav('taches'), 'secondary small')] },
     todoLis.length ? h('ul', { class: 'list' }, todoLis) : empty('Rien en attente.'));
 

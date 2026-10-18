@@ -486,3 +486,7 @@ main:focus, main h1:focus { outline: none; }
 @media (max-width: 560px) { .qr-fiche { grid-template-columns: 1fr; } .qr-fiche .qr-img { max-width: 220px; } }
 .print-tbl .c { text-align: center; }
 .cps-fiche-tbl th.c { font-size: .78rem; width: 9%; }
+
+.todo-section { padding: 14px 2px 2px; }
+.todo-section:first-child { padding-top: 0; }
+.todo-section h3 { margin: 0; font-size: .9rem; font-weight: 700; color: var(--muted); }
