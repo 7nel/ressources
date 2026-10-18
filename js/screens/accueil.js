@@ -87,11 +87,14 @@ export function render() {
     ? new Set(mine.flatMap(c => sansSuivi(sk, inscs, c.ID).map(i => i.ID))).size
     : sansSuivi(sk, inscs).length;
   const al = alertes(sk, inscIds, coursIds);
+  const col = v ? retenues(sk, inscIds, coursIds) : [];
+  const phaseNow = v ? phaseOf(date, v) : null;
   const tiles = [
-    tile(inscs.length, 'élèves dans la volée', { onClick: () => nav('eleves') }),
+    // Pas de retenue en décompression : la tuile serait toujours à zéro.
+    phaseNow !== 'Décompression' && tile(col.length, col.length > 1 ? 'élèves retenus vendredi' : 'élève retenu vendredi'),
     tile(sans, restreint ? 'sans suivi dans mes cours' : 'sans suivi cette semaine', { alert: true }),
-    tile(al.length, 'alertes « désengagé »', { alert: true }),
-  ];
+    tile(al.length, al.length > 1 ? 'élèves au niveau 1 cette semaine' : 'élève au niveau 1 cette semaine', { alert: true }),
+  ].filter(Boolean);
   if (isCoord() && v) {
     const suivisCours = new Set(suivisDeSemaine(sk, inscIds).map(s => s.CoursID)).size;
     const total = S.store.all('RS_Cours').length;
@@ -100,14 +103,14 @@ export function render() {
 
   /* ---- Alertes ---- */
   const L = labels();
-  const alertCard = card('Alertes « désengagé »', { hint: 'Un niveau 1 en comportement ou en travail cette semaine. Indicateur de tendance, à discuter.' },
+  const alertCard = card('Niveau 1 cette semaine', { hint: 'Un niveau 1 en comportement ou en travail cette semaine. Indicateur de tendance, à discuter.' },
     al.length ? h('ul', { class: 'list' }, al.map(a => h('li', null,
       h('button', { type: 'button', class: 'item', onClick: () => nav('dossier', { eleve: a.eleveId }) },
         pastille(1),
         h('div', { class: 'main' },
           h('div', { class: 'title' }, nomEleve(eleve(a.eleveId))),
           h('div', { class: 'meta' }, a.suivis.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(' · '))),
-        h('div', { class: 'end' }, ctPair(a.suivis[0].Comportement, a.suivis[0].Travail, L)))))) : empty('Aucune alerte cette semaine.'));
+        h('div', { class: 'end' }, ctPair(a.suivis[0].Comportement, a.suivis[0].Travail, L)))))) : empty('Aucun niveau 1 cette semaine.'));
 
   /* ---- Ce qui va mieux ---- */
   let progresCard = null;
@@ -130,8 +133,6 @@ export function render() {
   }
 
   /* ---- Retenue du vendredi ---- */
-  const col = v ? retenues(sk, inscIds, coursIds) : [];
-  const phaseNow = v ? phaseOf(date, v) : null;
   const retenueCard = card('Retenue du vendredi', { hint: 'Durée = min(60 ; 15 + 5 × (n − 1)) minutes, n = devoirs non faits de la semaine. Pas de retenue en décompression.' },
     phaseNow === 'Décompression' ? notice('Décompression : devoirs enregistrés sans conséquence.', 'info') : null,
     col.length ? h('ul', { class: 'list' }, col.map(c => h('li', null,

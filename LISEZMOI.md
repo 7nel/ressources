@@ -70,7 +70,7 @@ Un point orange signale des modifications non sauvegardées ; le navigateur aver
 
 | Menu | Écrans |
 |---|---|
-| Accueil | Rampe de la volée, tuiles, « Mes cours », alertes « désengagé », retenue du vendredi, À faire |
+| Accueil | Rampe de la volée, tuiles, accès rapide aux cours, niveau 1 de la semaine, ce qui va mieux, retenue du vendredi, À faire |
 | Élèves | Liste, nouvel élève (alerte de doublon), dossier : synthèse hebdomadaire, suivis, devoirs, évaluations, actions, bilans, CPS, orientation, fiche coaching imprimable |
 | Saisie | Saisie de groupe (cotations ou évaluation), saisie individuelle, évaluation selon la phase (R5) |
 | Notes | Filtres, moyennes pondérées, graphique ; Ma branche |
