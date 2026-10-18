@@ -566,3 +566,12 @@ details.sub-fold > .hint { margin: 0 0 8px; }
 .chrono-gap { color: var(--muted); font-size: .875rem; font-style: italic; padding-left: 2px; }
 .chrono .item > .ct, .chrono .item > .badge { flex: 0 0 6.5rem; justify-content: center; }
 .item .meta.clip { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Dossier : réglages de la synthèse, deux semaines repliées, filtre par cours */
+.syn-ctrl { align-items: center; margin: 8px 0; }
+.chrono-court > li { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 8px; align-items: center; }
+.chrono-court .chrono-date { font-size: .875rem; color: var(--muted); white-space: nowrap; }
+@media (max-width: 560px) { .chrono-court > li { grid-template-columns: 1fr; gap: 2px; } }
+.filtre-dossier .filtre-ligne { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.filtre-dossier .filtre-ligne .label { font-weight: 700; }
+.filtre-dossier .menu-filtre { width: auto; min-width: 14rem; }

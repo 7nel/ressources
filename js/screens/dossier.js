@@ -3,7 +3,11 @@ import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast
 import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
 
-const state = { showAll: false, jours: false };
+// Affichage du dossier : revient au défaut à chaque ouverture (changement d'adresse), pas lors d'un simple rafraîchissement.
+const DEFAUT = () => ({ showAll: false, chrono: false, graph: true, table: 'moyennes', cours: [], menuCours: false });
+const state = DEFAUT();
+window.addEventListener('hashchange', () => Object.assign(state, DEFAUT()));
+const basculer = (arr, id) => (arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]);
 
 export function canEditSuivi(s) {
   if (isCoord()) return true;
@@ -65,7 +69,7 @@ function syntheseCard(i) {
     body.push(h('tr', { class: 'grp-head' },
       h('th', { scope: 'row' }, h('span', { class: 'dot', style: { background: GROUPE_COULEUR[m.groupe], marginRight: '6px' } }), `${m.groupe} · moyenne`),
       m.semaines.map((w, k) => h('td', { class: nowCls(k) }, w.n ? h('span', { class: 'cell row' }, moyChip('C', w.c), moyChip('T', w.t)) : h('span', { class: 'none' }, '·')))));
-    for (const r of rows.filter(r => r.groupe === m.groupe)) {
+    if (state.table === 'complet') for (const r of rows.filter(r => r.groupe === m.groupe)) {
       body.push(h('tr', null,
         h('th', { scope: 'row', class: 'sub' }, h('span', { class: 'dot', style: { background: r.cours.Couleur || 'var(--muted)', marginRight: '6px' } }), r.cours.Title),
         r.cells.map((list, k) => h('td', { class: nowCls(k) },
@@ -90,17 +94,21 @@ function syntheseCard(i) {
     h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '560px' }, svg: tendanceSVG(weeks, moyennes, nowSk) })));
   drawChart();
 
-  const large = window.matchMedia('(min-width: 761px)').matches; // sur téléphone, le tableau est replié
+  // Par défaut : graphique + tableau des seules moyennes ; « Complet » ajoute une ligne par cours.
+  const reglages = h('div', { class: 'btn-row syn-ctrl' },
+    btn(state.graph ? 'Masquer le graphique' : 'Afficher le graphique', () => { state.graph = !state.graph; refresh(); }, 'ghost small', { 'aria-pressed': String(state.graph) }),
+    h('span', { class: 'small muted' }, 'Tableau :'),
+    seg([{ value: 'moyennes', label: 'Moyennes' }, { value: 'complet', label: 'Complet' }, { value: 'masque', label: 'Masqué' }], state.table, v => { state.table = v; refresh(); }, 'Tableau'));
   return card('Synthèse hebdomadaire', {},
     levelLegend(L, { compact: true }),
     h('details', { class: 'sub-fold' },
       h('summary', null, 'Comment lire cette synthèse'),
-      h('p', { class: 'hint' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; les pastilles donnent le détail. Le coaching n'est pas coté.`)),
-    chartBox,
-    h('details', { class: 'sub-fold', open: large },
-      h('summary', null, 'Tableau par cours et par semaine'),
-      h('div', { class: 'scroll-x' }, table),
-      h('p', { class: 'hint scroll-note' }, 'Faites défiler le tableau vers la droite pour voir les autres semaines.')));
+      h('p', { class: 'hint' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; le tableau complet ajoute les pastilles de chaque cours. Le coaching n'est pas coté.`)),
+    reglages,
+    state.graph ? chartBox : null,
+    state.table !== 'masque' ? [h('div', { class: 'scroll-x' }, table),
+      h('p', { class: 'hint scroll-note' }, 'Faites défiler le tableau vers la droite pour voir les autres semaines.')] : null,
+    !state.graph && state.table === 'masque' ? h('p', { class: 'hint' }, 'Graphique et tableau masqués.') : null);
 }
 
 /** Fil des 14 derniers jours : suivis, devoirs, évaluations et actions, jour par jour, du plus récent au plus ancien. */
@@ -114,20 +122,20 @@ function chronologieCard(i) {
   for (const s of S.store.where('RS_Suivis', x => x.InscriptionID === i.ID && dans(x.DateSuivi))) {
     const texte = s.Observation || s.CoachTravaille || '';
     const editable = canEditSuivi(s);
-    ev.push({ date: s.DateSuivi, ordre: 0, node: h('li', null, h(editable ? 'button' : 'div', {
+    ev.push({ date: s.DateSuivi, ordre: 0, signal: s.Comportement === 1 || s.Travail === 1, node: (h(editable ? 'button' : 'div', {
       type: editable ? 'button' : null, class: 'item', onClick: editable ? () => nav('saisie', { id: s.ID }) : null,
     },
     typeof s.Comportement === 'number' ? ctPair(s.Comportement, s.Travail, L, false) : badge('Coaching'),
     h('div', { class: 'main' }, h('div', { class: 'title' }, cours(s.CoursID)?.Title || ''), texte && h('div', { class: 'meta clip' }, texte)))) });
   }
   for (const d of S.store.where('RS_Devoirs', x => x.InscriptionID === i.ID && dans(x.DateConstat))) {
-    ev.push({ date: d.DateConstat, ordre: 1, node: h('li', null, h('div', { class: 'item' },
+    ev.push({ date: d.DateConstat, ordre: 1, signal: d.Statut === 'Ouvert', node: (h('div', { class: 'item' },
       badge('Devoir non fait', d.SansConsequence ? 'neutral' : 'warn'),
       h('div', { class: 'main' }, h('div', { class: 'title' }, `${cours(d.CoursID)?.Title} · ${d.Description}`), d.SansConsequence && h('div', { class: 'meta' }, 'sans conséquence')),
       h('div', { class: 'end' }, badge(d.Statut, d.Statut === 'Rattrapé' ? 'ok' : d.Statut === 'Ouvert' ? 'warn' : 'danger')))) });
   }
   for (const x of S.store.where('RS_Evaluations', e => e.InscriptionID === i.ID && dans(e.DateEval))) {
-    ev.push({ date: x.DateEval, ordre: 2, node: h('li', null, h('button', { type: 'button', class: 'item', onClick: () => nav('evaluation', { id: x.ID }) },
+    ev.push({ date: x.DateEval, ordre: 2, signal: (typeof x.Note === 'number' && x.Note < 4) || x.ResultatFormatif === 'Pas encore', node: (h('button', { type: 'button', class: 'item', onClick: () => nav('evaluation', { id: x.ID }) },
       badge('Évaluation'),
       h('div', { class: 'main' }, h('div', { class: 'title' }, `${cours(x.CoursID)?.Title} · ${x.Sujet}`)),
       h('div', { class: 'end' }, typeof x.Note === 'number'
@@ -135,31 +143,41 @@ function chronologieCard(i) {
         : badge(x.ResultatFormatif || '—', x.ResultatFormatif === 'Pas encore' ? 'warn' : 'ok')))) });
   }
   for (const a of S.store.where('RS_Actions', x => x.InscriptionID === i.ID && dans(x.Echeance))) {
-    ev.push({ date: a.Echeance, ordre: 3, node: h('li', null, h('button', { type: 'button', class: 'item', onClick: () => nav('action', { id: a.ID }) },
+    ev.push({ date: a.Echeance, ordre: 3, signal: !['Fait', 'Abandonnée'].includes(a.Statut), node: (h('button', { type: 'button', class: 'item', onClick: () => nav('action', { id: a.ID }) },
       badge('Action échue'),
       h('div', { class: 'main' }, h('div', { class: 'title' }, a.Description), h('div', { class: 'meta' }, a.Responsable)),
       h('div', { class: 'end' }, badge(a.Statut, a.Statut === 'Fait' ? 'ok' : a.Statut === 'Abandonnée' ? 'neutral' : 'warn')))) });
   }
 
   const jours = [...new Set(ev.map(e => e.date))].sort().reverse();
-  const hint = `Du ${fmtDate(debut)} au ${fmtDate(fin)}.`;
+  const nSignaux = ev.filter(e => e.signal).length;
+  const hint = `Du ${fmtDate(debut)} au ${fmtDate(fin)} · ${nSignaux ? `${nSignaux} ${nSignaux > 1 ? 'signaux' : 'signal'} (niveau 1, note sous 4 ou « pas encore », devoir ouvert, action en retard)` : 'aucun signal'}.`;
   if (!jours.length) return card('Ces deux dernières semaines', { hint }, empty('Rien à signaler sur cette période.'));
+  const recents = (a, b) => b.date.localeCompare(a.date) || a.ordre - b.ordre;
 
-  const montres = state.jours ? jours : jours.slice(0, 3);
+  if (!state.chrono) {
+    // Replié : les 3 signaux les plus récents ; s'il y en a moins, complété par les derniers événements.
+    const choisis = [...ev.filter(e => e.signal).sort(recents), ...ev.filter(e => !e.signal).sort(recents)].slice(0, 3);
+    return card('Ces deux dernières semaines', { hint },
+      h('ul', { class: 'list chrono-court' }, choisis.map(e => h('li', null,
+        h('span', { class: 'chrono-date' }, fmtDate(e.date, { day: true, year: false })), e.node))),
+      h('div', { style: { marginTop: '8px' } },
+        btn(`Tout afficher (${ev.length} événement${ev.length > 1 ? 's' : ''} sur ${jours.length} jour${jours.length > 1 ? 's' : ''})`, () => { state.chrono = true; refresh(); }, 'ghost small', { 'aria-expanded': 'false' })));
+  }
+
   const rows = [];
   const silence = (n, texte) => n >= 2 && rows.push(h('li', { class: 'chrono-gap' }, texte(n)));
-  silence(daysBetween(montres[0], fin), n => `Rien depuis ${n} jours.`);
-  montres.forEach((date, k) => {
-    if (k) silence(daysBetween(date, montres[k - 1]) - 1, n => `${n} jours sans événement.`);
+  silence(daysBetween(jours[0], fin), n => `Rien depuis ${n} jours.`);
+  jours.forEach((date, k) => {
+    if (k) silence(daysBetween(date, jours[k - 1]) - 1, n => `${n} jours sans événement.`);
     const phase = v ? phaseOf(date, v) : null;
     rows.push(h('li', { class: 'chrono-day' },
       h('h3', null, fmtDate(date, { day: true }), phase && phaseBadge(phase)),
-      h('ul', { class: 'list' }, ev.filter(e => e.date === date).sort((a, b) => a.ordre - b.ordre).map(e => e.node))));
+      h('ul', { class: 'list' }, ev.filter(e => e.date === date).sort((a, b) => a.ordre - b.ordre).map(e => h('li', null, e.node)))));
   });
   return card('Ces deux dernières semaines', { hint },
     h('ol', { class: 'chrono' }, rows),
-    jours.length > 3 && h('div', { style: { marginTop: '8px' } },
-      btn(state.jours ? 'Voir seulement les 3 derniers jours' : `Voir les ${jours.length} jours`, () => { state.jours = !state.jours; refresh(); }, 'ghost small')));
+    h('div', { style: { marginTop: '8px' } }, btn('Replier : 3 éléments principaux', () => { state.chrono = false; refresh(); }, 'ghost small', { 'aria-expanded': 'true' })));
 }
 
 function devoirsCard(i) {
@@ -186,10 +204,35 @@ function devoirsCard(i) {
             : badge(d.Statut, d.Statut === 'Rattrapé' ? 'ok' : 'danger')))))) : empty('Aucun devoir non fait.'));
 }
 
+const filtreCours = x => !state.cours.length || state.cours.includes(x.CoursID);
+
+/** Filtre par cours, commun aux suivis et aux évaluations : menu repliable, plusieurs cours possibles. */
+function filtreCoursCard(i) {
+  const ids = new Set([...S.store.where('RS_Suivis', s => s.InscriptionID === i.ID), ...S.store.where('RS_Evaluations', x => x.InscriptionID === i.ID)].map(x => x.CoursID));
+  const liste = sortBy([...ids].map(id => cours(id)).filter(Boolean), 'Title');
+  if (!liste.length) return null;
+  const n = state.cours.length;
+  const resume = !n ? 'Tous les cours' : n === 1 ? cours(state.cours[0])?.Title || '1 cours' : `${n} cours choisis`;
+  return card(null, { cls: 'filtre-dossier' },
+    h('div', { class: 'filtre-ligne' },
+      h('span', { class: 'label' }, 'Suivis et évaluations :'),
+      h('button', {
+        type: 'button', class: `menu-filtre ${n ? 'actif' : ''}`, 'aria-expanded': String(state.menuCours), 'aria-controls': 'menu-cours-dossier',
+        onClick: () => { state.menuCours = !state.menuCours; refresh(); },
+      }, h('span', null, resume), h('span', { class: 'chevron', 'aria-hidden': 'true' }, state.menuCours ? '▴' : '▾')),
+      n ? btn('Tout afficher', () => { state.cours = []; refresh(); }, 'ghost small') : null),
+    state.menuCours && h('div', { class: 'panneau-filtre', id: 'menu-cours-dossier' },
+      h('div', { class: 'chips', role: 'group', 'aria-label': 'Cours' }, liste.map(c => h('button', {
+        type: 'button', class: 'chip puce', 'aria-pressed': String(state.cours.includes(c.ID)),
+        onClick: () => { state.cours = basculer(state.cours, c.ID); refresh(); },
+      }, h('span', { class: 'dot', style: { background: c.Couleur || 'var(--muted)' } }), c.Title))),
+      h('div', { class: 'btn-row' }, btn('Fermer', () => { state.menuCours = false; refresh(); }, 'secondary small'))));
+}
+
 function evaluationsCard(i, e) {
-  const ev = sortBy(S.store.where('RS_Evaluations', x => x.InscriptionID === i.ID), '-DateEval');
+  const ev = sortBy(S.store.where('RS_Evaluations', x => x.InscriptionID === i.ID && filtreCours(x)), '-DateEval');
   const basses = ev.filter(x => typeof x.Note === 'number' && x.Note < 4);
-  return card('Évaluations', {
+  return card(`Évaluations${state.cours.length ? ` (${ev.length}, filtrées)` : ''}`, {
     actions: i.StatutInscription === 'En cours' ? [btn('+ Évaluation', () => nav('evaluation', { eleve: e.ID }), 'secondary small')] : null,
   },
   basses.length ? notice(`${basses.length} note${basses.length > 1 ? 's' : ''} sous 4 : signal à discuter au bilan, pas un résultat à maquiller.`, 'warn') : null,
@@ -234,9 +277,9 @@ function bilansCard(i) {
 
 function suivisCard(i, e) {
   const L = labels();
-  const sv = sortBy(S.store.where('RS_Suivis', s => s.InscriptionID === i.ID), '-DateSuivi', 'CoursID');
+  const sv = sortBy(S.store.where('RS_Suivis', s => s.InscriptionID === i.ID && filtreCours(s)), '-DateSuivi', 'CoursID');
   const shown = state.showAll ? sv : sv.slice(0, 12);
-  return card(`Tous les suivis (${sv.length})`, { hint: 'Un suivi se modifie pendant 7 jours par son auteur·e, ensuite par la coordination.' },
+  return card(`${state.cours.length ? 'Suivis filtrés' : 'Tous les suivis'} (${sv.length})`, { hint: 'Un suivi se modifie pendant 7 jours par son auteur·e, ensuite par la coordination.' },
     sv.length ? h('ul', { class: 'list' }, shown.map(s => {
       const c = cours(s.CoursID);
       const texts = [s.Observation, s.CoachTravaille && `Travaillé : ${s.CoachTravaille}`, s.CoachProgres && `Progrès / vigilance : ${s.CoachProgres}`].filter(Boolean);
@@ -346,8 +389,9 @@ export function render(params) {
     !enCours && notice(`Inscription ${i.StatutInscription.toLowerCase()} : dossier en lecture seule. Pour reprendre le suivi, ajoutez une nouvelle inscription (menu Plus).`, 'info'),
     alerteSemaine.length ? notice(`Niveau 1 cette semaine, à discuter : ${alerteSemaine.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(', ')}.`, 'danger') : null,
     nRetenue ? notice(`Retenue du vendredi : ${retenueMinutes(nRetenue)} minutes (${nRetenue} devoir${nRetenue > 1 ? 's' : ''} non fait${nRetenue > 1 ? 's' : ''} cette semaine).`, 'warn') : null,
-    chronologieCard(i),
     syntheseCard(i),
+    chronologieCard(i),
+    filtreCoursCard(i),
     h('div', { class: 'cols-dossier suivis-d-abord' },
       h('div', { class: 'stack' }, suivisCard(i, e), evaluationsCard(i, e)),
       h('div', { class: 'stack' }, devoirsCard(i), actionsCard(i), bilansCard(i), inscriptionCard(i))));
