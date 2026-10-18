@@ -119,11 +119,12 @@ export function levelPicker(value, onChange, { labels, compact = false, name = '
   render(value ?? null);
   return wrap;
 }
-export function levelLegend(labels) {
+/** `compact` : C et T en deux mots (la définition complète est alors donnée à côté, repliée). */
+export function levelLegend(labels, { compact = false } = {}) {
   return h('div', { class: 'level-legend-wrap' },
     h('div', { class: 'ct-def' },
-      h('span', null, h('strong', null, 'C'), ` = comportement : ${DEF_C}`),
-      h('span', null, h('strong', null, 'T'), ` = travail : ${DEF_T}`)),
+      h('span', null, h('strong', null, 'C'), compact ? ' = comportement' : ` = comportement : ${DEF_C}`),
+      h('span', null, h('strong', null, 'T'), compact ? ' = travail' : ` = travail : ${DEF_T}`)),
     h('div', { class: 'level-legend' }, [1, 2, 3, 4].map(n => h('span', null, pastille(n, { sm: true }), labels[n - 1]))));
 }
 
@@ -155,9 +156,15 @@ export function toast(msg, kind = 'ok', undo) {
   let box = document.querySelector('.toasts');
   if (!box) { box = h('div', { class: 'toasts', 'aria-live': 'polite' }); document.body.appendChild(box); }
   const t = h('div', { class: `toast ${kind}` }, h('span', null, msg),
-    undo && h('button', { type: 'button', class: 'toast-undo', onClick: async () => { t.remove(); await undo.onClick(); } }, undo.label));
+    undo && h('button', { type: 'button', class: 'toast-undo', onClick: async () => { clearTimeout(timer); t.remove(); await undo.onClick(); } }, undo.label));
   box.appendChild(t);
-  setTimeout(() => t.remove(), undo ? 9000 : kind === 'err' ? 6000 : 3200);
+  const ms = undo ? 9000 : kind === 'err' ? 6000 : 3200;
+  let timer = setTimeout(() => t.remove(), ms);
+  if (undo) { // le message reste tant que la souris ou le focus clavier est dessus
+    const pause = () => clearTimeout(timer), reprise = () => { timer = setTimeout(() => t.remove(), ms); };
+    t.addEventListener('mouseenter', pause); t.addEventListener('focusin', pause);
+    t.addEventListener('mouseleave', reprise); t.addEventListener('focusout', reprise);
+  }
 }
 
 /**

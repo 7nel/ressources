@@ -1,6 +1,6 @@
 import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
 import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, seg, menu, levelLegend } from '../ui.js';
-import { fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
+import { DEF_C, DEF_T, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
 
 const state = { showAll: false };
@@ -91,10 +91,17 @@ function syntheseCard(i) {
     h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '560px' }, svg: tendanceSVG(weeks, moyennes, nowSk) })));
   drawChart();
 
+  const large = window.matchMedia('(min-width: 761px)').matches; // sur téléphone, le tableau est replié
   return card('Synthèse hebdomadaire', {},
-    levelLegend(L),
-    h('p', { class: 'hint' }, 'Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; les pastilles donnent le détail. Le coaching n\'est pas coté.'),
-    chartBox, h('div', { class: 'scroll-x', style: { marginTop: '12px' } }, table));
+    levelLegend(L, { compact: true }),
+    h('details', { class: 'sub-fold' },
+      h('summary', null, 'Comment lire cette synthèse'),
+      h('p', { class: 'hint' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; les pastilles donnent le détail. Le coaching n'est pas coté.`)),
+    chartBox,
+    h('details', { class: 'sub-fold', open: large },
+      h('summary', null, 'Tableau par cours et par semaine'),
+      h('div', { class: 'scroll-x' }, table),
+      h('p', { class: 'hint scroll-note' }, 'Faites défiler le tableau vers la droite pour voir les autres semaines.')));
 }
 
 function devoirsCard(i) {
@@ -111,7 +118,7 @@ function devoirsCard(i) {
   const ouverts = dv.filter(d => d.Statut === 'Ouvert');
   return card(`Devoirs non faits (${ouverts.length} ouvert${ouverts.length > 1 ? 's' : ''})`, { hint: 'Les devoirs non faits sont aussi enregistrés en décompression, mais sans retenue.' },
     dv.length ? h('ul', { class: 'list' }, dv.slice(0, state.showAll ? 999 : 8).map(d => h('li', null,
-      h('div', { class: 'item' },
+      h('div', { class: 'item devoir' },
         h('div', { class: 'main' },
           h('div', { class: 'title' }, `${cours(d.CoursID)?.Title} · ${d.Description}`),
           h('div', { class: 'meta' }, `${fmtDate(d.DateConstat, { day: true })}${d.SansConsequence ? ' · sans conséquence' : ''}`)),
@@ -171,7 +178,7 @@ function suivisCard(i, e) {
   const L = labels();
   const sv = sortBy(S.store.where('RS_Suivis', s => s.InscriptionID === i.ID), '-DateSuivi', 'CoursID');
   const shown = state.showAll ? sv : sv.slice(0, 12);
-  return card(`Suivis (${sv.length})`, { actions: [btn('+ Nouveau suivi', () => nav('saisie', { eleve: e.ID }), 'small')] },
+  return card(`Suivis (${sv.length})`, { hint: 'Un suivi se modifie pendant 7 jours par son auteur·e, ensuite par la coordination.' },
     sv.length ? h('ul', { class: 'list' }, shown.map(s => {
       const c = cours(s.CoursID);
       const texts = [s.Observation, s.CoachTravaille && `Travaillé : ${s.CoachTravaille}`, s.CoachProgres && `Progrès / vigilance : ${s.CoachProgres}`].filter(Boolean);
@@ -257,7 +264,7 @@ export function render(params) {
       h('h1', null, nomEleve(e), ' ', e.Statut !== 'Actif' ? badge(e.Statut) : null),
       h('div', { class: 'sub' }, i ? `${volee(i.VoleeID)?.Title} · ${i.Degre} · classe ${i.ClasseOrigine} · titulaire ${i.Titulaire}` : 'Aucune inscription', ' ', i && phaseBadge(phase))),
     h('div', { class: 'btn-row' },
-      i && btn('+ Nouveau suivi', () => nav('saisie', { eleve: e.ID })),
+      enCours && btn('+ Nouveau suivi', () => nav('saisie', { eleve: e.ID })),
       menu('Plus', [
         i && { label: 'Orientation', onClick: () => nav('orientation', { eleve: e.ID }) },
         i && { label: 'Fiche coaching', onClick: () => nav('coaching', { insc: i.ID }) },
@@ -278,6 +285,7 @@ export function render(params) {
     inscs.length > 1 && h('div', { class: 'chips', role: 'group', 'aria-label': 'Inscriptions' },
       inscs.map(x => h('button', { type: 'button', class: 'chip', 'aria-pressed': String(x.ID === i.ID), onClick: () => nav('dossier', { eleve: e.ID, insc: x.ID }) },
         volee(x.VoleeID)?.Title, h('span', { class: 'meta' }, `${x.Degre} · ${x.StatutInscription}`)))),
+    !enCours && notice(`Inscription ${i.StatutInscription.toLowerCase()} : dossier en lecture seule. Pour reprendre le suivi, ajoutez une nouvelle inscription (menu Plus).`, 'info'),
     alerteSemaine.length ? notice(`Niveau 1 cette semaine, à discuter : ${alerteSemaine.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(', ')}.`, 'danger') : null,
     nRetenue ? notice(`Retenue du vendredi : ${retenueMinutes(nRetenue)} minutes (${nRetenue} devoir${nRetenue > 1 ? 's' : ''} non fait${nRetenue > 1 ? 's' : ''} cette semaine).`, 'warn') : null,
     syntheseCard(i),
