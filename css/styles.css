@@ -508,10 +508,12 @@ button.ligne-suivi:hover { background: var(--accent-soft); }
 /* Zones atteintes depuis les tuiles : ne pas finir sous la barre fixe en haut sur écran étroit */
 .card, #carte-afaire button.item { scroll-margin-top: 72px; }
 
-/* Filtres cumulables (Notes) */
-.filtre-puces { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
-.filtre-titre { display: flex; align-items: center; gap: 8px; }
-.filtre-titre .label { font-weight: 700; font-size: .9rem; }
-.btn.sm { min-height: 30px; padding: 2px 10px; font-size: .85rem; }
-.btn.ghost[aria-pressed="true"] { background: var(--accent-soft); }
+/* Filtres cumulables (Notes) : menus repliables */
+.menu-filtre { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; min-height: 44px; padding: 8px 12px; border: 1.5px solid var(--line-strong); border-radius: 10px; background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer; }
+.menu-filtre span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.menu-filtre.actif { border-color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.menu-filtre[aria-expanded="true"] { border-color: var(--accent); }
+.menu-filtre .chevron { color: var(--muted); flex: none; }
+.panneau-filtre { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; }
+.btn.sm { min-height: 32px; padding: 2px 12px; font-size: .85rem; }
 .chip.puce { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: .88rem; min-height: 32px; }

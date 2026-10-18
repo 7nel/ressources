@@ -4,7 +4,7 @@ import { fmtDate, fmtNote, weightedAvg, sortBy, groupBy, lastVolee } from '../do
 import { notesChartCard, eleveSlot } from './notes-chart.js';
 
 // Filtres cumulables : plusieurs élèves × plusieurs branches (liste vide = tous).
-const state = { eleves: [], voleeId: null, cours: [], tri: 'date' };
+const state = { eleves: [], voleeId: null, cours: [], tri: 'date', ouvert: null };
 const toggle = (arr, id) => (arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]);
 
 export function noteChart(evals, { height = 220 } = {}) {
@@ -47,20 +47,40 @@ export function render() {
   const avecNotes = new Set(evVolee.map(e => e.EleveID));
   const elevesDispo = sortBy(S.store.all('RS_Eleves').filter(e => !state.voleeId || avecNotes.has(e.ID) || state.eleves.includes(e.ID)), 'Nom');
   const branchesDispo = coursActifs().filter(c => !c.EstCoaching);
-  const puces = (titre, items, choisis, cle, couleur, label) => h('div', { class: 'filtre-puces' },
-    h('div', { class: 'filtre-titre' }, h('span', { class: 'label' }, titre),
-      h('button', { type: 'button', class: 'btn ghost sm', 'aria-pressed': String(!choisis.length), onClick: () => { state[cle] = []; nav('notes'); } }, choisis.length ? `Tout afficher (${choisis.length} choisi${choisis.length > 1 ? 's' : ''})` : 'Tous')),
+  // Menus repliables : un bouton résume le choix ; un clic ouvre la liste, un autre la referme.
+  const resume = (choisis, items, label) => {
+    if (!choisis.length) return 'Tous';
+    if (choisis.length === 1) { const it = items.find(x => x.ID === choisis[0]); return it ? label(it) : '1 choisi'; }
+    return `${choisis.length} choisis`;
+  };
+  const menu = (titre, cle, items, couleur, label) => {
+    const choisis = state[cle];
+    const ouvert = state.ouvert === cle;
+    return h('div', { class: 'field' },
+      h('span', { class: 'label' }, titre),
+      h('button', {
+        type: 'button', class: `menu-filtre ${choisis.length ? 'actif' : ''}`, 'aria-expanded': String(ouvert), 'aria-controls': `menu-${cle}`,
+        onClick: () => { state.ouvert = ouvert ? null : cle; nav('notes'); },
+      }, h('span', null, resume(choisis, items, label)), h('span', { class: 'chevron', 'aria-hidden': 'true' }, ouvert ? '▴' : '▾')));
+  };
+  const panneau = (titre, cle, items, couleur, label) => state.ouvert !== cle ? null : h('div', { class: 'panneau-filtre', id: `menu-${cle}` },
     h('div', { class: 'chips', role: 'group', 'aria-label': titre }, items.map(it => h('button', {
-      type: 'button', class: 'chip puce', 'aria-pressed': String(choisis.includes(it.ID)),
+      type: 'button', class: 'chip puce', 'aria-pressed': String(state[cle].includes(it.ID)),
       onClick: () => { state[cle] = toggle(state[cle], it.ID); nav('notes'); },
-    }, h('span', { class: 'dot', style: { background: couleur(it) } }), label(it)))));
+    }, h('span', { class: 'dot', style: { background: couleur(it) } }), label(it)))),
+    h('div', { class: 'btn-row' },
+      state[cle].length ? btn('Tout afficher', () => { state[cle] = []; nav('notes'); }, 'ghost sm') : null,
+      btn('Fermer', () => { state.ouvert = null; nav('notes'); }, 'secondary sm')));
+  const couleurEleve = e => eleveSlot(e.ID), couleurCours = c => c.Couleur || 'var(--muted)', nomCours = c => c.Title;
 
-  const filters = card(null, { hint: 'Cliquez pour choisir un ou plusieurs élèves et une ou plusieurs branches ; les filtres se cumulent. Rien de choisi = tous.' },
+  const filters = card(null, {},
     h('div', { class: 'row' },
       field('Volée', select([{ value: '', label: 'Toutes' }, ...volees().map(v => ({ value: v.ID, label: v.Title }))], state.voleeId, { onChange: set('voleeId') })),
+      menu('Élèves', 'eleves', elevesDispo, couleurEleve, nomEleve),
+      menu('Branches', 'cours', branchesDispo, couleurCours, nomCours),
       field('Tri de la liste', select([{ value: 'date', label: 'Date' }, { value: 'branche', label: 'Branche' }, { value: 'eleve', label: 'Élève' }, { value: 'note', label: 'Note' }], state.tri, { onChange: set('tri') }))),
-    puces('Élèves', elevesDispo, state.eleves, 'eleves', e => eleveSlot(e.ID), nomEleve),
-    puces('Branches', branchesDispo, state.cours, 'cours', c => c.Couleur || 'var(--muted)', c => c.Title));
+    panneau('Élèves', 'eleves', elevesDispo, couleurEleve, nomEleve),
+    panneau('Branches', 'cours', branchesDispo, couleurCours, nomCours));
 
   let moyennes;
   const seulEleve = state.eleves.length === 1 ? state.eleves[0] : null;
