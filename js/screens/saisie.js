@@ -1,5 +1,5 @@
 import { S, nav, back, eleve, cours, volee, insc, refDate, moi, mesCours, coursActifs, nomEleve, labels, isCoord } from '../state.js';
-import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox } from '../ui.js';
+import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, redraw } from '../ui.js';
 import { phaseOf, semaineCle, sortBy, fmtDate, daysBetween } from '../domain.js';
 
 /** Inscription de l'élève dont la volée contient la date. */
@@ -87,7 +87,7 @@ export function render(params) {
       nav('dossier', { eleve: f.EleveID });
     }
 
-    root.replaceChildren(
+    redraw(root,
       h('button', { type: 'button', class: 'back', onClick: () => back('accueil') }, '‹ Retour'),
       h('div', { class: 'page-head' },
         h('div', null, h('h1', null, editing ? 'Modifier un suivi' : 'Nouveau suivi'),

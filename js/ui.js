@@ -28,6 +28,18 @@ function append(el, children) {
     else el.appendChild(document.createTextNode(String(c)));
   }
 }
+/**
+ * Reconstruit le contenu d'un écran en gardant le focus clavier sur le même contrôle
+ * (même rang parmi les boutons, champs et liens), pour ne pas renvoyer en haut de page.
+ */
+export function redraw(container, ...nodes) {
+  const SEL = 'a[href], button, input, select, textarea';
+  const actif = document.activeElement;
+  const rang = container.contains(actif) ? [...container.querySelectorAll(SEL)].indexOf(actif) : -1;
+  container.replaceChildren(...nodes);
+  if (rang >= 0) [...container.querySelectorAll(SEL)][rang]?.focus({ preventScroll: true });
+}
+
 export function esc(s) {
   return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }

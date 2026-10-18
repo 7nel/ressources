@@ -466,3 +466,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
   .btn.small, .seg button, .who-btn { min-height: 44px; }
   .theme-btn, .sync-bar .theme-btn { width: 44px; height: 44px; }
 }
+
+/* Accessibilité : lien d'évitement et cible de focus programmatique */
+.skip-link { position: absolute; left: 8px; top: -60px; z-index: 1000; display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; background: var(--accent); color: var(--accent-ink); border-radius: 8px; font-weight: 700; text-decoration: none; }
+.skip-link:focus { top: 8px; }
+main:focus, main h1:focus { outline: none; }

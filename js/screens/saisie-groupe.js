@@ -1,5 +1,5 @@
 import { S, nav, eleve, cours, refDate, moi, mesCours, coursActifs, voleeAt, inscriptionsEnCours, nomEleve, labels } from '../state.js';
-import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, empty } from '../ui.js';
+import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, empty, redraw } from '../ui.js';
 import { phaseOf, semaineCle, sortBy, fmtDate, parseNote, evalMode, FORMATIF } from '../domain.js';
 
 const state = { coursId: null, date: null, forDate: null, portee: 'Séance', mode: 'cot' };
@@ -66,7 +66,7 @@ export function render(params) {
         t0.Type === 'Devoir' && btn('Tout le monde a rendu', async () => { await changeStatut('Contrôlé'); toast('Devoir contrôlé'); nav('accueil'); }, 'secondary'),
         btn('Annuler ce travail', async () => { await changeStatut('Annulé'); toast('Travail annulé'); nav('accueil'); }, 'ghost')));
 
-    root.replaceChildren(
+    redraw(root,
       h('div', { class: 'page-head' },
         h('div', null, h('h1', null, 'Saisie de groupe'), h('div', { class: 'sub' }, `${fmtDate(state.date, { day: true })} · tous les élèves en cours de la volée`)),
         h('div', { class: 'btn-row' },

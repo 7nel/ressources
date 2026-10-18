@@ -128,21 +128,31 @@ function syncBlock(compact = false) {
     h('div', { class: 'sync-meta' }, status, m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
 }
 
+let dernierHash = null;
+/** Affiche un écran, met le titre de la page à jour et, quand l'écran change, place le focus sur son titre (annonce au lecteur d'écran). */
+function show(...nodes) {
+  mainEl.replaceChildren(...nodes);
+  const titre = mainEl.querySelector('h1');
+  document.title = titre ? `${titre.textContent} · RessourceS (test)` : 'RessourceS (test)';
+  if (dernierHash !== null && location.hash !== dernierHash && titre) { titre.tabIndex = -1; titre.focus({ preventScroll: true }); }
+  dernierHash = location.hash;
+}
+
 async function render() {
   const { name, params } = parseHash();
   S.route = { name, params };
   const route = ROUTES[name];
   renderBanner();
   renderSidebar(route.nav === 'saisie' ? 'groupe' : route.nav);
-  if (!S.settings.moiId && name !== 'parametres') { mainEl.replaceChildren(welcome()); return; }
-  if (name === 'profil') { mainEl.replaceChildren(welcome(true)); return; }
-  if (isSandbox() && S.settings.sansCopie !== false && !wasLoadedThisSession() && name !== 'parametres') { mainEl.replaceChildren(gate()); return; }
+  if (!S.settings.moiId && name !== 'parametres') { show(welcome()); return; }
+  if (name === 'profil') { show(welcome(true)); return; }
+  if (isSandbox() && S.settings.sansCopie !== false && !wasLoadedThisSession() && name !== 'parametres') { show(gate()); return; }
   try {
     const page = await route.mod.render(params);
-    mainEl.replaceChildren(page);
+    show(page);
   } catch (e) {
     console.error(e);
-    mainEl.replaceChildren(h('div', { class: 'page' }, notice(`Erreur d'affichage : ${e.message}`, 'danger')));
+    show(h('div', { class: 'page' }, notice(`Erreur d'affichage : ${e.message}`, 'danger')));
   }
 }
 
@@ -188,7 +198,8 @@ async function start() {
   sidebarEl = h('nav', { class: 'sidebar', 'aria-label': 'Menu principal' });
   mainEl = h('main', { id: 'main', tabindex: '-1' });
   syncBarEl = h('div', { class: 'sync-bar-wrap' });
-  root.replaceChildren(bannerEl, syncBarEl, h('div', { class: 'shell' }, sidebarEl, mainEl));
+  const skip = h('a', { class: 'skip-link', href: '#main', onClick: e => { e.preventDefault(); mainEl.focus(); } }, 'Aller au contenu');
+  root.replaceChildren(skip, bannerEl, syncBarEl, h('div', { class: 'shell' }, sidebarEl, mainEl));
   mainEl.replaceChildren(h('p', { class: 'muted' }, 'Chargement…'));
 
   loadSettings();

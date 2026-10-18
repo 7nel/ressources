@@ -1,5 +1,5 @@
 import { S, nav, back, refDate, moi, mesCours, coursActifs } from '../state.js';
-import { h, card, btn, field, select, input, seg, notice, toast } from '../ui.js';
+import { h, card, btn, field, select, input, seg, notice, toast, redraw } from '../ui.js';
 import { addDays, semaineCle } from '../domain.js';
 
 const TYPES = [{ value: 'Devoir', label: 'Devoir à rendre' }, { value: 'Évaluation', label: 'Évaluation' }];
@@ -42,7 +42,7 @@ export function render(params) {
       nav('travaux');
     }
 
-    root.replaceChildren(
+    redraw(root,
       h('button', { type: 'button', class: 'back', onClick: () => back('travaux') }, '‹ Retour'),
       h('h1', null, editing ? (devoir ? 'Devoir à rendre' : 'Évaluation') : (devoir ? 'Nouveau devoir à rendre' : 'Nouvelle évaluation')),
       editing && editing.Statut !== 'Prévu' && notice(`Ce travail est « ${editing.Statut.toLowerCase()} ».`, 'info'),

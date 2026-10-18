@@ -1,5 +1,5 @@
 import { S, nav, back, eleve, cours, volee, refDate, moi, mesCours, coursActifs, nomEleve, isCoord } from '../state.js';
-import { h, card, btn, field, select, input, textarea, seg, phaseBadge, notice, toast } from '../ui.js';
+import { h, card, btn, field, select, input, textarea, seg, phaseBadge, notice, toast, redraw } from '../ui.js';
 import { phaseOf, sortBy, parseNote, evalMode, FORMATIF, fmtNote } from '../domain.js';
 import { inscriptionAt } from './saisie.js';
 
@@ -63,7 +63,7 @@ export function render(params) {
       normale: 'Ré-exposition : note en conditions normales.',
     }[mode];
 
-    root.replaceChildren(
+    redraw(root,
       h('button', { type: 'button', class: 'back', onClick: () => back('accueil') }, '‹ Retour'),
       h('h1', null, editing ? 'Évaluation' : 'Nouvelle évaluation'),
       !canEdit && notice('Lecture seule : seule la personne qui a saisi cette évaluation ou la coordination peut la modifier.', 'info'),
