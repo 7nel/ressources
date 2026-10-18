@@ -1,6 +1,6 @@
 import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
 import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, confirmDlg } from '../ui.js';
-import { fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, colleMinutes } from '../domain.js';
+import { fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
 
 const state = { showAll: false };
@@ -194,7 +194,7 @@ export function render(params) {
   if (!i) return h('div', { class: 'page' }, head, card(null, {}, empty('Cet élève n\'a encore aucune inscription.')));
 
   const alerteSemaine = S.store.where('RS_Suivis', s => s.InscriptionID === i.ID && s.SemaineCle === sk && (s.Comportement === 1 || s.Travail === 1));
-  const nColle = S.store.where('RS_Devoirs', d => d.InscriptionID === i.ID && d.SemaineCle === sk && !d.SansConsequence).length;
+  const nRetenue = S.store.where('RS_Devoirs', d => d.InscriptionID === i.ID && d.SemaineCle === sk && !d.SansConsequence).length;
   const cps = cpsDe([i.ID]);
 
   const actionsBar = h('div', { class: 'btn-row' },
@@ -213,7 +213,7 @@ export function render(params) {
         volee(x.VoleeID)?.Title, h('span', { class: 'meta' }, `${x.Degre} · ${x.StatutInscription}`)))),
     actionsBar,
     alerteSemaine.length ? notice(`Alerte « désengagé » cette semaine : ${alerteSemaine.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(', ')}.`, 'danger') : null,
-    nColle ? notice(`Colle du vendredi : ${colleMinutes(nColle)} minutes (${nColle} devoir${nColle > 1 ? 's' : ''} non fait${nColle > 1 ? 's' : ''} cette semaine).`, 'warn') : null,
+    nRetenue ? notice(`Retenue du vendredi : ${retenueMinutes(nRetenue)} minutes (${nRetenue} devoir${nRetenue > 1 ? 's' : ''} non fait${nRetenue > 1 ? 's' : ''} cette semaine).`, 'warn') : null,
     syntheseCard(i),
     h('div', { class: 'cols-dossier' },
       h('div', { class: 'stack' }, inscriptionCard(i, e), bilansCard(i), actionsCard(i, e), devoirsCard(i)),

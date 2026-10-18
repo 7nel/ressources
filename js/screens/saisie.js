@@ -111,7 +111,7 @@ export function render(params) {
         !editing && h('div', { class: 'field' },
           checkbox('Devoir non fait', dv.on, val => { dv.on = val; draw(); }),
           dv.on && field('Devoir attendu', input('text', dv.desc, { placeholder: 'ex. Exercices p. 34', onInput: ev => { dv.desc = ev.target.value; } }),
-            { help: phase === 'Décompression' ? 'Décompression : enregistré sans conséquence (pas de colle).' : 'Compte pour la colle du vendredi.' })),
+            { help: phase === 'Décompression' ? 'Décompression : enregistré sans conséquence (pas de retenue).' : 'Compte pour la retenue du vendredi.' })),
         errBox,
         h('div', { class: 'btn-row' }, btn('Enregistrer', save), btn('Annuler', () => back('accueil'), 'secondary')))));
   }

@@ -71,14 +71,14 @@ Un point orange signale des modifications non sauvegardées ; le navigateur aver
 
 | Menu | Écrans |
 |---|---|
-| Accueil | Rampe de la volée, tuiles, « Mes cours », alertes « désengagé », colle du vendredi, À faire |
+| Accueil | Rampe de la volée, tuiles, « Mes cours », alertes « désengagé », retenue du vendredi, À faire |
 | Élèves | Liste, nouvel élève (alerte de doublon), dossier : synthèse hebdomadaire, suivis, devoirs, évaluations, actions, bilans, CPS, orientation, fiche coaching imprimable |
 | Saisie | Saisie de groupe (cotations ou évaluation), saisie individuelle, évaluation selon la phase (R5) |
 | Notes | Filtres, moyennes pondérées, graphique ; Ma branche |
 | Tâches | Mes tâches, toutes, terminées |
 | Réglages | Profil, date simulée, libellés des niveaux, volées, enseignant·es, cours, données |
 
-Règles reprises du cahier des charges : R1 à R13 (phase calculée, colle, doublons, correction 7 jours, pas de moyenne C/T, CPS 4 regards…).
+Règles reprises du cahier des charges : R1 à R13 (phase calculée, retenue, doublons, correction 7 jours, pas de moyenne C/T, CPS 4 regards…).
 
 Absent pour l'instant : pièces jointes (PDF de bilan signé, classeur CPS) ; elles viendront avec SharePoint.
 

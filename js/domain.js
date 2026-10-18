@@ -97,8 +97,8 @@ export function weeksOfVolee(v) {
   return out;
 }
 
-/* ---------- Colle du vendredi (R9) ---------- */
-export function colleMinutes(n) { return n >= 1 ? Math.min(60, 15 + 5 * (n - 1)) : 0; }
+/* ---------- Retenue du vendredi (R9) ---------- */
+export function retenueMinutes(n) { return n >= 1 ? Math.min(60, 15 + 5 * (n - 1)) : 0; }
 
 /* ---------- Doublons (R2) ---------- */
 export function normalise(s) {

@@ -2,7 +2,7 @@ import { S, isSandbox, refDate, setDateCourante, voleeAt, volees, inscriptionsEn
 import { h, card, btn, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
 import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, nextVolee, lastVolee, mondayOf, addDays, weeksOfVolee } from '../domain.js';
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
-import { colles, alertes, sansSuivi, devoirsOuverts, aFaire, suivisDeSemaine } from '../queries.js';
+import { retenues, alertes, sansSuivi, devoirsOuverts, aFaire, suivisDeSemaine } from '../queries.js';
 
 
 export function ramp(v, date) {
@@ -105,17 +105,17 @@ export function render() {
           h('div', { class: 'meta' }, a.suivis.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(' · '))),
         h('div', { class: 'end' }, ctPair(a.suivis[0].Comportement, a.suivis[0].Travail, L)))))) : empty('Aucune alerte cette semaine.'));
 
-  /* ---- Colle du vendredi ---- */
-  const col = v ? colles(sk, inscIds, coursIds) : [];
+  /* ---- Retenue du vendredi ---- */
+  const col = v ? retenues(sk, inscIds, coursIds) : [];
   const phaseNow = v ? phaseOf(date, v) : null;
-  const colleCard = card('Colle du vendredi', { hint: 'Durée = min(60 ; 15 + 5 × (n − 1)) minutes, n = devoirs non faits de la semaine. Pas de colle en décompression.' },
+  const retenueCard = card('Retenue du vendredi', { hint: 'Durée = min(60 ; 15 + 5 × (n − 1)) minutes, n = devoirs non faits de la semaine. Pas de retenue en décompression.' },
     phaseNow === 'Décompression' ? notice('Décompression : devoirs enregistrés sans conséquence.', 'info') : null,
     col.length ? h('ul', { class: 'list' }, col.map(c => h('li', null,
       h('button', { type: 'button', class: 'item', onClick: () => nav('dossier', { eleve: c.eleveId }) },
         h('div', { class: 'main' },
           h('div', { class: 'title' }, nomEleve(eleve(c.eleveId))),
           h('div', { class: 'meta' }, `${c.n} devoir${c.n > 1 ? 's' : ''} : ${c.devoirs.map(d => cours(d.CoursID)?.Title).join(', ')}`)),
-        h('div', { class: 'end' }, h('strong', null, `${c.minutes} min`)))))) : empty('Pas de colle cette semaine.'));
+        h('div', { class: 'end' }, h('strong', null, `${c.minutes} min`)))))) : empty('Pas de retenue cette semaine.'));
 
   /* ---- À faire ---- */
   const todo = aFaire(date, v, { restreint, coursIds });
@@ -140,6 +140,6 @@ export function render() {
     h('div', { class: 'grid', style: { gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))' } }, tiles),
     mesCoursCard,
     h('div', { class: 'cols-dossier' },
-      h('div', { class: 'stack' }, alertCard, colleCard),
+      h('div', { class: 'stack' }, alertCard, retenueCard),
       h('div', { class: 'stack' }, todoCard)));
 }

@@ -98,7 +98,7 @@ export function render(params) {
       list,
       h('div', { class: 'form', style: { marginTop: '12px' } },
         field('Devoir attendu (commun aux cases cochées)', input('text', common.devoir, { placeholder: 'ex. Exercices p. 34', onInput: ev => { common.devoir = ev.target.value; } }),
-          { help: phase === 'Décompression' ? 'Décompression : devoirs enregistrés sans conséquence.' : 'Les devoirs non faits comptent pour la colle du vendredi.' }),
+          { help: phase === 'Décompression' ? 'Décompression : devoirs enregistrés sans conséquence.' : 'Les devoirs non faits comptent pour la retenue du vendredi.' }),
         errBox,
         h('div', { class: 'btn-row' }, btn('Enregistrer', save))));
   }

@@ -1,6 +1,6 @@
 // Calculs partagés entre écrans (accueil, dossier, bilans). Rien n'est stocké : tout est recalculé.
 import { S, volee, cours, eleve, nomEleve, inscriptionsEnCours, moi, ens, isCoord, refDate } from './state.js';
-import { semaineCle, colleMinutes, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy } from './domain.js';
+import { semaineCle, retenueMinutes, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy } from './domain.js';
 
 const st = () => S.store;
 
@@ -9,12 +9,12 @@ export function suivisDeSemaine(sk, inscIds) {
   return st().where('RS_Suivis', s => s.SemaineCle === sk && (!set || set.has(s.InscriptionID)));
 }
 
-/** Colle du vendredi (R9) : devoirs de la semaine hors décompression. */
-export function colles(sk, inscIds, coursIds) {
+/** Retenue du vendredi (R9) : devoirs de la semaine hors décompression. */
+export function retenues(sk, inscIds, coursIds) {
   const set = new Set(inscIds);
   const cset = coursIds && new Set(coursIds);
   const dv = st().where('RS_Devoirs', d => d.SemaineCle === sk && !d.SansConsequence && set.has(d.InscriptionID) && (!cset || cset.has(d.CoursID)));
-  return [...groupBy(dv, d => d.EleveID)].map(([eleveId, list]) => ({ eleveId, n: list.length, minutes: colleMinutes(list.length), devoirs: list }))
+  return [...groupBy(dv, d => d.EleveID)].map(([eleveId, list]) => ({ eleveId, n: list.length, minutes: retenueMinutes(list.length), devoirs: list }))
     .sort((a, b) => b.minutes - a.minutes);
 }
 
