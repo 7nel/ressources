@@ -81,7 +81,8 @@ function analyserFeuille(rows, key) {
   if (cCode < 0 || cMoment < 0) throw new Error(`colonnes « Code » ou « Moment » introuvables`);
   const items = new Array(30).fill(-1), textes = new Array(30).fill('');
   head.forEach((x, k) => {
-    const m = x.match(/:\.(\d{1,2})\.\s*([\s\S]*)$/) || x.match(/^(\d{1,2})\.\s*([\s\S]*)$/);
+    // Forms écrit « <titre>.<énoncé> » : selon le titre, « :.1. », « .\n.1. » ou « \n.1. ». Ou l'énoncé seul : « 1. ».
+    const m = x.match(/(?:^|[\s:.\u00a0])\.(\d{1,2})\.\s*([\s\S]*)$/) || x.match(/^(\d{1,2})\.\s*([\s\S]*)$/);
     if (m && Number(m[1]) >= 1 && Number(m[1]) <= 30) { items[Number(m[1]) - 1] = k; textes[Number(m[1]) - 1] = m[2].trim(); }
   });
   const manquants = items.map((c, k) => (c < 0 ? k + 1 : null)).filter(Boolean);
