@@ -582,3 +582,4 @@ details.sub-fold > .hint { margin: 0 0 8px; }
 .grp-toggle { display: inline-flex; align-items: center; gap: 2px; background: none; border: 0; padding: 4px 0; font: inherit; font-weight: 700; color: inherit; cursor: pointer; text-align: left; }
 .grp-toggle:hover { color: var(--accent); }
 .grp-toggle .chevron { width: 1.1em; color: var(--muted); }
+.syn-barre { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-bottom: 6px; }

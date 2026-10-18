@@ -94,27 +94,30 @@ function syntheseCard(i) {
         h('span', { class: `band ${PHASE_CLASS[w.phase]}` }))))),
     h('tbody', null, body));
 
-  const chartBox = h('div');
-  const drawChart = () => chartBox.replaceChildren(
-    h('div', { class: 'btn-row', style: { marginBottom: '6px' } },
-      h('span', { class: 'small muted' }, 'Tendance :'),
-      seg([{ value: 'CT', label: 'C et T' }, { value: 'C', label: 'Comportement' }, { value: 'T', label: 'Travail' }], tendState.vue, v => { tendState.vue = v; drawChart(); }, 'Afficher')),
-    h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '560px' }, svg: tendanceSVG(weeks, moyennes, nowSk) })));
-  drawChart();
-
-  // Par défaut : graphique + tableau des seules moyennes ; un clic sur une moyenne déplie ses cours.
+  // Aide « ? » et légende C / T, à côté des boutons du graphique (seules si le graphique est masqué).
   const aide = h('button', {
     type: 'button', class: 'aide-rond', 'aria-expanded': String(state.aide), 'aria-label': 'Comment lire cette synthèse',
     title: 'Comment lire cette synthèse', onClick: () => { state.aide = !state.aide; refresh(); },
   }, '?');
+  const legende = h('div', { class: 'syn-legende' }, aide, levelLegend(L, { compact: true }));
+  const aideTexte = state.aide ? h('p', { class: 'hint aide-texte' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; cliquez sur une moyenne pour voir les pastilles de chaque cours. Le coaching n'est pas coté.`) : null;
+  const chartBox = h('div');
+  const drawChart = () => chartBox.replaceChildren(
+    h('div', { class: 'syn-barre' },
+      seg([{ value: 'CT', label: 'C et T' }, { value: 'C', label: 'Comportement' }, { value: 'T', label: 'Travail' }], tendState.vue, v => { tendState.vue = v; drawChart(); }, 'Courbes du graphique'), legende),
+    aideTexte,
+    h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '560px' }, svg: tendanceSVG(weeks, moyennes, nowSk) })));
+  drawChart();
+
+  // Par défaut : graphique + tableau des seules moyennes ; un clic sur une moyenne déplie ses cours.
   return card('Synthèse hebdomadaire', {
     actions: [
       btn(state.graph ? 'Masquer le graphique' : 'Afficher le graphique', () => { state.graph = !state.graph; refresh(); }, 'ghost small', { 'aria-pressed': String(!state.graph) }),
       btn(state.table ? 'Masquer le tableau' : 'Afficher le tableau', () => { state.table = !state.table; refresh(); }, 'ghost small', { 'aria-pressed': String(!state.table) }),
     ],
   },
-    h('div', { class: 'syn-legende' }, aide, levelLegend(L, { compact: true })),
-    state.aide && h('p', { class: 'hint aide-texte' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; cliquez sur une moyenne pour voir les pastilles de chaque cours. Le coaching n'est pas coté.`),
+    !state.graph ? legende : null,
+    !state.graph ? aideTexte : null,
     state.graph ? chartBox : null,
     state.table ? [h('div', { class: 'scroll-x' }, table),
       h('p', { class: 'hint scroll-note' }, 'Faites défiler le tableau vers la droite pour voir les autres semaines.')] : null,
