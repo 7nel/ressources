@@ -9,7 +9,7 @@ import { buildSeed } from './seed.js';
 
 const KEY = 'ressources_bac_a_sable_v3';
 const FK = { EnseignantID: 'RS_Enseignants', VoleeID: 'RS_Volees', CoursID: 'RS_Cours', EleveID: 'RS_Eleves', InscriptionID: 'RS_Inscriptions' };
-const MERGE_ORDER = ['RS_Enseignants', 'RS_Volees', 'RS_Cours', 'RS_Eleves', 'RS_Inscriptions', 'RS_Suivis', 'RS_Devoirs', 'RS_Evaluations', 'RS_Bilans', 'RS_Actions', 'RS_CPS', 'RS_Stages', 'RS_DocsOrientation', 'RS_Taches'];
+const MERGE_ORDER = ['RS_Enseignants', 'RS_Volees', 'RS_Cours', 'RS_Eleves', 'RS_Inscriptions', 'RS_Suivis', 'RS_Devoirs', 'RS_Evaluations', 'RS_Bilans', 'RS_Actions', 'RS_CPS', 'RS_Stages', 'RS_DocsOrientation', 'RS_Taches', 'RS_Travaux'];
 const newUid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
 
 export class LocalAdapter {

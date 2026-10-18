@@ -25,6 +25,18 @@ export function alertes(sk, inscIds, coursIds) {
   return [...groupBy(sv, s => s.EleveID)].map(([eleveId, list]) => ({ eleveId, suivis: sortBy(list, 'DateSuivi') }));
 }
 
+/** Devoirs à rendre et évaluations prévus pour une semaine (hors annulés). */
+export function travauxSemaine(sk, coursIds) {
+  const cset = coursIds && new Set(coursIds);
+  return st().where('RS_Travaux', t => t.SemaineCle === sk && t.Statut !== 'Annulé' && (!cset || cset.has(t.CoursID)));
+}
+
+/** Travaux dont l'échéance est passée et qui attendent un contrôle (devoir) ou une saisie (évaluation). */
+export function travauxAControler(date, coursIds) {
+  const cset = coursIds && new Set(coursIds);
+  return sortBy(st().where('RS_Travaux', t => t.Statut === 'Prévu' && t.Echeance < date && (!cset || cset.has(t.CoursID))), 'Echeance');
+}
+
 const SEUIL_PROGRES = 0.5; // hausse minimale de la moyenne hebdomadaire de C ou de T (seuil arbitraire, à valider en équipe)
 
 /**
@@ -118,6 +130,12 @@ export function aFaire(date, v, { restreint, coursIds }) {
 
   for (const a of actionsEnRetard(date, inscIds, restreint ? m?.Title : null)) {
     items.push({ prio: 1, kind: 'Action en retard', title: a.Description, meta: `${nomEleve(eleve(a.EleveID))} · échéance ${a.Echeance.split('-').reverse().join('.')} · ${a.Responsable}`, late: true, go: ['action', { id: a.ID }] });
+  }
+  if (v) {
+    for (const t of travauxAControler(date, restreint ? coursIds : null)) {
+      items.push({ prio: 2, kind: t.Type === 'Devoir' ? 'Devoir à contrôler' : 'Évaluation à saisir', title: t.Title,
+        meta: `${cours(t.CoursID)?.Title} · échéance ${t.Echeance.split('-').reverse().join('.')}`, go: ['groupe', { cours: t.CoursID, travail: t.ID }] });
+    }
   }
   if (!restreint) {
     for (const b of bilansAFaire(date, v)) {

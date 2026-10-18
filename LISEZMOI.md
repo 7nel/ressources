@@ -70,7 +70,7 @@ Un point orange signale des modifications non sauvegardées ; le navigateur aver
 
 | Menu | Écrans |
 |---|---|
-| Accueil | Rampe de la volée, tuiles, accès rapide aux cours, niveau 1 de la semaine, ce qui va mieux, retenue du vendredi, À faire |
+| Accueil | Rampe de la volée, tuiles (dont devoirs à rendre et évaluations de la semaine), accès rapide aux cours, niveau 1 de la semaine, ce qui va mieux, retenue du vendredi, À faire |
 | Élèves | Liste, nouvel élève (alerte de doublon), dossier : synthèse hebdomadaire, suivis, devoirs, évaluations, actions, bilans, CPS, orientation, fiche coaching imprimable |
 | Saisie | Saisie de groupe (cotations ou évaluation), saisie individuelle, évaluation selon la phase (R5) |
 | Notes | Filtres, moyennes pondérées, graphique ; Ma branche |
@@ -92,7 +92,7 @@ Le code est organisé pour que seul l'« adaptateur de données » change :
 Prérequis côté informatique cantonale (à leur transmettre) :
 1. Inscription d'une application « monopage » (SPA) dans Entra ID, URI de redirection = l'adresse GitHub Pages.
 2. Permission déléguée Microsoft Graph `Sites.ReadWrite.All` (ou `Sites.Selected` limitée au site RessourceS), avec consentement administrateur si exigé.
-3. Un site d'équipe SharePoint avec les 14 listes `RS_…` (créées à la main, pas par import CSV ; index sur `EleveID`, `InscriptionID`, `SemaineCle`).
+3. Un site d'équipe SharePoint avec les 15 listes `RS_…` (dont `RS_Travaux` : `Title`, `Type`, `CoursID`, `EnseignantID`, `Echeance`, `SemaineCle`, `Statut` ; créées à la main, pas par import CSV ; index sur `EleveID`, `InscriptionID`, `SemaineCle`).
 4. Validation du préposé à la protection des données.
 
 Ensuite : remplir `js/config.js` (`MODE: 'sharepoint'`, identifiants), ajouter la bibliothèque MSAL

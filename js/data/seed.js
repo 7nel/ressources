@@ -354,6 +354,22 @@ function buildExemples({ add, rnd, pick, clamp, T, C, coursByTitle, V5 }) {
     }, '2026-06-08');
   }
 
+  /* ---- Devoirs à rendre et évaluations à venir (dernières semaines de la volée) ---- */
+  const TRAVAUX = [
+    ['Devoir', 'Mathématiques', 'Exercices p. 34', '2026-06-10', 'Contrôlé'],
+    ['Évaluation', 'Sciences', 'Le cycle de l\'eau', '2026-06-11', 'Contrôlé'],
+    ['Devoir', 'Sciences', 'Fiche sur le cycle de l\'eau', '2026-06-12', 'Prévu'],
+    ['Devoir', 'Français', 'Lire les chapitres 3 et 4', '2026-06-18', 'Prévu'],
+    ['Évaluation', 'Mathématiques', 'Équations du premier degré', '2026-06-19', 'Prévu'],
+    ['Devoir', 'Anglais', 'Vocabulaire de l\'unité 6', '2026-06-19', 'Prévu'],
+  ];
+  for (const [type, cTitre, titre, ech, statut] of TRAVAUX) {
+    add('RS_Travaux', {
+      Title: titre, Type: type, CoursID: coursByTitle[cTitre].ID, EnseignantID: coursByTitle[cTitre].EnseignantID,
+      Echeance: ech, SemaineCle: semaineCle(ech), Statut: statut,
+    }, '2026-06-08');
+  }
+
   /* ---- Orientation (11CO) ---- */
   const ines = E.find(x => x.prof === 'bon'), timeo = E.find(x => x.prof === 'petit2');
   add('RS_Stages', { Title: 'Inès Arolle · ASE', EleveID: ines.e.ID, InscriptionID: ines.i.ID, Metier: 'Assistante socio-éducative', Entreprise: 'Crèche fictive Les Marmottes', Statut: 'Effectué', DateDebut: '2026-06-08', DateFin: '2026-06-10', Retour: 'Très à l\'aise avec les enfants ; ponctuelle.' }, '2026-06-01');

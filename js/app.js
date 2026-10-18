@@ -18,6 +18,8 @@ import * as Evaluation from './screens/evaluation.js';
 import * as Notes from './screens/notes.js';
 import * as Branche from './screens/branche.js';
 import * as Taches from './screens/taches.js';
+import * as Travaux from './screens/travaux.js';
+import * as Travail from './screens/travail.js';
 import * as Action from './screens/action.js';
 import * as Orientation from './screens/orientation.js';
 import * as Bilan from './screens/bilan.js';
@@ -37,6 +39,8 @@ const ROUTES = {
   notes: { mod: Notes, nav: 'notes' },
   branche: { mod: Branche, nav: 'notes' },
   taches: { mod: Taches, nav: 'taches' },
+  travaux: { mod: Travaux, nav: 'accueil' },
+  travail: { mod: Travail, nav: 'accueil' },
   action: { mod: Action, nav: 'eleves' },
   orientation: { mod: Orientation, nav: 'eleves' },
   bilan: { mod: Bilan, nav: 'eleves' },

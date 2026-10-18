@@ -12,9 +12,19 @@ export function render(params) {
   const ref = refDate();
   if (state.forDate !== ref) { state.date = ref; state.forDate = ref; }
 
+  // Ouverture depuis « À faire » : contrôle d'un devoir à rendre ou saisie d'une évaluation prévue.
+  const travail = params.travail ? S.store.get('RS_Travaux', params.travail) : null;
+  if (travail) {
+    state.coursId = travail.CoursID;
+    state.mode = travail.Type === 'Évaluation' ? 'eval' : 'cot';
+    if (travail.Type === 'Évaluation') { state.date = travail.Echeance; state.forDate = ref; }
+  }
+  const travailOuvert = () => { const t = travail && S.store.get('RS_Travaux', travail.ID); return t?.Statut === 'Prévu' ? t : null; };
+  const changeStatut = async statut => { if (travailOuvert()) await S.store.update('RS_Travaux', travail.ID, { Statut: statut }); };
+
   const root = h('div', { class: 'page' });
   let rows = {}; // eleveId → saisie en cours
-  const common = { devoir: '', sujet: '', coef: '1' };
+  const common = { devoir: travail?.Type === 'Devoir' ? travail.Title : '', sujet: travail?.Type === 'Évaluation' ? travail.Title : '', coef: '1' };
 
   function draw() {
     const L = labels();
@@ -47,11 +57,22 @@ export function render(params) {
     } else if (state.mode === 'cot') body = cotations(c, v, phase, inscs, L);
     else body = evaluations(c, v, phase, inscs);
 
+    const t0 = travailOuvert();
+    const barreTravail = t0 && card(null, {},
+      notice(t0.Type === 'Devoir'
+        ? `Contrôle du devoir « ${t0.Title} » : cochez « devoir non fait » pour les élèves qui ne l'ont pas rendu.`
+        : `Évaluation prévue le ${fmtDate(t0.Echeance, { day: true })} : « ${t0.Title} ». Saisissez les résultats ci-dessous.`, 'info'),
+      h('div', { class: 'btn-row', style: { marginTop: '10px' } },
+        t0.Type === 'Devoir' && btn('Tout le monde a rendu', async () => { await changeStatut('Contrôlé'); toast('Devoir contrôlé'); nav('accueil'); }, 'secondary'),
+        btn('Annuler ce travail', async () => { await changeStatut('Annulé'); toast('Travail annulé'); nav('accueil'); }, 'ghost')));
+
     root.replaceChildren(
       h('div', { class: 'page-head' },
         h('div', null, h('h1', null, 'Saisie de groupe'), h('div', { class: 'sub' }, `${fmtDate(state.date, { day: true })} · tous les élèves en cours de la volée`)),
-        btn('Saisie individuelle', () => nav('saisie', { cours: state.coursId }), 'secondary')),
-      controls, body);
+        h('div', { class: 'btn-row' },
+          btn('+ Devoir ou évaluation à venir', () => nav('travail', { cours: state.coursId }), 'secondary'),
+          btn('Saisie individuelle', () => nav('saisie', { cours: state.coursId }), 'secondary'))),
+      barreTravail, controls, body);
   }
 
   function cotations(c, v, phase, inscs, L) {
@@ -90,6 +111,7 @@ export function render(params) {
           });
         }
       }
+      if (travail?.Type === 'Devoir' && todo.some(({ e }) => rows[e.ID].dv)) await changeStatut('Contrôlé');
       toast(`${todo.length} suivi${todo.length > 1 ? 's' : ''} enregistré${todo.length > 1 ? 's' : ''}`);
       rows = {};
       draw();
@@ -142,6 +164,7 @@ export function render(params) {
           EnseignantID: ensId, DateEval: state.date, Phase: phase, Sujet: common.sujet.trim(), Coefficient: coef, Etayage: '', ...rec,
         });
       }
+      if (travail?.Type === 'Évaluation') await changeStatut('Contrôlé');
       toast(`${todo.length} résultat${todo.length > 1 ? 's' : ''} enregistré${todo.length > 1 ? 's' : ''}`);
       rows = {}; common.sujet = '';
       draw();

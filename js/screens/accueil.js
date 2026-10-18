@@ -4,7 +4,7 @@ import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, monda
 import { CONFIG } from '../config.js';
 const DATE_EXEMPLE = '2026-06-17'; // mercredi de la dernière semaine de la volée d'exemple
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
-import { retenues, alertes, progres, sansSuivi, aFaire, suivisDeSemaine } from '../queries.js';
+import { retenues, alertes, progres, sansSuivi, aFaire, suivisDeSemaine, travauxSemaine } from '../queries.js';
 
 const fmt1 = v => v.toFixed(1).replace('.', ',');
 const niveau = v => Math.max(1, Math.min(4, Math.round(v)));
@@ -17,6 +17,8 @@ const REGROUPE = {
   'Bilan à faire': n => `${n} bilans à faire`,
   'Sans suivi cette semaine': (n, restreint) => restreint ? `${n} cours avec des élèves sans suivi` : `${n} élèves sans suivi cette semaine`,
   'Devoirs ouverts': n => `${n} élèves avec des devoirs ouverts`,
+  'Devoir à contrôler': n => `${n} devoirs à contrôler`,
+  'Évaluation à saisir': n => `${n} évaluations à saisir`,
 };
 
 
@@ -89,9 +91,24 @@ export function render() {
   const al = alertes(sk, inscIds, coursIds);
   const col = v ? retenues(sk, inscIds, coursIds) : [];
   const phaseNow = v ? phaseOf(date, v) : null;
+  // Devoirs à rendre et évaluations de la semaine de la rampe (mes cours en vue restreinte).
+  const tuileTravaux = () => {
+    const tr = travauxSemaine(sk, coursIds);
+    const nd = tr.filter(t => t.Type === 'Devoir').length, ne = tr.length - nd;
+    const n = weeksOfVolee(v).indexOf(mondayOf(date)) + 1;
+    const sem = `${n > 0 ? `S${n} ` : ''}(${phaseNow.toLowerCase()})`;
+    return h('button', { type: 'button', class: 'tile tile-duo', title: 'Voir les devoirs et évaluations à venir', onClick: () => nav('travaux') },
+      tr.length
+        ? h('div', { class: 'duo' },
+          h('div', null, h('div', { class: 'num' }, nd), h('div', { class: 'lab' }, nd > 1 ? 'devoirs à rendre' : 'devoir à rendre')),
+          h('div', null, h('div', { class: 'num' }, ne), h('div', { class: 'lab' }, ne > 1 ? 'évaluations' : 'évaluation')))
+        : h('div', { class: 'num' }, '–'),
+      h('div', { class: 'lab' }, tr.length ? `pour la ${sem}` : `Rien de prévu pour la ${sem}`));
+  };
   const tiles = [
     // Pas de retenue en décompression : la tuile serait toujours à zéro.
     phaseNow !== 'Décompression' && tile(col.length, col.length > 1 ? 'élèves retenus vendredi' : 'élève retenu vendredi'),
+    v && tuileTravaux(),
     tile(sans, restreint ? 'sans suivi dans mes cours' : 'sans suivi cette semaine', { alert: true }),
     tile(al.length, al.length > 1 ? 'élèves au niveau 1 cette semaine' : 'élève au niveau 1 cette semaine', { alert: true }),
   ].filter(Boolean);
