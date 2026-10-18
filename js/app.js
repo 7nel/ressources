@@ -84,7 +84,7 @@ function renderSidebar(active) {
   const m = moi();
   if (syncBarEl) syncBarEl.replaceChildren(isSandbox() && S.settings.moiId ? syncBlock(true) : h('div', { class: 'sync-bar' }, h('span'), themeBtn()));
   sidebarEl.replaceChildren(...[
-    h('div', { class: 'brand' }, 'Ressource', h('span', null, 'S')),
+    h('div', { class: 'brand' }, h('span', { class: 'brand-mark', svg: '<svg viewBox="0 0 160 160" aria-hidden="true"><circle cx="80" cy="80" r="76" fill="var(--accent)"/><g transform="translate(2 -1.5)" fill="none" stroke="var(--accent-ink)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round"><path d="M37,119 C36,106 38,92 37,78 C37,74 37,72 37,71"/><path d="M37,95 C39,82 49,73 62,74"/><path d="M119,58 C115,46 101,42 92,47 C81,53 83,66 97,76 C111,86 123,92 116,107 C110,119 92,121 81,110"/></g></svg>' }), h('span', null, 'Ressource', h('span', { class: 's' }, 'S'))),
     ...MENU.map(([r, label, ic]) => {
       const isActive = active === r || (r === 'groupe' && active === 'saisie');
       return h('button', {
