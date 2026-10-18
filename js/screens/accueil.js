@@ -20,8 +20,8 @@ const REGROUPE = {
   'Devoirs ouverts': n => `${n} élèves avec des devoirs ouverts`,
   'Devoir à contrôler': n => `${n} devoirs à contrôler`,
   'Évaluation à saisir': n => `${n} évaluations à saisir`,
-  'Ma tâche · en retard': n => `${n} de mes tâches en retard`,
-  'Ma tâche': n => `${n} de mes tâches`,
+  'Ma tâche · en retard': n => `Mes tâches en retard (${n})`,
+  'Ma tâche': n => `Mes tâches (${n})`,
   'Action en retard': n => `${n} actions en retard`,
   'Tâche de l\'équipe en retard': n => `${n} tâches de l'équipe en retard`,
   'Tâche de l\'équipe': n => `${n} tâches de l'équipe cette semaine`,
@@ -199,14 +199,14 @@ export function render() {
     // Ouvert d'office : mes tâches et tout ce qui est en retard ; le reste (volume) reste replié. Le choix de la personne est mémorisé.
     const ouvert = ouverts.has(kind) ? ouverts.get(kind) : late || kind.startsWith('Ma tâche');
     const detail = h('div', { class: 'sub-list', hidden: !ouvert }, h('ul', { class: 'list' }, items.map(t => h('li', null, afItem(t, true)))));
-    const fleche = h('span', { 'aria-hidden': 'true', class: 'muted', style: ouvert ? { transform: 'rotate(90deg)' } : null }, '›');
+    const fleche = h('span', { 'aria-hidden': 'true', class: 'muted', style: { transform: ouvert ? 'rotate(-90deg)' : 'rotate(90deg)' } }, '›'); // vers le bas : déplie ; vers le haut : replie ; « › » droit reste réservé aux liens
     const apercu = late ? items.slice(0, 3).map(t => t.title).join(' · ') : '';
     const entete = h('button', { type: 'button', class: `item ${late ? 'late' : ''}`, 'aria-expanded': String(ouvert), onClick: e => {
       const ouvre = detail.hidden;
       detail.hidden = !ouvre;
       ouverts.set(kind, ouvre);
       e.currentTarget.setAttribute('aria-expanded', String(ouvre));
-      fleche.style.transform = ouvre ? 'rotate(90deg)' : '';
+      fleche.style.transform = ouvre ? 'rotate(-90deg)' : 'rotate(90deg)';
     } },
     h('div', { class: 'main' }, h('div', { class: 'title' }, REGROUPE[kind](items.length, restreint)), apercu && h('div', { class: 'meta apercu' }, apercu)),
     late && badge('en retard', 'danger'), fleche);
@@ -232,6 +232,6 @@ export function render() {
     v
       ? h('div', { class: 'cols-dossier' },
         h('div', { class: 'stack' }, progresCard, alertCard, retenueCard),
-        h('div', { class: 'stack' }, todoCard))
+        h('div', { class: 'stack todo-col' }, todoCard))
       : todoCard);
 }
