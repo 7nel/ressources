@@ -64,7 +64,7 @@ function ctChart(b, cle, titre) {
 function cotationsCard(b) {
   if (!b.ct.length) return card('Cotations par phase', {}, empty('Aucune cotation pour ces volées.'));
   const legende = h('div', { class: 'legend' }, b.ct.map(r => h('span', { class: 'legend-item bcr-key' }, h('span', { class: 'swatch', style: { background: COULEUR_FAMILLE[r.groupe] } }), r.groupe)));
-  const tab = h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' },
+  const tab = h('div', { class: 'scroll-x' }, h('table', { class: 'tbl bcr-large' },
     h('thead', null, h('tr', null, h('th', null, 'Famille'), ['Décompression', 'Remobilisation', 'Ré-exposition'].map(p => h('th', { class: 'num' }, p)))),
     h('tbody', null, b.ct.map(r => h('tr', null, h('th', { scope: 'row' }, r.groupe),
       r.phases.map(p => h('td', { class: 'num' }, p.n ? h('span', null, h('strong', null, `C ${fmt1(p.c)} · T ${fmt1(p.t)}`), h('div', { class: 'small muted' }, `${p.n} élève${p.n > 1 ? 's' : ''}`)) : '—')))))));
@@ -82,7 +82,7 @@ function notesCard(b) {
 function cpsCard(b) {
   const n = Math.max(0, ...b.cps.map(c => c.n));
   return card('Compétences psychosociales (CPS)', { hint: `Moyenne des trois questionnaires (élève, titulaire, parents), de 1 à 5, entre l'entrée et la sortie, pour les élèves qui ont les deux passations. Un domaine est « en hausse » dès +${String(SEUIL_CPS_HAUSSE).replace('.', ',')} (seuil arbitraire). Pas de moyenne globale.` },
-    n ? h('div', { class: 'scroll-x' }, h('table', { class: 'tbl' },
+    n ? h('div', { class: 'scroll-x' }, h('table', { class: 'tbl bcr-large' },
       h('thead', null, h('tr', null, h('th', null, 'Domaine'), ['Entrée', 'Sortie', 'Évolution', 'Élèves en hausse'].map(t => h('th', { class: 'num' }, t)))),
       h('tbody', null, b.cps.map(c => h('tr', null, h('th', { scope: 'row' }, c.nom), h('td', { class: 'num' }, fmt2(c.entree)), h('td', { class: 'num' }, fmt2(c.sortie)),
         h('td', { class: 'num' }, c.n ? signe(c.sortie - c.entree) : '—'), h('td', { class: 'num' }, c.n ? sur(c.hausse, c.n) : '—')))))) : empty('Aucun élève n\'a encore les deux passations (entrée et sortie).'));

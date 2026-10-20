@@ -614,3 +614,14 @@ details.sub-fold > .hint { margin: 0 0 8px; }
     color-scheme: light;
   }
 }
+
+/* Bilan CR : tableaux qui défilent plutôt que de s'écraser ; graphiques et barres compacts à l'impression */
+.bilan-cr .scroll-x > .tbl.bcr-large { min-width: 480px; }
+.bilan-cr .tbl td.num strong, .bilan-cr .tbl th.num { white-space: nowrap; }
+@media print {
+  .bilan-cr .scroll-x > .tbl.bcr-large { min-width: 0; }
+  .bcr-figs { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .bcr-fig .chart svg { max-height: 150px; }
+  .bcr-profil { grid-template-columns: 11rem minmax(0, 1fr) 5rem; }
+  .bcr-profil .bcr-barre { grid-column: auto; order: 0; }
+}
