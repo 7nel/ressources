@@ -10,6 +10,7 @@ const fmt1 = v => v == null ? '—' : (Math.round(v * 10) / 10).toFixed(1).repla
 const fmt2 = v => v == null ? '—' : v.toFixed(2).replace('.', ',');
 const signe = v => v == null ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(2).replace('.', ',')}`;
 const sur = (n, total) => `${n} sur ${total}`;
+const COURT = ['Décomp.', 'Remob.', 'Ré-expo.'];
 const COULEUR_FAMILLE = { 'Branches': 'var(--cat1)', 'Projet': 'var(--cat2)', 'Méthodo / Orientation': 'var(--cat3)' };
 
 /** Volées proposées : celles qui ont au moins une inscription. */
@@ -25,7 +26,8 @@ function ramp(v) {
   return h('div', { class: 'bcr-volee' },
     h('div', { class: 'bcr-volee-titre' }, h('strong', null, v.Title), h('span', { class: 'small muted' }, `${fmtDate(v.DateDebut)} – ${fmtDate(v.DateFin)}`), !terminee(v) && badge('en cours : provisoire', 'warn')),
     h('div', { class: 'ramp', role: 'img', 'aria-label': noms.map((n, k) => `${n} ${Math.round(jours[k] / 7 * 10) / 10} semaines`).join(', ') },
-      noms.map((n, k) => h('div', { class: `p${k + 1}`, style: { flex: `${jours[k]} 1 0` } }, `${n} · ${fmt1(jours[k] / 7)} sem.`))));
+      noms.map((n, k) => h('div', { class: `p${k + 1}`, title: `${n} · ${fmt1(jours[k] / 7)} sem.`, style: { flex: `${jours[k]} 1 0` } },
+        jours[k] / (jours[0] + jours[1] + jours[2]) < 0.25 ? `${COURT[k]} · ${fmt1(jours[k] / 7)}` : `${n} · ${fmt1(jours[k] / 7)} sem.`))));
 }
 
 function profilsCard(b) {
@@ -94,7 +96,8 @@ function bilansCard(b) {
 export function render() {
   const dispo = voleesAvecEleves();
   if (state.choix == null) {
-    const derniere = [...dispo].filter(terminee).at(-1) || dispo.at(-1);
+    const avecSuivis = new Set(S.store.all('RS_Suivis').map(x => x.VoleeID ?? S.store.get('RS_Inscriptions', x.InscriptionID)?.VoleeID));
+    const derniere = [...dispo].filter(v => terminee(v) && avecSuivis.has(v.ID)).at(-1) || [...dispo].filter(terminee).at(-1) || dispo.at(-1);
     state.choix = derniere ? [derniere.ID] : [];
   }
   state.choix = state.choix.filter(id => dispo.some(v => v.ID === id));
