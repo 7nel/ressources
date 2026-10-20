@@ -93,6 +93,45 @@ function bilansCard(b) {
     h('span', { class: 'bcr-profil-nom' }, x.type), h('span', { class: 'bcr-barre', 'aria-hidden': 'true' }, h('span', { style: { width: `${x.sur ? x.fait / x.sur * 100 : 0}%` } })), h('strong', { class: 'bcr-profil-n' }, sur(x.fait, x.sur))))));
 }
 
+/** CSV du bilan (agrégé, sans nom d'élève) : séparateur « ; », virgule décimale, BOM UTF-8 pour Excel. */
+export function csvBilan(b, choisies, date) {
+  const num = (v, d = 2) => v == null ? '' : Number(v).toFixed(d).replace('.', ',');
+  const esc = c => { const t = String(c ?? ''); return /[";\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
+  const rows = [['Section', 'Rubrique', 'Détail', 'Valeur', 'Élèves concernés', 'Sur']];
+  const add = (...r) => rows.push(r);
+  add('Général', 'Volées', choisies.map(v => v.Title).join(' + '), '', '', '');
+  add('Général', 'Édité le', fmtDate(date), '', '', '');
+  add('Général', 'Provisoire', choisies.some(v => !terminee(v)) ? 'oui (volée en cours)' : 'non', '', '', '');
+  const e = b.effectifs;
+  add('Élèves accueillis', 'Inscriptions', '', e.total, '', ''); add('Élèves accueillis', 'Terminées', '', e.terminees, '', '');
+  add('Élèves accueillis', 'En cours', '', e.enCours, '', ''); add('Élèves accueillis', 'Interrompues', '', e.interrompues, '', '');
+  const calculables = b.nActives - b.sansProfil;
+  for (const p of PROFILS_CR) add('Évolution des cotations', p.label, 'moyenne (C+T)/2, dernière semaine cotée moins première', '', b.profils[p.key], calculables);
+  add('Évolution des cotations', 'Sans évolution calculable', 'moins de deux semaines cotées', '', b.sansProfil, b.nActives);
+  for (const r of b.ct) for (const p of r.phases) if (p.n) {
+    add('Cotations par phase', r.groupe, `${p.phase} · comportement (C)`, num(p.c), p.n, '');
+    add('Cotations par phase', r.groupe, `${p.phase} · travail (T)`, num(p.t), p.n, '');
+  }
+  for (const n of b.notes) if (n.n) add('Notes', n.phase, 'moyenne des élèves ; élèves à 4 ou plus', num(n.moy), n.suffisants, n.n);
+  for (const c of b.cps) if (c.n) {
+    add('CPS', c.nom, 'moyenne à l\'entrée', num(c.entree), '', c.n); add('CPS', c.nom, 'moyenne à la sortie', num(c.sortie), '', c.n);
+    add('CPS', c.nom, 'évolution ; élèves en hausse', num(c.sortie - c.entree), c.hausse, c.n);
+  }
+  for (const x of b.bilans) add('Bilans réalisés', x.type, '', '', x.fait, x.sur);
+  add('Seuils (arbitraires)', 'Petite amélioration dès', '', num(SEUIL_PROFIL.petite, 1), '', ''); add('Seuils (arbitraires)', 'Nette amélioration dès', '', num(SEUIL_PROFIL.nette, 1), '', '');
+  add('Seuils (arbitraires)', 'Domaine CPS en hausse dès', '', num(SEUIL_CPS_HAUSSE, 1), '', '');
+  return '\uFEFF' + rows.map(r => r.map(esc).join(';')).join('\r\n') + '\r\n';
+}
+
+function telecharger(b, choisies) {
+  const date = refDate();
+  const nom = `bilan-cr_${choisies.map(v => v.Title.replace(/\s+/g, '-')).join('_')}_${date}.csv`;
+  const url = URL.createObjectURL(new Blob([csvBilan(b, choisies, date)], { type: 'text/csv;charset=utf-8' }));
+  const a = h('a', { href: url, download: nom });
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export function render() {
   const dispo = voleesAvecEleves();
   if (state.choix == null) {
@@ -113,14 +152,14 @@ export function render() {
       btn('Toutes les volées terminées', () => { state.choix = dispo.filter(terminee).map(v => v.ID); redraw(); }, 'ghost sm'),
       btn('Toutes', () => { state.choix = dispo.map(v => v.ID); redraw(); }, 'ghost sm')));
 
+  const b = choisies.length ? bilanCR(choisies.map(v => v.ID)) : null;
   const head = h('div', { class: 'page-head' },
     h('div', null, h('h1', null, 'Bilan de la CR'),
       h('div', { class: 'sub' }, 'Évolution des élèves pendant leur passage en classe ressource. Données agrégées et anonymes.')),
-    h('div', { class: 'btn-row no-print' }, btn('Imprimer / PDF', () => window.print(), 'secondary')));
+    h('div', { class: 'btn-row no-print' }, btn('Exporter (CSV)', () => telecharger(b, choisies), 'secondary', { disabled: !b }), btn('Imprimer / PDF', () => window.print(), 'secondary')));
 
   if (!choisies.length) return h('div', { class: 'page' }, head, selecteur, card(null, {}, empty('Choisissez au moins une volée.')));
 
-  const b = bilanCR(choisies.map(v => v.ID));
   const e = b.effectifs;
   const provisoire = choisies.some(v => !terminee(v));
   const tuile = (num, lab) => h('div', { class: 'tile' }, h('div', { class: 'num' }, String(num)), h('div', { class: 'lab' }, lab));
