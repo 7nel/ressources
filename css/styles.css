@@ -625,3 +625,17 @@ details.sub-fold > .hint { margin: 0 0 8px; }
   .bcr-profil { grid-template-columns: 11rem minmax(0, 1fr) 5rem; }
   .bcr-profil .bcr-barre { grid-column: auto; order: 0; }
 }
+
+/* Impression du bilan : page A4, texte d'environ 11 pt, graphiques de hauteur fixe */
+@media print {
+  @page { size: A4; margin: 12mm; }
+  html { font-size: 11pt; }
+  body { font-size: 11pt; }
+  .bilan-cr { gap: 10px; }
+  .bilan-cr h1 { font-size: 1.5rem; }
+  .bilan-cr h2 { font-size: 1.1rem; }
+  .bilan-cr .card { padding: 10px 12px; }
+  .bilan-cr .tile .num { font-size: 1.4rem; }
+  .bcr-fig .chart svg { height: 130px; width: auto; max-width: 100%; max-height: none; margin: 0 auto; }
+  .bcr-fig .chart { text-align: center; }
+}
