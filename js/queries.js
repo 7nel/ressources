@@ -313,7 +313,7 @@ export const SEUIL_PROFIL = { petite: 0.5, nette: 1.0 };
 export const SEUIL_CPS_HAUSSE = 0.3; // hausse minimale d'un domaine CPS entre l'entrée et la sortie
 export const PROFILS_CR = [
   { key: 'nette', label: 'Nette amélioration' }, { key: 'petite', label: 'Petite amélioration' },
-  { key: 'stable', label: 'Sans évolution' }, { key: 'recul', label: 'Aggravation' },
+  { key: 'stable', label: 'Sans évolution' }, { key: 'recul', label: 'En baisse' },
 ];
 const profilDe = d => d >= SEUIL_PROFIL.nette ? 'nette' : d >= SEUIL_PROFIL.petite ? 'petite' : d <= -SEUIL_PROFIL.petite ? 'recul' : 'stable';
 
