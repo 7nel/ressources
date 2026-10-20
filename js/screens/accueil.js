@@ -1,10 +1,10 @@
 import { S, isSandbox, refDate, setDateCourante, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
 import { h, card, btn, badge, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
-import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, mondayOf, addDays, weeksOfVolee } from '../domain.js';
+import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, mondayOf, addDays, weeksOfVolee, nextVolee, lastVolee } from '../domain.js';
 import { CONFIG } from '../config.js';
 const DATE_EXEMPLE = '2026-06-17'; // mercredi de la dernière semaine de la volée d'exemple
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
-import { retenues, alertes, progres, sansSuivi, aFaire, travauxSemaine } from '../queries.js';
+import { retenues, alertes, progres, sansSuivi, aFaire, travauxSemaine, aCloturer, aPreparer } from '../queries.js';
 
 const fmt1 = v => v.toFixed(1).replace('.', ',');
 const moy = v => h('span', { class: 'moy' }, fmt1(v));
@@ -70,6 +70,29 @@ function versAFaire(kind) {
   vers(el);
 }
 
+/** Liste dont les types répétés (un élève par ligne) sont regroupés en une ligne qui se déplie, repliée par défaut. */
+function listeGroupee(items, prefixe) {
+  const groupes = [...items.reduce((m, t) => m.set(t.kind, [...(m.get(t.kind) || []), t]), new Map())];
+  const item = (t, imbrique) => h('button', { type: 'button', class: 'item', onClick: () => nav(...t.go) },
+    h('div', { class: 'main' }, !imbrique && h('div', { class: 'meta' }, t.kind), h('div', { class: 'title' }, t.title), t.meta && h('div', { class: 'meta' }, t.meta)),
+    h('span', { 'aria-hidden': 'true', class: 'muted' }, '›'));
+  return h('ul', { class: 'list' }, groupes.map(([kind, list]) => {
+    if (list.length === 1) return h('li', null, item(list[0], false));
+    const cle = `${prefixe}:${kind}`;
+    const ouvert = ouverts.get(cle) || false;
+    const detailId = `${prefixe}-${kind.normalize('NFD').replace(/[^a-zA-Z0-9]+/g, '-')}`;
+    const detail = h('div', { id: detailId, class: 'sub-list', hidden: !ouvert }, h('ul', { class: 'list' }, list.map(t => h('li', null, item(t, true)))));
+    const fleche = h('span', { 'aria-hidden': 'true', class: 'muted', style: { transform: ouvert ? 'rotate(-90deg)' : 'rotate(90deg)' } }, '›');
+    return h('li', null, h('button', { type: 'button', class: 'item', 'aria-expanded': String(ouvert), 'aria-controls': detailId, onClick: e => {
+      const ouvre = detail.hidden;
+      detail.hidden = !ouvre;
+      ouverts.set(cle, ouvre);
+      e.currentTarget.setAttribute('aria-expanded', String(ouvre));
+      fleche.style.transform = ouvre ? 'rotate(-90deg)' : 'rotate(90deg)';
+    } }, h('div', { class: 'main' }, h('div', { class: 'title' }, `${kind} (${list.length})`)), fleche), detail);
+  }));
+}
+
 export function render() {
   const date = refDate();
   // Volée d'exemple (élèves fictifs archivés) : permet de voir l'accueil « en vrai » en dehors des volées.
@@ -117,6 +140,41 @@ export function render() {
   const al = alertes(sk, inscIds, coursIds);
   const col = v ? retenues(sk, inscIds, coursIds) : [];
   const phaseNow = v ? phaseOf(date, v) : null;
+
+  /* ---- Transitions entre volées ----
+     Pas de « mode entre-deux » : chaque bloc a sa propre condition, ce qui marche quel que soit l'écart entre deux volées (même nul).
+     Clôture : tant qu'il reste quelque chose d'ouvert sur la volée précédente.
+     Préparation : en ré-exposition de la volée en cours (les élèves suivants sont connus à ce moment-là), ou hors volée. */
+  const vPrec = lastVolee(date, volees());
+  const vSuiv = nextVolee(date, volees());
+  const enReexpo = phaseNow === 'Ré-exposition';
+  const cloture = vPrec ? aCloturer(vPrec, { restreint, coursIds }) : [];
+  const clotureCard = cloture.length
+    ? card(`Reste à clôturer · ${vPrec.Title}`, { hint: `Volée terminée le ${fmtDate(vPrec.DateFin)}. Ce bloc disparaît quand tout est fait.` }, listeGroupee(cloture, 'clot'))
+    : null;
+  let prepaCard = null;
+  if (vSuiv && (!v || enReexpo)) {
+    const p = aPreparer(vSuiv, v || vPrec, { restreint });
+    const n = p.inscrits.length;
+    prepaCard = card(`Préparer ${vSuiv.Title}`, { hint: `Début le ${fmtDate(vSuiv.DateDebut)}.` },
+      n ? h('p', null, h('strong', null, `${n} ${pl(n, 'élève inscrit', 'élèves inscrits')}`), ' : ', p.inscrits.map(i => eleve(i.EleveID)?.Prenom).join(', '))
+        : empty('Aucun élève inscrit pour l\'instant.'),
+      p.items.length ? listeGroupee(p.items, 'prep') : null,
+      isCoord() && btn('+ Nouvelle inscription', () => nav('inscription'), 'secondary small'));
+  } else if (v && enReexpo && !vSuiv && isCoord()) {
+    // Relance : sans volée suivante dans les réglages, rien ne peut se préparer.
+    prepaCard = card('Préparer la volée suivante', {},
+      notice('La volée suivante n\'est pas encore créée. Elle est nécessaire pour y inscrire les élèves.', 'warn'),
+      btn('Créer la volée suivante', () => nav('parametres'), 'secondary small'));
+  }
+  if (!v) {
+    const dans = vSuiv ? daysBetween(date, vSuiv.DateDebut) : null;
+    const titre = vPrec && vSuiv ? 'Entre deux volées' : vSuiv ? 'Avant la première volée' : 'Hors volée';
+    voleeBlock = card(h('h2', null, titre), { actions: [phaseBadge(null)] },
+      h('p', null, [vPrec && `${vPrec.Title} terminée le ${fmtDate(vPrec.DateFin)}`,
+        vSuiv && `${vSuiv.Title} commence le ${fmtDate(vSuiv.DateDebut)} (dans ${dans} ${pl(dans, 'jour', 'jours')})`].filter(Boolean).join(' · ') || 'Aucune volée prévue.'),
+      vSuiv && ramp(vSuiv, date));
+  }
   // Devoirs à rendre et évaluations de la semaine de la rampe : mes cours (si j'en ai) et tous les cours.
   const tuileTravaux = () => {
     const compte = ids => {
@@ -267,11 +325,11 @@ export function render() {
     syncNotice,
     head,
     voleeBlock,
-    // Hors volée : ni tuiles à zéro ni cartes vides, seulement les tâches à faire.
+    // Hors volée : ni tuiles à zéro ni cartes hebdomadaires vides ; clôture, préparation et tâches.
     v && h('div', { class: 'tiles-wrap' }, h('div', { class: `tiles tiles-${tiles.length}` }, tiles)),
-    v
+    v || clotureCard || prepaCard
       ? h('div', { class: 'cols-dossier' },
-        h('div', { class: 'stack' }, progresCard, alertCard, retenueCard),
+        h('div', { class: 'stack' }, v ? [progresCard, alertCard, retenueCard] : null, prepaCard, clotureCard),
         h('div', { class: 'stack todo-col' }, todoCard))
       : todoCard);
 }

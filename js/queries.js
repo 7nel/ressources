@@ -250,6 +250,57 @@ export function preuves(insc, jusquau = refDate()) {
   return { ok, frag };
 }
 
+/* ---------- Transitions entre volées (accueil) ---------- */
+const cpsPasse = (inscId, moment) => st().all('RS_CPS').some(c => c.InscriptionID === inscId && c.Moment === moment);
+/** Inscriptions qui comptent pour une volée : ni interrompues, ni d'élèves archivés (rien à clôturer ni à préparer). */
+function inscriptionsUtiles(v) {
+  return v ? inscriptionsEnCours(v.ID).filter(i => eleve(i.EleveID)?.Statut !== 'Archivé') : [];
+}
+
+/**
+ * Ce qui reste ouvert sur une volée terminée. Le bloc vit tant qu'il reste quelque chose,
+ * quelle que soit la durée entre deux volées (y compris quand la suivante a déjà commencé).
+ * Coordination : bilans finaux, CPS de sortie, actions, devoirs. Enseignant·e : ses devoirs et ses actions.
+ */
+export function aCloturer(vPrec, { restreint, coursIds } = {}) {
+  const inscs = inscriptionsUtiles(vPrec);
+  if (!inscs.length) return [];
+  const m = moi();
+  const ids = new Set(inscs.map(i => i.ID));
+  const out = [];
+  if (!restreint) {
+    for (const i of inscs) if (!bilanDe(i.ID, 'Final')) out.push({ kind: 'Bilan final manquant', title: nomEleve(eleve(i.EleveID)), go: ['bilan', { insc: i.ID, type: 'Final' }] });
+    for (const i of inscs) if (!cpsPasse(i.ID, 'Sortie')) out.push({ kind: 'CPS de sortie manquant', title: nomEleve(eleve(i.EleveID)), go: ['cps', { eleve: i.EleveID, insc: i.ID }] });
+  }
+  for (const a of sortBy(st().where('RS_Actions', a => ids.has(a.InscriptionID) && !['Fait', 'Abandonnée'].includes(a.Statut)
+    && (!restreint || a.Responsable === m?.Title)), 'Echeance')) {
+    out.push({ kind: 'Action ouverte', title: a.Description, meta: `${nomEleve(eleve(a.EleveID))} · ${a.Responsable}`, go: ['action', { id: a.ID }] });
+  }
+  for (const [eid, list] of groupBy(devoirsOuverts([...ids], restreint ? coursIds : null), d => d.EleveID)) {
+    out.push({ kind: 'Devoirs ouverts', title: `${nomEleve(eleve(eid))} : ${list.length} devoir${list.length > 1 ? 's' : ''}`, meta: list.map(d => cours(d.CoursID)?.Title).join(', '), go: ['dossier', { eleve: eid }] });
+  }
+  return out;
+}
+
+/**
+ * Préparation de la volée suivante. vAvant = la volée qui la précède (en cours ou terminée) :
+ * sert à repérer les élèves qui font une 2e volée et à renvoyer vers leur bilan final.
+ */
+export function aPreparer(vSuiv, vAvant, { restreint } = {}) {
+  const inscs = inscriptionsUtiles(vSuiv);
+  const avant = new Map(inscriptionsUtiles(vAvant).map(i => [i.EleveID, i]));
+  const out = [];
+  for (const i of inscs) {
+    const prec = avant.get(i.EleveID);
+    if (prec) out.push({ kind: '2e volée', title: nomEleve(eleve(i.EleveID)), meta: `bilan final de ${vAvant.Title}`, go: ['bilan', { insc: prec.ID, type: 'Final' }] });
+  }
+  if (!restreint) {
+    for (const i of inscs) if (!bilanDe(i.ID, 'Mise en route')) out.push({ kind: 'Mise en route à planifier', title: nomEleve(eleve(i.EleveID)), go: ['bilan', { insc: i.ID, type: 'Mise en route' }] });
+    for (const i of inscs) if (!cpsPasse(i.ID, 'Entrée')) out.push({ kind: 'CPS d\'entrée à faire', title: nomEleve(eleve(i.EleveID)), go: ['cpsqr', { insc: i.ID, moment: 'Entrée' }] });
+  }
+  return { inscrits: inscs, items: out };
+}
+
 export function enseignantNom(id) { return ens(id)?.Title || '—'; }
 export function cpsDe(inscIds) {
   const set = new Set(inscIds);
