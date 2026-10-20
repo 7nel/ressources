@@ -601,3 +601,16 @@ details.sub-fold > .hint { margin: 0 0 8px; }
 .bcr-key .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
 @media (max-width: 760px) { .bcr-figs { grid-template-columns: 1fr; } .bcr-profil { grid-template-columns: 1fr 5rem; } .bcr-profil .bcr-barre { grid-column: 1 / -1; order: 3; } }
 @media print { .print-only { display: block; } .bcr-barre { border: 1px solid #888; } }
+
+/* Impression : toujours le thème clair, même si l'écran est en mode sombre */
+@media print {
+  :root, :root[data-theme="dark"], :root:not([data-theme="light"]) {
+    --bg: #FFFFFF; --card: #FFFFFF; --ink: #000000; --muted: #444444; --line: #BBBBBB; --line-strong: #888888;
+    --accent: #2F6F63; --accent-ink: #FFFFFF; --accent-soft: #DDEBE6;
+    --danger: #A03A2A; --danger-soft: #F6E1DB; --warn: #8A5208; --warn-soft: #FBEBD2;
+    --l1: #A03A2A; --l1-ink: #FFFFFF; --l2: #E39A45; --l2-ink: #2A1C08; --l3: #9CCBAE; --l3-ink: #17352A; --l4: #2F6F63; --l4-ink: #FFFFFF;
+    --ph1: #DCE8F7; --ph1-ink: #1F4E79; --ph2: #D6EDDF; --ph2-ink: #22573A; --ph3: #FBE3BF; --ph3-ink: #7A4A0B;
+    --cat1: #2a78d6; --cat2: #eb6834; --cat3: #1baf7a; --cat4: #eda100; --cat5: #e87ba4; --cat6: #008300; --cat7: #6250d6; --cat8: #e34948;
+    color-scheme: light;
+  }
+}
