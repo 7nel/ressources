@@ -1,6 +1,6 @@
 // Calculs partagés entre écrans (accueil, dossier, bilans). Rien n'est stocké : tout est recalculé.
 import { S, volee, cours, eleve, nomEleve, inscriptionsEnCours, moi, ens, isCoord, refDate } from './state.js';
-import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy } from './domain.js';
+import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey } from './domain.js';
 
 const st = () => S.store;
 
@@ -305,4 +305,68 @@ export function enseignantNom(id) { return ens(id)?.Title || '—'; }
 export function cpsDe(inscIds) {
   const set = new Set(inscIds);
   return sortBy(st().where('RS_CPS', c => set.has(c.InscriptionID)), 'DatePassation');
+}
+
+/* ---------- Bilan de la CR (coordination, rapport de fonctionnement) ---------- */
+// Seuils arbitraires, à valider en équipe. Évolution = moyenne de (C+T)/2 de la dernière semaine cotée moins celle de la première.
+export const SEUIL_PROFIL = { petite: 0.5, nette: 1.0 };
+export const SEUIL_CPS_HAUSSE = 0.3; // hausse minimale d'un domaine CPS entre l'entrée et la sortie
+export const PROFILS_CR = [
+  { key: 'nette', label: 'Nette amélioration' }, { key: 'petite', label: 'Petite amélioration' },
+  { key: 'stable', label: 'Sans évolution' }, { key: 'recul', label: 'Aggravation' },
+];
+const profilDe = d => d >= SEUIL_PROFIL.nette ? 'nette' : d >= SEUIL_PROFIL.petite ? 'petite' : d <= -SEUIL_PROFIL.petite ? 'recul' : 'stable';
+
+/**
+ * Bilan agrégé et anonyme sur une ou plusieurs volées. Chaque élève compte pour un : on moyenne d'abord par inscription,
+ * puis entre inscriptions. Rien n'est nominatif dans le résultat.
+ */
+export function bilanCR(voleeIds) {
+  const vset = new Set(voleeIds);
+  const inscs = st().where('RS_Inscriptions', i => vset.has(i.VoleeID));
+  const actives = inscs.filter(i => i.StatutInscription !== 'Interrompue');
+  const phases = ['Décompression', 'Remobilisation', 'Ré-exposition'];
+
+  const effectifs = {
+    total: inscs.length, terminees: inscs.filter(i => i.StatutInscription === 'Terminée').length,
+    enCours: inscs.filter(i => i.StatutInscription === 'En cours').length, interrompues: inscs.filter(i => i.StatutInscription === 'Interrompue').length,
+  };
+
+  // Profils et cotations par phase et par famille
+  const profils = Object.fromEntries(PROFILS_CR.map(p => [p.key, 0])); let sansProfil = 0;
+  const acc = Object.fromEntries(GROUPES.map(g => [g, Object.fromEntries(phases.map(p => [p, { c: [], t: [] }]))]));
+  for (const i of actives) {
+    const sv = st().where('RS_Suivis', s => s.InscriptionID === i.ID && estCote(s) && groupeCours(cours(s.CoursID)) !== 'Coaching');
+    const sem = [...groupBy(sv, s => s.SemaineCle)].sort((a, b) => a[0] - b[0]).map(([, l]) => moyenne(l.map(s => (s.Comportement + s.Travail) / 2)));
+    if (sem.length >= 2) profils[profilDe(sem.at(-1) - sem[0])]++; else sansProfil++;
+    for (const g of GROUPES) for (const p of phases) {
+      const l = sv.filter(s => s.Phase === p && groupeCours(cours(s.CoursID)) === g);
+      if (l.length) { acc[g][p].c.push(moyenne(l.map(s => s.Comportement))); acc[g][p].t.push(moyenne(l.map(s => s.Travail))); }
+    }
+  }
+  const ct = GROUPES.map(g => ({ groupe: g, phases: phases.map(p => ({ phase: p, n: acc[g][p].c.length, c: moyenne(acc[g][p].c), t: moyenne(acc[g][p].t) })) }))
+    .filter(r => r.phases.some(x => x.n));
+
+  // Notes : moyenne pondérée par élève, en remobilisation puis en ré-exposition (la décompression est formative)
+  const notes = ['Remobilisation', 'Ré-exposition'].map(p => {
+    const avgs = actives.map(i => weightedAvg(st().where('RS_Evaluations', e => e.InscriptionID === i.ID && e.Phase === p))).filter(a => a != null);
+    return { phase: p, n: avgs.length, moy: moyenne(avgs), suffisants: avgs.filter(a => a >= 4).length };
+  });
+
+  // CPS : moyenne des 3 questionnaires par domaine, entrée puis sortie, pour les élèves qui ont les deux passations
+  const cps = DOMAINES_COURTS.map((nom, k) => {
+    const d = k + 1, paires = [];
+    for (const i of actives) {
+      const ps = st().where('RS_CPS', c => c.InscriptionID === i.ID);
+      const val = m => { const p = sortBy(ps.filter(x => x.Moment === m), 'DatePassation').at(-1); const xs = p ? ['Eleve', 'Titulaire', 'Parents'].map(r => p[cpsKey(d, r)]).filter(v => typeof v === 'number') : []; return xs.length ? moyenne(xs) : null; };
+      const a = val('Entrée'), b = val('Sortie');
+      if (a != null && b != null) paires.push([a, b]);
+    }
+    return { nom, n: paires.length, entree: moyenne(paires.map(p => p[0])), sortie: moyenne(paires.map(p => p[1])), hausse: paires.filter(([a, b]) => b - a >= SEUIL_CPS_HAUSSE).length };
+  });
+
+  // Bilans réalisés
+  const bilans = ['Mise en route', 'Intermédiaire', 'Final'].map(type => ({ type, fait: actives.filter(i => bilanDe(i.ID, type)).length, sur: actives.length }));
+
+  return { effectifs, nActives: actives.length, profils, sansProfil, ct, notes, cps, bilans };
 }

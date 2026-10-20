@@ -583,3 +583,21 @@ details.sub-fold > .hint { margin: 0 0 8px; }
 .grp-toggle:hover { color: var(--accent); }
 .grp-toggle .chevron { width: 1.1em; color: var(--muted); }
 .syn-barre { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 20px; margin-bottom: 6px; }
+
+/* ---------- Bilan de la CR ---------- */
+.print-only { display: none; }
+.bcr-volees { display: flex; flex-direction: column; gap: 14px; }
+.bcr-volee-titre { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 6px; }
+.bcr-profils { display: flex; flex-direction: column; gap: 10px; }
+.bcr-profil { display: grid; grid-template-columns: minmax(9rem, 12rem) minmax(0, 1fr) 6rem; gap: 12px; align-items: center; }
+.bcr-profil-n { font-family: var(--num); text-align: right; }
+.bcr-barre { height: 14px; background: var(--accent-soft); border-radius: 7px; overflow: hidden; display: block; }
+.bcr-barre > span { display: block; height: 100%; background: var(--accent); border-radius: 7px; }
+.bcr-barre > span.warn { background: var(--warn); }
+.bcr-figs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-bottom: 12px; }
+.bcr-fig { margin: 0; }
+.bcr-fig figcaption { font-weight: 700; margin-bottom: 4px; }
+.bcr-key { cursor: default; }
+.bcr-key .swatch { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+@media (max-width: 760px) { .bcr-figs { grid-template-columns: 1fr; } .bcr-profil { grid-template-columns: 1fr 5rem; } .bcr-profil .bcr-barre { grid-column: 1 / -1; order: 3; } }
+@media print { .print-only { display: block; } .bcr-barre { border: 1px solid #888; } }

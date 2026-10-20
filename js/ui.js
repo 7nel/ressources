@@ -207,6 +207,7 @@ const ICONS = {
   users: '<circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M15.5 14.2c3 .2 5.5 2.6 5.5 5.8"/>',
   pen: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13 7l4 4"/>',
   chart: '<path d="M4 20V4"/><path d="M4 20h16"/><rect x="7" y="11" width="3" height="6"/><rect x="12" y="7" width="3" height="10"/><rect x="17" y="13" width="3" height="4"/>',
+  trend: '<path d="M3 18l6-6 4 4 8-9"/><path d="M15 7h6v6"/>',
   check: '<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 12l3 3 5-6"/>',
   upload: '<path d="M12 15V4"/><path d="M7 9l5-5 5 5"/><path d="M4 15v4h16v-4"/>',
   download: '<path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M4 15v4h16v-4"/>',
