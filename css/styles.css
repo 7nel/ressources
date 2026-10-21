@@ -542,6 +542,7 @@ button.ligne-suivi:hover { background: var(--accent-soft); }
 .menu { position: relative; }
 .menu .chevron { width: 8px; height: 8px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-2px); margin-left: 2px; }
 .menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 250px; padding: 6px; background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--radius); box-shadow: 0 6px 14px rgba(37, 52, 51, .14); display: flex; flex-direction: column; }
+.menu-list.ancre-gauche { left: 0; right: auto; max-width: calc(100vw - 32px); }
 .menu-list button { background: none; border: 0; text-align: left; padding: 10px 12px; min-height: 44px; border-radius: 8px; cursor: pointer; color: var(--ink); }
 .menu-list button:hover, .menu-list button:focus-visible { background: var(--accent-soft); }
 .menu-list .danger-text { color: var(--danger); }

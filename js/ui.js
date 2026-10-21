@@ -195,6 +195,9 @@ export function menu(label, items) {
   trigger.addEventListener('click', () => {
     if (!list.hidden) return close();
     list.hidden = false; trigger.setAttribute('aria-expanded', 'true');
+    // Ancré à droite par défaut ; sur écran étroit, bascule à gauche si la liste sort de l'écran.
+    list.classList.remove('ancre-gauche');
+    if (list.getBoundingClientRect().left < 8) list.classList.add('ancre-gauche');
     document.addEventListener('click', onDoc); document.addEventListener('keydown', onKey);
     list.querySelector('button')?.focus();
   });
