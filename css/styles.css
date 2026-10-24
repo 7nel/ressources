@@ -239,7 +239,7 @@ button.tile:hover { border-color: var(--accent); border-top-color: var(--accent)
 .btn-row.split { gap: 14px; }
 .item .end .btn { min-height: 44px; }
 
-.seg { display: inline-flex; border: 2px solid var(--accent); border-radius: 999px; overflow: hidden; flex-wrap: wrap; }
+.seg { display: inline-flex; border: 2px solid var(--accent); border-radius: 22px; overflow: hidden; flex-wrap: wrap; }
 .seg button { border: 0; background: transparent; color: var(--accent); padding: 7px 16px; cursor: pointer; min-height: 40px; }
 .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); font-weight: 700; }
 .seg button + button { border-left: 2px solid var(--accent); }
