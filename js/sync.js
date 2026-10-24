@@ -46,7 +46,7 @@ export function syncState() {
     ? { kind: 'secours', label: 'Téléchargement de secours : pas enregistré dans le dossier partagé', detail: meta.error }
     : { kind: 'error', label: 'Échec de l\'enregistrement', detail: meta.error };
   if (meta.dirty) return { kind: 'dirty', label: 'Modifications non enregistrées' };
-  if (meta.lastSave && (!meta.lastDownload || meta.lastSave >= meta.lastDownload)) return { kind: 'saved', label: 'Enregistré dans le dossier partagé', at: meta.lastSave };
+  if (meta.lastSave && (!meta.lastDownload || meta.lastSave >= meta.lastDownload)) return { kind: 'saved', label: 'Enregistré dans le dossier (contenu relu et identique)', at: meta.lastSave };
   if (meta.lastDownload) return { kind: 'download', label: 'Fichier téléchargé, à déposer dans le dossier partagé', at: meta.lastDownload };
   return { kind: 'none', label: 'Pas encore sauvegardé' };
 }
@@ -92,7 +92,12 @@ async function autosave() {
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden' && autoTimer) { clearTimeout(autoTimer); autosave(); }
 });
-/** Écrit mon fichier, relit sa taille pour confirmer, et renvoie le numéro de modification qui a été écrit. */
+/**
+ * Écrit mon fichier puis RELIT son contenu complet et le compare, caractère par caractère, à ce qui a été envoyé.
+ * Ce que cela confirme : le fichier du dossier local contient exactement cette version à l'instant de la relecture.
+ * Ce que cela ne confirme pas : que OneDrive l'a déjà transmis aux autres appareils ou collègues.
+ * Renvoie le numéro de modification qui a été écrit.
+ */
 async function writeOwnFile(handle) {
   const r = rev;
   const contenu = payload();
@@ -100,8 +105,8 @@ async function writeOwnFile(handle) {
   const w = await fh.createWritable();
   await w.write(contenu);
   await w.close();
-  const f = await fh.getFile();
-  if (typeof f?.size === 'number' && f.size !== new TextEncoder().encode(contenu).length) throw new Error('le fichier écrit ne correspond pas à la version envoyée');
+  const relu = await (await fh.getFile()).text();
+  if (relu !== contenu) throw new Error('le fichier relu après écriture ne correspond pas à la version envoyée');
   return r;
 }
 export function dismissLoad() { loadedThisSession = true; }

@@ -58,7 +58,7 @@ Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échan
 - « Charger les versions » : sélectionner tous les fichiers du dossier (Ctrl+A / Cmd+A).
 
 **État de la sauvegarde** (en haut ou dans le menu) : « Modifications non enregistrées », « Enregistrement en cours… »,
-« Enregistré dans le dossier partagé » (seulement après une écriture confirmée), « Téléchargement de secours » (le dossier n'a rien reçu),
+« Enregistré dans le dossier (contenu relu et identique) » (le fichier du dossier a été relu et comparé ; l'app ne peut pas vérifier que OneDrive l'a déjà transmis aux collègues), « Téléchargement de secours » (le dossier n'a rien reçu),
 « Fichier téléchargé, à déposer dans le dossier partagé » (Safari, Firefox, téléphone) ou « Échec de l'enregistrement » : il reste affiché
 jusqu'à ce qu'une écriture réussisse ; cliquer sur « Sauvegarder » pour réessayer.
 
