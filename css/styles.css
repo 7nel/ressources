@@ -256,7 +256,8 @@ input[type=text], input[type=email], input[type=date], input[type=number], input
   border: 1.5px solid var(--line-ctl); background: var(--card); border-radius: var(--r-ctl); padding: 8px 10px; min-height: 42px; width: 100%;
 }
 textarea { min-height: 84px; resize: vertical; }
-input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px var(--accent-soft); }
+/* focus d'un champ : contour d'accent et anneau plein de 3 px (le contour gris à 3:1 ne suffirait pas à lui seul à marquer le changement) */
+input:focus, select:focus, textarea:focus { border-color: var(--accent); outline: 3px solid var(--accent); outline-offset: 1px; box-shadow: none; }
 input.invalid { border-color: var(--danger); }
 .check { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; min-height: 44px; }
 .check input { width: 22px; height: 22px; accent-color: var(--accent); }
