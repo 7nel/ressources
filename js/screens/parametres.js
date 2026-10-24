@@ -1,7 +1,8 @@
 import { S, saveSettings, nav, refresh, isSandbox, refDate, enseignantsActifs, volees, ens, coursActifs, applyTheme, moi } from '../state.js';
 import { h, card, btn, field, select, input, checkbox, seg, modal, toast, confirmDlg, notice, levelLegend } from '../ui.js';
 import { fmtDate, todayISO, DEFAULT_LEVEL_LABELS, GROUPES, groupeCours } from '../domain.js';
-import { sauvegarder, charger, chooseFolder, folderStatus, supportsFolder, myFileName } from '../sync.js';
+import { summarize } from '../data/import-validation.js';
+import { isDirty, sauvegarder, charger, chooseFolder, folderStatus, supportsFolder, myFileName } from '../sync.js';
 
 function editVolee(v) {
   const f = ['Title', 'AnneeScolaire', 'DateDebut', 'DateDebutRemob', 'DateDebutReexpo', 'DateFin'];
@@ -74,7 +75,7 @@ function echangeCard() {
   folderStatus().then(st => {
     if (st.mode === 'fichiers') status.textContent = `Ce navigateur ne peut pas écrire directement dans un dossier. « Sauvegarder » télécharge « ${myFileName()} » : déposez-le dans le dossier OneDrive partagé en remplaçant l'ancien. « Charger » : sélectionnez tous les fichiers du dossier (Ctrl+A ou Cmd+A).`;
     else if (!st.relie) status.textContent = 'Aucun dossier relié. Au premier « Sauvegarder », choisissez le dossier OneDrive partagé (synchronisé sur cet ordinateur).';
-    else status.textContent = `Dossier relié : « ${st.nom} ». ${st.autorise ? 'Chargement à l\'ouverture et sauvegarde automatique après chaque saisie.' : 'Le navigateur redemandera l\'autorisation au prochain clic ; ensuite, sauvegarde automatique.'} Votre fichier : ${myFileName()}.`;
+    else status.textContent = `Dossier relié : « ${st.nom} ». ${st.autorise ? 'Chargement à l\'ouverture. L\'enregistrement dans le dossier est manuel pour le moment (bouton « Sauvegarder ») : la sauvegarde automatique est suspendue, rien n\'est envoyé tout seul.' : 'Le navigateur redemandera l\'autorisation au prochain clic. L\'enregistrement reste manuel (bouton « Sauvegarder »).'} Votre fichier : ${myFileName()}.`;
   });
   return card('Échange avec l\'équipe (provisoire)', { hint: 'En attendant SharePoint : chacun·e sauvegarde sa version dans le dossier OneDrive partagé ; « Charger » fusionne les versions de tout le monde. Si deux personnes modifient le même élément, la modification la plus récente l\'emporte.' },
     status,
@@ -103,10 +104,18 @@ export function render() {
     type: 'file', accept: 'application/json,.json', class: 'sr-only', id: 'imp',
     onChange: async ev => {
       const file = ev.target.files[0];
+      ev.target.value = ''; // permet de rechoisir le même fichier après une correction
       if (!file) return;
-      if (!(await confirmDlg('Importer des données', `Remplacer les données de ce navigateur par celles de « ${file.name} » ?`, 'Importer'))) return;
-      try { await S.store.importJSON(await file.text()); toast('Données importées'); nav('accueil'); }
-      catch (err) { toast(`Import impossible : ${err.message}`, 'err'); }
+      const raison = err => (err?.name === 'ImportError' ? err.message : 'Une erreur inattendue est survenue.');
+      let texte, apercu;
+      try { texte = await file.text(); apercu = S.store.previewImport(texte); } // rien n'est modifié à ce stade
+      catch (err) { toast(`Import refusé : ${raison(err)} Vos données n'ont pas été modifiées.`, 'err'); return; }
+      const demande = `Le fichier « ${file.name} » contient : ${summarize(apercu.fichier)}. Vos données actuelles : ${summarize(apercu.actuel)}. `
+        + 'L\'import REMPLACE toutes les données de ce navigateur. Si un dossier partagé est relié, la prochaine sauvegarde remplacera aussi votre fichier dans ce dossier. '
+        + 'Pour pouvoir revenir en arrière, exportez d\'abord une copie.';
+      if (!(await confirmDlg('Remplacer les données', demande, 'Remplacer'))) return;
+      try { await S.store.importJSON(texte); toast('Données importées'); nav('accueil'); }
+      catch (err) { toast(`Import refusé : ${raison(err)} Vos données n'ont pas été modifiées.`, 'err'); }
     },
   });
   const exportData = () => {
@@ -115,8 +124,11 @@ export function render() {
     document.body.appendChild(a); a.click(); a.remove();
   };
   const reset = async () => {
-    if (!(await confirmDlg('Réinitialiser', 'Effacer toutes les données de cet appareil et repartir à vide (enseignant·es, cours et volées conservés) ?', 'Réinitialiser'))) return;
-    await S.store.reset(); toast('Données réinitialisées'); nav('accueil');
+    const nonEnregistre = isDirty() ? ' Des modifications ne sont pas encore enregistrées dans le dossier partagé.' : '';
+    if (!(await confirmDlg('Recharger les données d\'exemple',
+      'Remplacer TOUTES les données de ce navigateur (saisies, élèves, enseignant·es, cours et volées compris) par les données fictives d\'exemple. Cela n\'efface pas à vide.'
+      + ' Si un dossier partagé est relié, la prochaine sauvegarde remplacera aussi votre fichier dans ce dossier. Exportez d\'abord une copie pour pouvoir revenir en arrière.' + nonEnregistre, 'Recharger'))) return;
+    await S.store.reset(); toast('Données d\'exemple rechargées'); nav('accueil');
   };
 
   return h('div', { class: 'page' },
@@ -149,11 +161,11 @@ export function render() {
           h('td', null, groupeCours(c)),
           h('td', null, btn('Modifier', () => editCours(c), 'ghost small')))))))),
     isSandbox() && echangeCard(),
-    isSandbox() && card('Données de ce navigateur (avancé)', { hint: 'Importer REMPLACE toutes vos données par celles du fichier (contrairement à « Charger les versions », qui fusionne).' },
+    isSandbox() && card('Données de ce navigateur (avancé)', { hint: 'Importer REMPLACE toutes vos données par celles du fichier (contrairement à « Charger les versions », qui fusionne). « Recharger les données d\'exemple » remplace tout par les données fictives : ce n\'est pas un effacement à vide.' },
       h('div', { class: 'btn-row' },
         btn('Exporter une copie', exportData, 'secondary'),
         fileIn, h('label', { for: 'imp', class: 'btn secondary', tabindex: '0', onKeydown: ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); fileIn.click(); } } }, 'Remplacer par un fichier…'),
-        btn('Tout effacer', reset, 'danger secondary'))),
+        btn('Recharger les données d\'exemple', reset, 'danger secondary'))),
     card('À propos', { cls: 'flat' },
       h('p', { class: 'small muted' }, `Mode : ${isSandbox() ? 'bac à sable (données fictives dans le navigateur)' : 'SharePoint'}. Les filtres d'écran (« Ma vue ») relèvent de l'ergonomie, pas de la sécurité : en mode SharePoint, ce sont les permissions du site qui protègent les données.`)));
 }

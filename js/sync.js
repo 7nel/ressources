@@ -15,7 +15,16 @@ import { S, moi, isSandbox } from './state.js';
 import { toast, h, modal } from './ui.js';
 
 const META_KEY = 'ressources_echange_v1';
-const meta = { dirty: false, lastSave: null, lastLoad: null, folderName: null };
+// dirty : des modifications ne sont enregistrées nulle part de sûr. lastSave : dernière écriture CONFIRMÉE dans le dossier partagé.
+// lastDownload : dernier fichier téléchargé ou partagé (ce n'est pas une synchronisation). error : cause de l'échec en cours.
+// secours : un fichier de secours a été téléchargé après un échec du dossier. Aucune donnée d'élève n'est conservée ici.
+const meta = { dirty: false, lastSave: null, lastLoad: null, folderName: null, lastDownload: null, error: null, secours: false };
+// Écriture automatique SUSPENDUE (décision du 2026-10-24) : elle remplaçait le fichier sans relire le dossier et pouvait écraser
+// le travail d'un autre appareil. Pour la rétablir (après validation d'une synchronisation fiable) : passer ce drapeau à true.
+// Seule l'écriture automatique est concernée ; « Sauvegarder » (qui fusionne d'abord) et « Charger » ne changent pas.
+export const ECRITURE_AUTO = false;
+let rev = 0;      // compte les modifications : une sauvegarde n'efface « non enregistré » que si rien n'a changé depuis l'envoi
+let saving = false;
 let dirHandle = null;
 let loadedThisSession = false;
 
@@ -25,32 +34,84 @@ const saveMeta = () => { try { localStorage.setItem(META_KEY, JSON.stringify(met
 export const getMeta = () => meta;
 export const isDirty = () => meta.dirty;
 export const wasLoadedThisSession = () => loadedThisSession;
+const emit = () => window.dispatchEvent(new Event('rs:sync'));
 export function markDirty() {
-  if (!meta.dirty) { meta.dirty = true; saveMeta(); window.dispatchEvent(new Event('rs:sync')); }
+  rev++;
+  const change = !meta.dirty || meta.secours;
+  meta.dirty = true; meta.secours = false; // une saisie après un téléchargement de secours n'est plus couverte par ce fichier
+  if (change) { saveMeta(); emit(); }
   scheduleAutosave();
+}
+
+/** État affiché, un seul à la fois : jamais « enregistré » sans écriture confirmée dans le dossier partagé. */
+export function syncState() {
+  if (saving) return { kind: 'saving', label: 'Enregistrement en cours…' };
+  if (meta.error) return meta.secours
+    ? { kind: 'secours', label: 'Téléchargement de secours : pas enregistré dans le dossier partagé', detail: meta.error }
+    : { kind: 'error', label: 'Échec de l\'enregistrement', detail: meta.error };
+  if (meta.dirty) return { kind: 'dirty', label: 'Modifications non enregistrées' };
+  if (meta.lastSave && (!meta.lastDownload || meta.lastSave >= meta.lastDownload)) return { kind: 'saved', label: 'Enregistré dans le dossier (contenu relu et identique)', at: meta.lastSave };
+  if (meta.lastDownload) return { kind: 'download', label: 'Fichier téléchargé, à déposer dans le dossier partagé', at: meta.lastDownload };
+  return { kind: 'none', label: 'Pas encore sauvegardé' };
+}
+
+/** Écriture confirmée dans le dossier : seul cas où l'erreur disparaît. `r` = numéro de modification envoyé. */
+function reussite(r) {
+  meta.error = null; meta.secours = false;
+  meta.lastSave = new Date().toISOString();
+  meta.dirty = rev !== r; // modifié pendant l'écriture : reste « non enregistré »
+  saveMeta(); emit();
+  if (meta.dirty) scheduleAutosave();
+}
+function echec(message, { notifier = false } = {}) {
+  const premiere = !meta.error;
+  meta.error = message; meta.dirty = true; saveMeta(); emit();
+  if (notifier && premiere) toast(`Enregistrement automatique impossible : ${message}. Vos modifications ne sont pas dans le dossier partagé : cliquez sur « Sauvegarder » pour réessayer.`, 'err');
 }
 
 /* ---------- Sauvegarde automatique (dossier relié et autorisé uniquement) ---------- */
 let autoTimer = null;
 function scheduleAutosave() {
-  if (!isSandbox() || !supportsFolder()) return;
+  if (!ECRITURE_AUTO || !isSandbox() || !supportsFolder()) return;
   clearTimeout(autoTimer);
   autoTimer = setTimeout(autosave, 1500);
 }
 async function autosave() {
+  autoTimer = null;
+  if (saving) { autoTimer = setTimeout(autosave, 1500); return; } // une écriture est déjà en cours : on repasse après
+  let handle;
+  try { handle = await getFolder(); } catch { handle = null; }
+  if (!handle) return; // aucun dossier relié : « non enregistré » reste affiché, le bouton reprend la main
+  saving = true; emit();
   try {
-    const handle = await getFolder();
-    if (!handle || (await handle.queryPermission({ mode: 'readwrite' })) !== 'granted') return;
-    await writeOwnFile(handle);
-    meta.dirty = false; meta.lastSave = new Date().toISOString(); meta.auto = true; saveMeta();
-    window.dispatchEvent(new Event('rs:sync'));
-  } catch { /* reste « non sauvegardé » : le bouton reprend la main */ }
+    if ((await handle.queryPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('autorisation du dossier à renouveler');
+    const r = await writeOwnFile(handle);
+    saving = false; reussite(r);
+  } catch (e) {
+    saving = false;
+    echec(e?.message || 'écriture impossible', { notifier: true });
+  }
 }
+// Fermeture ou changement d'onglet avec une écriture en attente : on n'attend pas le délai.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && autoTimer) { clearTimeout(autoTimer); autosave(); }
+});
+/**
+ * Écrit mon fichier puis RELIT son contenu complet et le compare, caractère par caractère, à ce qui a été envoyé.
+ * Ce que cela confirme : le fichier du dossier local contient exactement cette version à l'instant de la relecture.
+ * Ce que cela ne confirme pas : que OneDrive l'a déjà transmis aux autres appareils ou collègues.
+ * Renvoie le numéro de modification qui a été écrit.
+ */
 async function writeOwnFile(handle) {
+  const r = rev;
+  const contenu = payload();
   const fh = await handle.getFileHandle(myFileName(), { create: true });
   const w = await fh.createWritable();
-  await w.write(payload());
+  await w.write(contenu);
   await w.close();
+  const relu = await (await fh.getFile()).text();
+  if (relu !== contenu) throw new Error('le fichier relu après écriture ne correspond pas à la version envoyée');
+  return r;
 }
 export function dismissLoad() { loadedThisSession = true; }
 
@@ -158,37 +219,65 @@ async function supprimerMesDoublons(handle) {
 }
 
 /* ---------- Actions ---------- */
+/** Écriture dans le dossier partagé. Ne touche à l'état affiché que par son résultat. */
+async function versDossier() {
+  try {
+    const handle = await folderReady(true);
+    if (!handle) return { refus: true };
+    // On intègre d'abord les versions des autres, pour que son propre fichier soit complet.
+    const t = await mergeTexts(await readFolder(handle));
+    const r = await writeOwnFile(handle);
+    const doublons = await supprimerMesDoublons(handle); // déjà fusionnés ci-dessus
+    return { ok: true, handle, t, r, doublons };
+  } catch (e) {
+    if (e?.name === 'AbortError') return { annule: true }; // choix du dossier annulé
+    return { echec: e?.message || 'écriture impossible' };
+  }
+}
+
 export async function sauvegarder() {
-  if (!isSandbox()) return;
+  if (!isSandbox() || saving) return;
+  let secours = null; // cause de l'échec du dossier, si on bascule sur le téléchargement
   if (supportsFolder()) {
-    try {
-      const handle = await folderReady(true);
-      if (!handle) { toast('Accès au dossier refusé : la version n\'a pas été enregistrée.', 'err'); return; }
-      // On intègre d'abord les versions des autres, pour que son propre fichier soit complet.
-      const t = await mergeTexts(await readFolder(handle));
-      await writeOwnFile(handle);
-      const doublons = await supprimerMesDoublons(handle); // déjà fusionnés ci-dessus
+    saving = true; emit();
+    let res;
+    try { res = await versDossier(); } finally { saving = false; }
+    if (res.annule) { emit(); return; }
+    if (res.ok) {
+      const { t, doublons, handle } = res;
+      reussite(res.r);
+      loadedThisSession = true; meta.lastLoad = meta.lastSave; saveMeta();
       if (doublons) toast(`${doublons} ancienne${doublons > 1 ? 's' : ''} copie${doublons > 1 ? 's' : ''} de votre fichier supprimée${doublons > 1 ? 's' : ''} (contenu conservé).`);
-      meta.dirty = false; meta.lastSave = new Date().toISOString(); saveMeta();
-      loadedThisSession = true; meta.lastLoad = meta.lastSave;
-      toast(`Version enregistrée dans « ${handle.name} »${t.ajoutes + t.misAJour ? ` (et ${t.ajoutes + t.misAJour} changement${t.ajoutes + t.misAJour > 1 ? 's' : ''} des collègues intégré${t.ajoutes + t.misAJour > 1 ? 's' : ''})` : ''}`);
+      const n = t.ajoutes + t.misAJour;
+      toast(`Version enregistrée dans « ${handle.name} »${n ? ` (et ${n} changement${n > 1 ? 's' : ''} des collègues intégré${n > 1 ? 's' : ''})` : ''}${t.erreurs ? ` · ${t.erreurs} fichier${t.erreurs > 1 ? 's' : ''} illisible${t.erreurs > 1 ? 's' : ''} ignoré${t.erreurs > 1 ? 's' : ''}` : ''}`, t.erreurs ? 'err' : 'ok');
       window.dispatchEvent(new Event('rs:refresh'));
       return;
-    } catch (e) {
-      if (e?.name === 'AbortError') return; // choix du dossier annulé
-      toast(`Enregistrement dans le dossier impossible (${e.message}). Téléchargement à la place.`, 'err');
     }
+    if (res.refus) {
+      echec('accès au dossier refusé');
+      toast('Accès au dossier refusé : la version n\'a pas été enregistrée.', 'err');
+      return;
+    }
+    secours = res.echec;
+    echec(`écriture dans le dossier impossible (${secours})`);
+    toast(`Enregistrement dans le dossier impossible (${secours}). Un fichier de secours est téléchargé : ce n'est pas une synchronisation, le dossier partagé n'a pas reçu votre version.`, 'err');
   }
+  const r = rev;
   const contenu = payload();
+  const fin = () => { // fichier remis à l'utilisateur·trice : jamais présenté comme enregistré dans le dossier
+    meta.lastDownload = new Date().toISOString();
+    if (secours) meta.secours = true; // l'échec du dossier reste affiché, « non enregistré » aussi
+    else meta.dirty = rev !== r;
+    saveMeta(); emit();
+  };
   // Téléphone : la feuille de partage garde le nom exact du fichier ; en l'enregistrant dans le
   // dossier OneDrive (app Fichiers ou OneDrive), choisir « Remplacer ».
   try {
     const file = new File([contenu], myFileName(), { type: 'application/json' });
     if (navigator.canShare?.({ files: [file] })) {
       await navigator.share({ files: [file], title: myFileName() });
-      meta.dirty = false; meta.lastSave = new Date().toISOString(); saveMeta();
-      toast(`Enregistrez « ${myFileName()} » dans le dossier partagé et choisissez « Remplacer ».`);
-      window.dispatchEvent(new Event('rs:sync'));
+      fin();
+      toast(`Enregistrez « ${myFileName()} » dans le dossier partagé et choisissez « Remplacer ». Tant que ce n'est pas fait, le dossier n'est pas à jour.`);
       return;
     }
   } catch (e) {
@@ -197,9 +286,8 @@ export async function sauvegarder() {
   const blob = new Blob([contenu], { type: 'application/json' });
   const a = h('a', { href: URL.createObjectURL(blob), download: myFileName() });
   document.body.appendChild(a); a.click(); a.remove();
-  meta.dirty = false; meta.lastSave = new Date().toISOString(); saveMeta();
-  toast(`« ${myFileName()} » téléchargé : déposez-le dans le dossier partagé en remplaçant l'ancien. Si le nom a changé (« (1) »…), pas de souci : l'app le lit quand même et nettoie au prochain enregistrement depuis un ordinateur.`);
-  window.dispatchEvent(new Event('rs:sync'));
+  fin();
+  toast(`« ${myFileName()} » téléchargé : déposez-le dans le dossier partagé en remplaçant l'ancien. Tant que ce n'est pas fait, le dossier n'est pas à jour. Si le nom a changé (« (1) »…), pas de souci : l'app le lit quand même et nettoie au prochain enregistrement depuis un ordinateur.`, secours ? 'err' : 'ok');
 }
 
 export async function charger() {

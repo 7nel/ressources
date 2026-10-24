@@ -6,7 +6,7 @@ import { SharePointAdapter } from './data/sharepoint-adapter.js';
 import { S, loadSettings, saveSettings, isSandbox, refDate, moi, enseignantsActifs, nav, applyTheme } from './state.js';
 import { h, icon, btn, field, select, notice, card } from './ui.js';
 import { fmtDate } from './domain.js';
-import { sauvegarder, charger, chargerAuDemarrage, isDirty, markDirty, getMeta, wasLoadedThisSession, dismissLoad, supportsFolder } from './sync.js';
+import { sauvegarder, charger, chargerAuDemarrage, isDirty, markDirty, getMeta, syncState, wasLoadedThisSession, dismissLoad, supportsFolder } from './sync.js';
 
 import * as Accueil from './screens/accueil.js';
 import * as Eleves from './screens/eleves.js';
@@ -119,21 +119,23 @@ function themeBtn() {
 
 function syncBlock(compact = false) {
   const m = getMeta();
-  const dirty = isDirty();
-  const status = dirty
-    ? h('span', { class: 'sync-status warn' }, h('span', { class: 'dot-dirty' }), 'Non sauvegardé')
-    : m.lastSave ? h('span', { class: 'sync-status ok' }, '✓ ', `Enregistré ${hhmm(m.lastSave)}`) : h('span', { class: 'sync-status' }, 'Pas encore sauvegardé');
+  const st = syncState();
+  const note = h('span', { class: 'sync-note' }, compact ? 'Enregistrement manuel pour le moment' : 'Enregistrement dans le dossier : manuel pour le moment (bouton Sauvegarder). Rien n\'est envoyé automatiquement.');
+  const dirty = st.kind === 'dirty' || st.kind === 'error' || st.kind === 'secours';
+  const texte = st.at ? `${st.label} ${hhmm(st.at)}` : st.label;
+  const status = h('span', { class: `sync-status ${st.kind === 'saved' ? 'ok' : dirty ? (st.kind === 'dirty' ? 'warn' : 'err') : ''}`, title: st.detail || null, role: st.kind === 'error' || st.kind === 'secours' ? 'alert' : null },
+    st.kind === 'saved' ? '✓ ' : dirty ? h('span', { class: 'dot-dirty' }) : null, texte, st.kind === 'error' ? ' : cliquez sur « Sauvegarder » pour réessayer' : null);
   const save = h('button', { type: 'button', class: `sync-save ${dirty ? 'dirty' : ''}`, onClick: () => sauvegarder(), title: 'Enregistrer ma version dans le dossier partagé' },
     icon('upload'), h('span', null, 'Sauvegarder'));
   const load = h('button', { type: 'button', class: 'sync-load', onClick: () => charger(), title: 'Charger les versions de l\'équipe' },
     icon('download'), h('span', { class: compact ? 'sr-only' : null }, 'Charger'));
-  if (compact) return h('div', { class: 'sync-bar' }, status, h('div', { class: 'sync-bar-btns' },
+  if (compact) return h('div', { class: 'sync-bar' }, h('div', { class: 'sync-bar-st' }, status, note), h('div', { class: 'sync-bar-btns' },
     h('button', { type: 'button', class: 'sync-load', onClick: () => nav('profil'), title: 'Changer de profil' }, h('span', null, moi()?.Title || '—')),
     themeBtn(), load, save));
   return h('div', { class: 'sync' },
     h('div', { class: 'sync-title' }, 'Échange avec l\'équipe'),
     save, load,
-    h('div', { class: 'sync-meta' }, status, m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
+    h('div', { class: 'sync-meta' }, status, note, m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
 }
 
 let dernierHash = null;

@@ -29,7 +29,7 @@ Pour mettre à jour : **Add file → Upload files** à nouveau, avec les fichier
 ## 2 ter. Navigateur et installation comme application
 
 - **Navigateur recommandé : Microsoft Edge ou Google Chrome, sur ordinateur.** Ce sont les seuls à pouvoir lire et écrire
-  directement dans le dossier OneDrive (sauvegarde automatique, chargement à l'ouverture).
+  directement dans le dossier OneDrive (enregistrement manuel pour le moment, chargement à l'ouverture).
 - **Installer comme une application** (fenêtre à part, icône dans le menu Démarrer ou le Dock) :
   - Edge : menu `…` → Applications → **Installer RessourceS** (ou l'icône ⊕ dans la barre d'adresse).
   - Chrome : icône d'installation dans la barre d'adresse, ou menu `⋮` → Caster, enregistrer et partager → **Installer la page en tant qu'application**.
@@ -44,8 +44,8 @@ Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échan
 
 **Chrome ou Edge sur ordinateur (recommandé, presque sans manipulation)**
 - 1re fois : « Sauvegarder ma version » → choisir le dossier partagé → autoriser.
-- Ensuite : **sauvegarde automatique** dans le dossier après chaque saisie (`RessourceS_<initiales>.json`).
-  « Sauvegarder ma version » reste disponible (il intègre aussi les versions des collègues).
+- Ensuite : **enregistrement manuel** : « Sauvegarder ma version » écrit `RessourceS_<initiales>.json` dans le dossier après avoir intégré les versions des collègues.
+  La sauvegarde automatique est **suspendue** (elle pouvait écraser le travail d'un autre appareil) ; l'état « Modifications non enregistrées » reste affiché et un avertissement apparaît à la fermeture.
 - À l'ouverture, les versions de l'équipe se chargent seules si le navigateur a gardé l'autorisation ;
   sinon un clic sur « Charger les versions » suffit.
 
@@ -56,6 +56,15 @@ Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échan
 **Safari, Firefox**
 - « Sauvegarder ma version » télécharge `RessourceS_<initiales>.json` : le glisser dans le dossier partagé (remplacer l'ancien).
 - « Charger les versions » : sélectionner tous les fichiers du dossier (Ctrl+A / Cmd+A).
+
+**État de la sauvegarde** (en haut ou dans le menu) : « Modifications non enregistrées », « Enregistrement en cours… »,
+« Enregistré dans le dossier (contenu relu et identique) » (le fichier du dossier a été relu et comparé ; l'app ne peut pas vérifier que OneDrive l'a déjà transmis aux collègues), « Téléchargement de secours » (le dossier n'a rien reçu),
+« Fichier téléchargé, à déposer dans le dossier partagé » (Safari, Firefox, téléphone) ou « Échec de l'enregistrement » : il reste affiché
+jusqu'à ce qu'une écriture réussisse ; cliquer sur « Sauvegarder » pour réessayer.
+
+**Réglages > Données de ce navigateur** : « Remplacer par un fichier… » vérifie le fichier en entier avant de toucher aux données
+(un fichier invalide, incomplet ou vide est refusé, vos données restent intactes) et demande confirmation en indiquant ce que contient le fichier.
+« Recharger les données d'exemple » remplace tout par les données fictives (ce n'est pas un effacement à vide).
 
 Règles de fusion : rien n'est jamais supprimé ; si deux personnes modifient le même élément, la modification la plus récente l'emporte.
 **Aucune copie dans le navigateur** (réglage « Ne rien garder dans ce navigateur », activé par défaut) :

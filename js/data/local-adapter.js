@@ -6,6 +6,7 @@
 
 import { LISTS } from './store.js';
 import { buildSeed } from './seed.js';
+import { validateImport, countLists, totalOf, ImportError } from './import-validation.js';
 
 const KEY = 'ressources_bac_a_sable_v3';
 const FK = { EnseignantID: 'RS_Enseignants', VoleeID: 'RS_Volees', CoursID: 'RS_Cours', EleveID: 'RS_Eleves', InscriptionID: 'RS_Inscriptions' };
@@ -37,9 +38,9 @@ export class LocalAdapter {
   }
 
   /** Identifiant global (UID) : permet de fusionner les versions de plusieurs personnes. */
-  ensureUids() {
+  ensureUids(db = this.db) {
     for (const l of LISTS) {
-      for (const r of this.db.lists[l]) {
+      for (const r of db.lists[l]) {
         if (r.UID) continue;
         r.UID = String(r.Created || '') < '2026-10-07' ? `seed-${l}-${r.ID}` : newUid();
       }
@@ -78,12 +79,23 @@ export class LocalAdapter {
 
   exportJSON() { return JSON.stringify({ format: 'RessourceS-bac-a-sable', version: 1, exporte: new Date().toISOString(), ...this.db }, null, 1); }
 
+  /** Analyse un fichier sans rien modifier : renvoie le contenu du fichier et celui de la base actuelle, ou lève une ImportError. */
+  previewImport(json) {
+    const v = validateImport(json);
+    const actuel = countLists(this.db.lists);
+    if (v.total === 0 && totalOf(actuel) > 0) {
+      throw new ImportError('Ce fichier est valide mais ne contient aucune donnée : il effacerait toutes vos données. Import refusé. Pour repartir des données d\'exemple, utilisez « Recharger les données d\'exemple ».', 'vide');
+    }
+    return { fichier: v.counts, actuel, total: v.total, absentes: v.absentes, lists: v.lists };
+  }
+
+  /** Remplace la base par le contenu du fichier, en une seule opération : la base active n'est touchée qu'après validation complète. */
   async importJSON(json) {
-    const data = JSON.parse(json);
-    if (!data.lists) throw new Error('Fichier non reconnu');
-    this.db = { lists: data.lists };
-    for (const l of LISTS) this.db.lists[l] ||= [];
-    this.ensureUids();
+    const { lists } = this.previewImport(json);
+    const next = { lists };
+    for (const l of LISTS) next.lists[l] ||= [];
+    this.ensureUids(next);
+    this.db = next; // seule affectation : tout ce qui précède a pu échouer sans rien changer
     this.persist();
   }
 
