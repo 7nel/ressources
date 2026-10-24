@@ -69,7 +69,7 @@ function reussite(r) {
 function echec(message, { notifier = false } = {}) {
   const premiere = !meta.error;
   meta.error = message; meta.dirty = true; saveMeta(); emit();
-  if (notifier && premiere) toast(`Enregistrement automatique impossible : ${message}. Vos modifications ne sont pas dans le dossier partagé : cliquez sur « Sauvegarder » pour réessayer.`, 'err');
+  if (notifier && premiere) toast(`Enregistrement automatique impossible : ${message}. Vos modifications ne sont pas dans le dossier partagé : cliquez sur « Sauvegarder » pour réessayer.`, 'err', undefined, { visuel: true });
 }
 
 /* ---------- Sauvegarde automatique (dossier relié et autorisé uniquement) ---------- */
@@ -258,12 +258,12 @@ export async function sauvegarder() {
     }
     if (res.refus) {
       echec('accès au dossier refusé');
-      toast('Accès au dossier refusé : la version n\'a pas été enregistrée.', 'err');
+      toast('Accès au dossier refusé : la version n\'a pas été enregistrée.', 'err', undefined, { visuel: true });
       return;
     }
     secours = res.echec;
     echec(`écriture dans le dossier impossible (${secours})`);
-    toast(`Enregistrement dans le dossier impossible (${secours}). Un fichier de secours est téléchargé : ce n'est pas une synchronisation, le dossier partagé n'a pas reçu votre version.`, 'err');
+    toast(`Enregistrement dans le dossier impossible (${secours}). Un fichier de secours est téléchargé : ce n'est pas une synchronisation, le dossier partagé n'a pas reçu votre version.`, 'err', undefined, { visuel: true });
   }
   const r = rev;
   const contenu = payload();

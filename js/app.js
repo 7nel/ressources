@@ -167,10 +167,12 @@ function installerAnnonces() {
     const st = syncState();
     if (st.kind === dernierEtat) return;
     dernierEtat = st.kind;
-    if (st.kind === 'saving') return;
+    // Pas d'annonce pour « Enregistrement… » (le résultat suit) ni pour « Enregistré » et « Copie téléchargée » : le message
+    // affiché à ce moment-là (toast) est déjà lu, et plus complet. Les échecs sont annoncés ici ; leur toast est muet pour les lecteurs d'écran.
+    if (['saving', 'saved', 'download'].includes(st.kind)) { info.textContent = ''; erreur.textContent = ''; return; }
     const err = st.kind === 'error' || st.kind === 'secours';
     const zone = err ? erreur : info;
-    const texte = err ? `${st.court}${st.detail ? ` : ${st.detail}` : ''}` : st.kind === 'saved' ? 'Enregistré dans le dossier' : st.court;
+    const texte = err ? `${st.label}${st.detail ? ` : ${st.detail}` : ''}` : st.court;
     zone.textContent = '';
     setTimeout(() => { zone.textContent = texte; }, 60); // vider puis remplir : un même texte est réannoncé s'il revient
   });

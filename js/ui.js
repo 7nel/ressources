@@ -152,10 +152,11 @@ export function confirmDlg(title, text, okLabel = 'Confirmer') {
   });
 }
 /** `undo` : { label, onClick } ajoute un bouton dans le message, qui reste affiché plus longtemps. */
-export function toast(msg, kind = 'ok', undo) {
+/** `opts.visuel` : message affiché seulement, non lu par les lecteurs d'écran (déjà annoncé par la région d'alerte des états de sauvegarde). */
+export function toast(msg, kind = 'ok', undo, opts = {}) {
   let box = document.querySelector('.toasts');
   if (!box) { box = h('div', { class: 'toasts', 'aria-live': 'polite' }); document.body.appendChild(box); }
-  const t = h('div', { class: `toast ${kind}` }, h('span', null, msg),
+  const t = h('div', { class: `toast ${kind}`, 'aria-hidden': opts.visuel ? 'true' : null }, h('span', null, msg),
     undo && h('button', { type: 'button', class: 'toast-undo', onClick: async () => { clearTimeout(timer); t.remove(); await undo.onClick(); } }, undo.label));
   box.appendChild(t);
   const ms = undo ? 9000 : kind === 'err' ? 6000 : 3200;

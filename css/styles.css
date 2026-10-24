@@ -136,11 +136,13 @@ main { padding: 24px 28px 48px; min-width: 0; }
     position: fixed; bottom: 0; left: 0; right: 0; top: auto; height: auto; z-index: 20;
     flex-direction: row; padding: 4px; border-right: 0; border-top: 1px solid var(--line); gap: 2px;
     padding-bottom: max(4px, env(safe-area-inset-bottom));
+    flex-wrap: wrap; /* texte très agrandi : les boutons passent sur une 2e rangée au lieu de sortir de l'écran */
   }
   .brand, .sidebar .spacer, .whoami, .sync { display: none; }
-  .nav-btn { flex-direction: column; gap: 2px; font-size: .875rem; padding: 6px 2px; justify-content: center; text-align: center; min-height: 52px; }
+  .nav-btn { flex: 1 1 0; width: auto; min-width: min-content; flex-direction: column; gap: 2px; font-size: .875rem; padding: 6px 2px; justify-content: center; text-align: center; min-height: 52px; }
   .nav-btn svg { width: 22px; height: 22px; }
-  main { padding: 16px 16px 96px; }
+  main { padding: 16px 16px 6.75rem; } /* 6,75rem = 108 px au texte normal ; suit le texte agrandi, comme la barre du bas */
+  html { scroll-padding-bottom: 6.75rem; }
   .banner { font-size: .875rem; padding: 4px 10px; gap: 8px; }
   .banner-long { display: none; }
   h1 { font-size: 1.35rem; }
@@ -208,7 +210,7 @@ button.tile:hover { border-color: var(--accent); }
 .btn.secondary:hover { background: var(--accent-soft); }
 .btn.ghost { background: transparent; border-color: transparent; color: var(--accent); }
 .btn.ghost:hover { background: var(--accent-soft); }
-.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: var(--accent-ink); }
 .btn.danger.secondary { background: transparent; color: var(--danger); }
 .btn.small { padding: 4px 10px; min-height: 34px; font-size: .88rem; border-radius: 8px; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
@@ -348,8 +350,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .toast-undo { background: transparent; border: 1.5px solid currentColor; color: inherit; border-radius: 8px; padding: 4px 12px; min-height: 44px; font-weight: 700; cursor: pointer; flex: none; }
 .toast-undo:hover { background: rgba(255, 255, 255, .15); }
 .toast.ok { background: var(--accent); color: var(--accent-ink); }
-.toast.err { background: var(--danger); color: #fff; }
-@media (max-width: 760px) { .toasts { left: 16px; right: 16px; bottom: 84px; } }
+.toast.err { background: var(--danger); color: var(--accent-ink); }
+@media (max-width: 760px) { .toasts { left: 16px; right: 16px; bottom: 6.5rem; } }
 
 /* ---------- Saisie de groupe ---------- */
 .grp-row { display: grid; grid-template-columns: minmax(140px, 1.3fr) auto auto auto; gap: 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); }
@@ -459,7 +461,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .sync-status.warn { color: var(--warn); }
 .sync-note { display: block; font-weight: 400; font-size: .875rem; color: var(--muted); }
 .sync-bar-st { flex: 1 1 auto; min-width: 0; }
-button.sync-status { background: none; border: 0; padding: 6px 0; min-height: 36px; font: inherit; font-weight: 700; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
+button.sync-status { background: none; border: 0; padding: 6px 0; min-height: 44px; font: inherit; font-weight: 700; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
 .sync-status.err { color: var(--danger); }
 .dot-dirty { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
 @media (prefers-reduced-motion: reduce) { .sync-save, .sync-load { transition: none; } }
@@ -469,9 +471,10 @@ button.sync-status { background: none; border: 0; padding: 6px 0; min-height: 36
 @media (max-width: 760px) {
   .sync-bar-wrap { display: block; position: sticky; top: 0; z-index: 25; background: var(--card); border-bottom: 1px solid var(--line); }
   /* Les boutons gardent leur taille ; l'état passe à la ligne du dessus quand il n'a plus la place (jamais de chevauchement ni de troncature). */
-  .sync-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 8px; padding: 2px 12px 6px; font-size: .875rem; }
-  .sync-bar-btns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-left: auto; max-width: 100%; }
-  .sync-bar .sync-save, .sync-bar .sync-load { width: auto; min-height: 36px; padding: 6px 12px; font-size: .875rem; }
+  .sync-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 0 12px 6px; font-size: .875rem; }
+  /* Zones d'action d'au moins 44 × 44 px (les pictogrammes gardent leur taille) ; 8 px entre deux commandes voisines. */
+  .sync-bar-btns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; margin-left: auto; max-width: 100%; }
+  .sync-bar .sync-save, .sync-bar .sync-load { width: auto; min-width: 44px; min-height: 44px; padding: 6px 12px; font-size: .875rem; }
   .sync-bar .sync-load { padding: 6px 10px; }
   .sidebar .sync { display: none; }
 }
@@ -500,7 +503,7 @@ button.sync-status { background: none; border: 0; padding: 6px 0; min-height: 36
 .theme-btn svg { width: 18px; height: 18px; }
 .theme-btn:hover { border-color: var(--accent); background: var(--accent-soft); }
 .welcome-list { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; }
-@media (max-width: 760px) { .sync-bar .theme-btn { width: 36px; height: 36px; } .whoami { display: none; } }
+@media (max-width: 760px) { .sync-bar .theme-btn { width: 44px; height: 44px; } .whoami { display: none; } }
 
 /* Écrans tactiles (tablette) : cibles de 44 px */
 @media (pointer: coarse) {
