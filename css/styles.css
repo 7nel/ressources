@@ -87,8 +87,10 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 h1, h2, h3, h4 { margin: 0; line-height: 1.2; text-wrap: balance; }
-h1 { font-size: clamp(1.75rem, 1.35rem + 1.2vw, 2.25rem); font-weight: 700; letter-spacing: -.015em; line-height: 1.1; }
-h2 { font-size: 1.25rem; font-weight: 700; letter-spacing: -.005em; }
+/* Voix : Lexend 500 pour les titres structurants et les chiffres affichés ; Atkinson 700 reste réservé aux libellés */
+h1, h2, .brand { font-family: var(--num); font-weight: 500; }
+h1 { font-size: clamp(1.9rem, 1.5rem + 1.8vw, 3rem); letter-spacing: -.015em; line-height: 1.1; }
+h2 { font-size: 1.3rem; letter-spacing: -.005em; line-height: 1.25; }
 h3 { font-size: 1rem; font-weight: 700; }
 p { margin: 0 0 .5rem; }
 ::selection { background: var(--accent-soft); color: var(--ink); }
@@ -115,7 +117,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
   padding: 18px 12px; display: flex; flex-direction: column; gap: 4px;
   position: sticky; top: 0; height: 100vh; height: 100dvh; overflow-y: auto;
 }
-.brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.25rem; padding: 4px 10px 14px; letter-spacing: .01em; }
+.brand { display: flex; align-items: center; gap: 10px; font-size: 1.3rem; padding: 4px 10px 14px; letter-spacing: .01em; }
 .brand .s { color: var(--accent); }
 .brand-mark { flex: none; display: inline-flex; }
 .brand-mark svg { width: 32px; height: 32px; display: block; }
@@ -154,7 +156,7 @@ main { padding: 24px 28px 48px; min-width: 0; }
   html { scroll-padding-bottom: 6.75rem; }
   .banner { font-size: .875rem; padding: 4px 10px; gap: 8px; }
   .banner-long { display: none; }
-  h1 { font-size: 1.35rem; }
+  h1 { font-size: 1.75rem; }
 }
 
 /* ---------- Cartes ---------- */
@@ -182,8 +184,8 @@ main { padding: 24px 28px 48px; min-width: 0; }
 button.tile { cursor: pointer; width: 100%; }
 button.tile:hover { border-color: var(--accent); }
 .tile { text-align: center; display: flex; flex-direction: column; justify-content: center; }
-.tile .num { font-family: var(--num); display: flex; justify-content: center; align-items: baseline; gap: 6px; font-size: 2rem; font-weight: 700; line-height: 1.1; }
-.tile .num .mot { font-size: 1rem; font-weight: 700; }
+.tile .num { font-family: var(--num); display: flex; justify-content: center; align-items: baseline; gap: 6px; font-size: 2.25rem; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.tile .num .mot { font-size: 1rem; font-weight: 500; }
 .tile .lab { color: var(--muted); font-size: .9rem; margin-top: 2px; }
 .tile-duo { min-width: 0; }
 /* Tuiles de l'accueil : la large (devoirs et évaluations) au milieu ; si la place manque, elle passe en haut sur toute la largeur
@@ -199,7 +201,7 @@ button.tile:hover { border-color: var(--accent); }
 @container (max-width: 519px) { .tiles-2 { grid-template-columns: minmax(0, 1fr); } }
 @container (max-width: 299px) { .tiles-3 { grid-template-columns: minmax(0, 1fr); } }
 .tile-duo .duo { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 20px; }
-.tile-duo .num, .tile-multi .num { font-size: 1.5rem; }
+.tile-duo .num, .tile-multi .num { font-size: 1.65rem; }
 .ligne-suivi + .ligne-suivi { margin-top: 8px; }
 .ligne-suivi.alert .num { color: var(--danger); }
 .duo-row { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 2px 14px; }
