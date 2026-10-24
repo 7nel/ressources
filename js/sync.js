@@ -278,7 +278,7 @@ export async function sauvegarder() {
   const a = h('a', { href: URL.createObjectURL(blob), download: myFileName() });
   document.body.appendChild(a); a.click(); a.remove();
   fin();
-  toast(`« ${myFileName()} » téléchargé : déposez-le dans le dossier partagé en remplaçant l'ancien. Tant que ce n'est pas fait, le dossier n'est pas à jour. Si le nom a changé (« (1) »…), pas de souci : l'app le lit quand même et nettoie au prochain enregistrement depuis un ordinateur.`);
+  toast(`« ${myFileName()} » téléchargé : déposez-le dans le dossier partagé en remplaçant l'ancien. Tant que ce n'est pas fait, le dossier n'est pas à jour. Si le nom a changé (« (1) »…), pas de souci : l'app le lit quand même et nettoie au prochain enregistrement depuis un ordinateur.`, secours ? 'err' : 'ok');
 }
 
 export async function charger() {
