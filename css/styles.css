@@ -134,9 +134,10 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .whoami strong { color: var(--ink); display: block; }
 
 main { padding: 24px 28px 48px; min-width: 0; }
-.page { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
-.page-head { display: flex; gap: 12px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; }
-.page-head .sub { color: var(--muted); margin-top: 4px; }
+.page { max-width: 1180px; margin: 0 auto; display: flex; flex-direction: column; gap: 24px; }
+.page-head { display: flex; gap: 12px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; border-top: 3px solid var(--rule); padding-top: 14px; }
+.page-head[class*="ph"] { border-top: 0; padding-top: 0; } /* la bande de phase joue déjà le rôle de filet */
+.page-head .sub { color: var(--muted); margin-top: 4px; font-size: 1.05rem; }
 .page-head.ph1 { --bar: var(--ph1-strong); } .page-head.ph2 { --bar: var(--ph2-strong); } .page-head.ph3 { --bar: var(--ph3-strong); }
 .page-head[class*="ph"]::after { content: ""; flex-basis: 100%; height: 6px; border-radius: 3px; background: var(--bar); }
 .back { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 4px 0; font-size: .95rem; }
@@ -152,6 +153,8 @@ main { padding: 24px 28px 48px; min-width: 0; }
   .brand, .sidebar .spacer, .whoami, .sync { display: none; }
   .nav-btn { flex: 1 1 0; width: auto; min-width: min-content; flex-direction: column; gap: 2px; font-size: .875rem; padding: 6px 2px; justify-content: center; text-align: center; min-height: 52px; }
   .nav-btn svg { width: 22px; height: 22px; }
+  .page { gap: 22px; }
+  .card { padding: 14px; }
   main { padding: 16px 16px 6.75rem; } /* 6,75rem = 108 px au texte normal ; suit le texte agrandi, comme la barre du bas */
   html { scroll-padding-bottom: 6.75rem; }
   .banner { font-size: .875rem; padding: 4px 10px; gap: 8px; }
@@ -161,8 +164,16 @@ main { padding: 24px 28px 48px; min-width: 0; }
 
 /* ---------- Cartes ---------- */
 .card {
-  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--card); border: 1px solid var(--line-strong); border-top: 3px solid var(--rule); border-radius: 0;
   padding: 16px 18px; min-width: 0;
+}
+/* Le trait : un panneau fermé (fond, contour, filet épais en tête) est le défaut, donc aussi le repli sans :has().
+   Là où :has() existe, une carte qui ne contient ni tableau, ni graphique, ni champ, ni rampe, ni radar s'ouvre en section :
+   pas de fond ni de contour, seulement le filet de 3 px. */
+@supports selector(:has(*)) {
+  .card:not(:has(.syn, .chart, .tbl, .print-tbl, .ramp, .radar-grid, .qr-fiche, .picker, .grp-row, .grp-eval, .cps-grid, table, form, input, select, textarea)) {
+    background: transparent; border-width: 0; border-top-width: 3px; padding: 14px 0 6px;
+  }
 }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 .card-head h2 { display: flex; align-items: center; gap: 8px; }
@@ -174,14 +185,14 @@ main { padding: 24px 28px 48px; min-width: 0; }
 .grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .cols-dossier { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 16px; align-items: start; }
 @media (min-width: 901px) { .cols-dossier.suivis-d-abord { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); } }
-.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.stack { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
 @media (max-width: 1000px) { .grid-3, .grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 900px) { .cols-dossier, .grid-2 { grid-template-columns: 1fr; } .cols-dossier > .todo-col { order: -1; } } /* l'action du jour avant les cartes de suivi */
 @media (max-width: 480px) { .grid-3 { grid-template-columns: 1fr; } }
 
-.tile { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; text-align: left; cursor: default; }
+.tile { background: var(--card); border: 1px solid var(--line-strong); border-top: 3px solid var(--rule); border-radius: 0; padding: 14px 16px; text-align: left; cursor: default; }
 button.tile { cursor: pointer; width: 100%; }
-button.tile:hover { border-color: var(--accent); }
+button.tile:hover { border-color: var(--accent); border-top-color: var(--accent); }
 .tile { text-align: center; display: flex; flex-direction: column; justify-content: center; }
 .tile .num { font-family: var(--num); display: flex; justify-content: center; align-items: baseline; gap: 6px; font-size: 2.25rem; font-weight: 500; font-variant-numeric: tabular-nums; line-height: 1.1; }
 .tile .num .mot { font-size: 1rem; font-weight: 500; }
@@ -290,7 +301,7 @@ input.invalid { border-color: var(--danger); }
 .badge.danger { background: var(--danger-soft); color: var(--danger); }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
 
-.notice { border-radius: 10px; padding: 10px 14px; font-size: .92rem; }
+.notice { border-radius: 0; border-left: 4px solid currentColor; padding: 10px 14px; font-size: .92rem; }
 .notice.warn { background: var(--warn-soft); color: var(--warn); }
 .notice.danger { background: var(--danger-soft); color: var(--danger); }
 .notice.info { background: var(--accent-soft); color: var(--ink); }
@@ -349,7 +360,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 
 /* ---------- Modale & toast ---------- */
 .modal-back { position: fixed; inset: 0; background: rgba(20, 28, 27, .45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
-.modal { background: var(--card); border-radius: 14px; width: min(640px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto; box-shadow: var(--shadow-float); }
+.modal { background: var(--card); border-radius: 0; border-top: 3px solid var(--rule); width: min(640px, 100%); max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px); overflow: auto; box-shadow: var(--shadow-float); }
 .modal header { padding: 16px 18px 6px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .modal .body { padding: 8px 18px 12px; }
 .modal footer { padding: 10px 18px 16px; display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
@@ -412,7 +423,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
   .shell { display: block; }
   main { padding: 0; }
   body { background: #fff; color: #000; font-size: 11pt; }
-  .card { box-shadow: none; border: 1px solid #999; break-inside: avoid; }
+  .card, .tile { box-shadow: none; background: transparent !important; border: 1px solid #999 !important; padding: 16px 18px !important; break-inside: avoid; }
+  .page-head { border-top: 0; padding-top: 0; }
   .print-tbl th, .print-tbl td { border: 1px solid #888 !important; }
 }
 .print-tbl { width: 100%; border-collapse: collapse; font-size: .9rem; }
