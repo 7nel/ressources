@@ -1,6 +1,7 @@
 import { S, saveSettings, nav, refresh, isSandbox, refDate, enseignantsActifs, volees, ens, coursActifs, applyTheme, moi } from '../state.js';
 import { h, card, btn, field, select, input, checkbox, seg, modal, toast, confirmDlg, notice, levelLegend } from '../ui.js';
 import { fmtDate, todayISO, DEFAULT_LEVEL_LABELS, GROUPES, groupeCours } from '../domain.js';
+import { summarize } from '../data/import-validation.js';
 import { sauvegarder, charger, chooseFolder, folderStatus, supportsFolder, myFileName } from '../sync.js';
 
 function editVolee(v) {
@@ -103,10 +104,18 @@ export function render() {
     type: 'file', accept: 'application/json,.json', class: 'sr-only', id: 'imp',
     onChange: async ev => {
       const file = ev.target.files[0];
+      ev.target.value = ''; // permet de rechoisir le même fichier après une correction
       if (!file) return;
-      if (!(await confirmDlg('Importer des données', `Remplacer les données de ce navigateur par celles de « ${file.name} » ?`, 'Importer'))) return;
-      try { await S.store.importJSON(await file.text()); toast('Données importées'); nav('accueil'); }
-      catch (err) { toast(`Import impossible : ${err.message}`, 'err'); }
+      const raison = err => (err?.name === 'ImportError' ? err.message : 'Une erreur inattendue est survenue.');
+      let texte, apercu;
+      try { texte = await file.text(); apercu = S.store.previewImport(texte); } // rien n'est modifié à ce stade
+      catch (err) { toast(`Import refusé : ${raison(err)} Vos données n'ont pas été modifiées.`, 'err'); return; }
+      const demande = `Le fichier « ${file.name} » contient : ${summarize(apercu.fichier)}. Vos données actuelles : ${summarize(apercu.actuel)}. `
+        + 'L\'import REMPLACE toutes les données de ce navigateur. Si un dossier partagé est relié, la prochaine sauvegarde remplacera aussi votre fichier dans ce dossier. '
+        + 'Pour pouvoir revenir en arrière, exportez d\'abord une copie.';
+      if (!(await confirmDlg('Remplacer les données', demande, 'Remplacer'))) return;
+      try { await S.store.importJSON(texte); toast('Données importées'); nav('accueil'); }
+      catch (err) { toast(`Import refusé : ${raison(err)} Vos données n'ont pas été modifiées.`, 'err'); }
     },
   });
   const exportData = () => {

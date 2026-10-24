@@ -4,6 +4,8 @@
 //   - SharePointAdapter : listes SharePoint via Microsoft Graph (après validation de l'informatique)
 // Changer d'adaptateur ne demande aucune modification des écrans.
 
+import { checkMergeShape } from './import-validation.js';
+
 export const LISTS = [
   'RS_Enseignants', 'RS_Cours', 'RS_Eleves', 'RS_Volees', 'RS_Inscriptions',
   'RS_Suivis', 'RS_Devoirs', 'RS_Evaluations', 'RS_Bilans', 'RS_Actions',
@@ -49,11 +51,14 @@ export class Store {
 
   /* Outils du bac à sable (sans effet en mode SharePoint) */
   exportJSON() { return this.adapter.exportJSON?.(); }
-  async importJSON(json) { await this.adapter.importJSON(json); await this.init(); }
+  /** Contrôle un fichier sans rien modifier (voir LocalAdapter.previewImport). */
+  previewImport(json) { return this.adapter.previewImport(json); }
+  async importJSON(json) { await this.adapter.importJSON(json); await this.init(); this.onWrite?.(); }
   /** Fusionne une version d'un·e collègue (bac à sable uniquement). */
   async mergeJSON(json) {
     const data = typeof json === 'string' ? JSON.parse(json) : json;
     if (!data?.lists) throw new Error('Fichier non reconnu');
+    checkMergeShape(data.lists); // une liste mal formée ferait échouer la fusion en cours de route
     const stats = this.adapter.mergeLists(data.lists);
     await this.init();
     return stats;
