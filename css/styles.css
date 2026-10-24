@@ -139,7 +139,7 @@ main { padding: 24px 28px 48px; min-width: 0; }
 .page-head[class*="ph"] { border-top: 0; padding-top: 0; } /* la bande de phase joue déjà le rôle de filet */
 .page-head .sub { color: var(--muted); margin-top: 4px; font-size: 1.05rem; }
 .page-head.ph1 { --bar: var(--ph1-strong); } .page-head.ph2 { --bar: var(--ph2-strong); } .page-head.ph3 { --bar: var(--ph3-strong); }
-.page-head[class*="ph"]::after { content: ""; flex-basis: 100%; height: 6px; border-radius: 3px; background: var(--bar); }
+.page-head[class*="ph"]::after { content: ""; flex-basis: 100%; height: 6px; border-radius: 0; background: var(--bar); }
 .back { background: none; border: 0; color: var(--accent); cursor: pointer; padding: 4px 0; font-size: .95rem; }
 
 @media (max-width: 760px) {
@@ -291,7 +291,7 @@ input.invalid { border-color: var(--danger); }
 .level-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: .875rem; color: var(--muted); }
 .level-legend span { display: inline-flex; gap: 5px; align-items: center; }
 
-.badge { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px; font-size: .875rem; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+.badge { display: inline-flex; align-items: center; gap: 4px; border-radius: var(--r-label); padding: 2px 10px; font-size: .875rem; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
 .badge.ph1 { background: var(--ph1); color: var(--ph1-ink); }
 .badge.ph2 { background: var(--ph2); color: var(--ph2-ink); }
 .badge.ph3 { background: var(--ph3); color: var(--ph3-ink); }
@@ -331,12 +331,12 @@ button.item { min-height: 44px; }
 
 table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .tbl th, .tbl td { padding: 8px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
-.tbl th { font-size: .875rem; color: var(--muted); font-weight: 700; }
+.tbl th { font-size: .875rem; color: var(--ink); font-weight: 700; border-bottom: 2px solid var(--rule); }
 .tbl td.num, .tbl th.num { text-align: center; }
 .scroll-x { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
 /* ---------- Rampe ---------- */
-.ramp { position: relative; display: flex; height: 34px; border-radius: 10px; overflow: hidden; font-size: .875rem; font-weight: 700; }
+.ramp { position: relative; display: flex; height: 38px; border-radius: 0; overflow: hidden; font-size: .875rem; font-weight: 700; }
 .ramp > div { display: flex; align-items: center; justify-content: center; padding: 0 6px; white-space: nowrap; overflow: hidden; }
 .ramp .p1 { background: var(--ph1); color: var(--ph1-ink); }
 .ramp .p2 { background: var(--ph2); color: var(--ph2-ink); }
@@ -350,8 +350,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .syn { border-collapse: separate; border-spacing: 0; font-size: .875rem; min-width: 100%; }
 .syn th, .syn td { padding: 6px 6px; border-bottom: 1px solid var(--line); text-align: center; white-space: nowrap; }
 .syn th:first-child, .syn td:first-child { text-align: left; position: sticky; left: 0; background: var(--card); z-index: 1; padding-right: 10px; }
-.syn thead th { font-weight: 700; color: var(--muted); vertical-align: bottom; }
-.syn .band { display: block; height: 5px; border-radius: 3px; margin-top: 4px; }
+.syn thead th { font-weight: 700; color: var(--ink); vertical-align: bottom; border-bottom: 2px solid var(--rule); }
+.syn .band { display: block; height: 6px; border-radius: 0; margin-top: 4px; }
 .syn .band.ph1 { background: var(--ph1-strong); } .syn .band.ph2 { background: var(--ph2-strong); } .syn .band.ph3 { background: var(--ph3-strong); }
 .syn .now { background: var(--accent-soft); }
 .syn .cell { display: inline-flex; flex-direction: column; gap: 3px; align-items: center; }
@@ -446,7 +446,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .radar-grid { display: grid; gap: 12px; grid-template-columns: 1fr; }
 .radar-grid.n2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .radar-grid.n3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.radar-item { margin: 0; padding: 10px; border: 1.5px solid var(--line); border-radius: 10px; min-width: 0; }
+.radar-item { margin: 0; padding: 10px; border: 1.5px solid var(--line); border-radius: 0; min-width: 0; }
 .radar-item.current { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .radar-item figcaption { text-align: center; }
 .radar-item .radar-wrap svg { width: 100%; }
