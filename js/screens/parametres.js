@@ -2,7 +2,7 @@ import { S, saveSettings, nav, refresh, isSandbox, refDate, enseignantsActifs, v
 import { h, card, btn, field, select, input, checkbox, seg, modal, toast, confirmDlg, notice, levelLegend } from '../ui.js';
 import { fmtDate, todayISO, DEFAULT_LEVEL_LABELS, GROUPES, groupeCours } from '../domain.js';
 import { summarize } from '../data/import-validation.js';
-import { sauvegarder, charger, chooseFolder, folderStatus, supportsFolder, myFileName } from '../sync.js';
+import { isDirty, sauvegarder, charger, chooseFolder, folderStatus, supportsFolder, myFileName } from '../sync.js';
 
 function editVolee(v) {
   const f = ['Title', 'AnneeScolaire', 'DateDebut', 'DateDebutRemob', 'DateDebutReexpo', 'DateFin'];
@@ -124,8 +124,11 @@ export function render() {
     document.body.appendChild(a); a.click(); a.remove();
   };
   const reset = async () => {
-    if (!(await confirmDlg('Réinitialiser', 'Effacer toutes les données de cet appareil et repartir à vide (enseignant·es, cours et volées conservés) ?', 'Réinitialiser'))) return;
-    await S.store.reset(); toast('Données réinitialisées'); nav('accueil');
+    const nonEnregistre = isDirty() ? ' Des modifications ne sont pas encore enregistrées dans le dossier partagé.' : '';
+    if (!(await confirmDlg('Recharger les données d\'exemple',
+      'Remplacer TOUTES les données de ce navigateur (saisies, élèves, enseignant·es, cours et volées compris) par les données fictives d\'exemple. Cela n\'efface pas à vide.'
+      + ' Si un dossier partagé est relié, la prochaine sauvegarde remplacera aussi votre fichier dans ce dossier. Exportez d\'abord une copie pour pouvoir revenir en arrière.' + nonEnregistre, 'Recharger'))) return;
+    await S.store.reset(); toast('Données d\'exemple rechargées'); nav('accueil');
   };
 
   return h('div', { class: 'page' },
@@ -158,11 +161,11 @@ export function render() {
           h('td', null, groupeCours(c)),
           h('td', null, btn('Modifier', () => editCours(c), 'ghost small')))))))),
     isSandbox() && echangeCard(),
-    isSandbox() && card('Données de ce navigateur (avancé)', { hint: 'Importer REMPLACE toutes vos données par celles du fichier (contrairement à « Charger les versions », qui fusionne).' },
+    isSandbox() && card('Données de ce navigateur (avancé)', { hint: 'Importer REMPLACE toutes vos données par celles du fichier (contrairement à « Charger les versions », qui fusionne). « Recharger les données d\'exemple » remplace tout par les données fictives : ce n\'est pas un effacement à vide.' },
       h('div', { class: 'btn-row' },
         btn('Exporter une copie', exportData, 'secondary'),
         fileIn, h('label', { for: 'imp', class: 'btn secondary', tabindex: '0', onKeydown: ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); fileIn.click(); } } }, 'Remplacer par un fichier…'),
-        btn('Tout effacer', reset, 'danger secondary'))),
+        btn('Recharger les données d\'exemple', reset, 'danger secondary'))),
     card('À propos', { cls: 'flat' },
       h('p', { class: 'small muted' }, `Mode : ${isSandbox() ? 'bac à sable (données fictives dans le navigateur)' : 'SharePoint'}. Les filtres d'écran (« Ma vue ») relèvent de l'ergonomie, pas de la sécurité : en mode SharePoint, ce sont les permissions du site qui protègent les données.`)));
 }

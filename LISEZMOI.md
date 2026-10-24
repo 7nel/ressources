@@ -57,6 +57,15 @@ Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échan
 - « Sauvegarder ma version » télécharge `RessourceS_<initiales>.json` : le glisser dans le dossier partagé (remplacer l'ancien).
 - « Charger les versions » : sélectionner tous les fichiers du dossier (Ctrl+A / Cmd+A).
 
+**État de la sauvegarde** (en haut ou dans le menu) : « Modifications non enregistrées », « Enregistrement en cours… »,
+« Enregistré dans le dossier partagé » (seulement après une écriture confirmée), « Téléchargement de secours » (le dossier n'a rien reçu),
+« Fichier téléchargé, à déposer dans le dossier partagé » (Safari, Firefox, téléphone) ou « Échec de l'enregistrement » : il reste affiché
+jusqu'à ce qu'une écriture réussisse ; cliquer sur « Sauvegarder » pour réessayer.
+
+**Réglages > Données de ce navigateur** : « Remplacer par un fichier… » vérifie le fichier en entier avant de toucher aux données
+(un fichier invalide, incomplet ou vide est refusé, vos données restent intactes) et demande confirmation en indiquant ce que contient le fichier.
+« Recharger les données d'exemple » remplace tout par les données fictives (ce n'est pas un effacement à vide).
+
 Règles de fusion : rien n'est jamais supprimé ; si deux personnes modifient le même élément, la modification la plus récente l'emporte.
 **Aucune copie dans le navigateur** (réglage « Ne rien garder dans ce navigateur », activé par défaut) :
 les données ne vivent qu'en mémoire pendant l'utilisation. À la fermeture de l'onglet, rien ne reste sur l'appareil ;
