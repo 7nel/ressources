@@ -457,6 +457,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .sync-status { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
 .sync-status.ok { color: var(--accent); }
 .sync-status.warn { color: var(--warn); }
+.sync-note { display: block; font-weight: 400; font-size: .875rem; color: var(--muted); }
+.sync-bar-st { display: flex; flex-direction: column; min-width: 0; }
 .sync-status.err { color: var(--danger); }
 .dot-dirty { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
 @media (prefers-reduced-motion: reduce) { .sync-save, .sync-load { transition: none; } }

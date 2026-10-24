@@ -19,6 +19,10 @@ const META_KEY = 'ressources_echange_v1';
 // lastDownload : dernier fichier téléchargé ou partagé (ce n'est pas une synchronisation). error : cause de l'échec en cours.
 // secours : un fichier de secours a été téléchargé après un échec du dossier. Aucune donnée d'élève n'est conservée ici.
 const meta = { dirty: false, lastSave: null, lastLoad: null, folderName: null, lastDownload: null, error: null, secours: false };
+// Écriture automatique SUSPENDUE (décision du 2026-10-24) : elle remplaçait le fichier sans relire le dossier et pouvait écraser
+// le travail d'un autre appareil. Pour la rétablir (après validation d'une synchronisation fiable) : passer ce drapeau à true.
+// Seule l'écriture automatique est concernée ; « Sauvegarder » (qui fusionne d'abord) et « Charger » ne changent pas.
+export const ECRITURE_AUTO = false;
 let rev = 0;      // compte les modifications : une sauvegarde n'efface « non enregistré » que si rien n'a changé depuis l'envoi
 let saving = false;
 let dirHandle = null;
@@ -68,7 +72,7 @@ function echec(message, { notifier = false } = {}) {
 /* ---------- Sauvegarde automatique (dossier relié et autorisé uniquement) ---------- */
 let autoTimer = null;
 function scheduleAutosave() {
-  if (!isSandbox() || !supportsFolder()) return;
+  if (!ECRITURE_AUTO || !isSandbox() || !supportsFolder()) return;
   clearTimeout(autoTimer);
   autoTimer = setTimeout(autosave, 1500);
 }

@@ -120,6 +120,7 @@ function themeBtn() {
 function syncBlock(compact = false) {
   const m = getMeta();
   const st = syncState();
+  const note = h('span', { class: 'sync-note' }, compact ? 'Enregistrement manuel pour le moment' : 'Enregistrement dans le dossier : manuel pour le moment (bouton Sauvegarder). Rien n\'est envoyé automatiquement.');
   const dirty = st.kind === 'dirty' || st.kind === 'error' || st.kind === 'secours';
   const texte = st.at ? `${st.label} ${hhmm(st.at)}` : st.label;
   const status = h('span', { class: `sync-status ${st.kind === 'saved' ? 'ok' : dirty ? (st.kind === 'dirty' ? 'warn' : 'err') : ''}`, title: st.detail || null, role: st.kind === 'error' || st.kind === 'secours' ? 'alert' : null },
@@ -128,13 +129,13 @@ function syncBlock(compact = false) {
     icon('upload'), h('span', null, 'Sauvegarder'));
   const load = h('button', { type: 'button', class: 'sync-load', onClick: () => charger(), title: 'Charger les versions de l\'équipe' },
     icon('download'), h('span', { class: compact ? 'sr-only' : null }, 'Charger'));
-  if (compact) return h('div', { class: 'sync-bar' }, status, h('div', { class: 'sync-bar-btns' },
+  if (compact) return h('div', { class: 'sync-bar' }, h('div', { class: 'sync-bar-st' }, status, note), h('div', { class: 'sync-bar-btns' },
     h('button', { type: 'button', class: 'sync-load', onClick: () => nav('profil'), title: 'Changer de profil' }, h('span', null, moi()?.Title || '—')),
     themeBtn(), load, save));
   return h('div', { class: 'sync' },
     h('div', { class: 'sync-title' }, 'Échange avec l\'équipe'),
     save, load,
-    h('div', { class: 'sync-meta' }, status, m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
+    h('div', { class: 'sync-meta' }, status, note, m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
 }
 
 let dernierHash = null;

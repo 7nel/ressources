@@ -75,7 +75,7 @@ function echangeCard() {
   folderStatus().then(st => {
     if (st.mode === 'fichiers') status.textContent = `Ce navigateur ne peut pas écrire directement dans un dossier. « Sauvegarder » télécharge « ${myFileName()} » : déposez-le dans le dossier OneDrive partagé en remplaçant l'ancien. « Charger » : sélectionnez tous les fichiers du dossier (Ctrl+A ou Cmd+A).`;
     else if (!st.relie) status.textContent = 'Aucun dossier relié. Au premier « Sauvegarder », choisissez le dossier OneDrive partagé (synchronisé sur cet ordinateur).';
-    else status.textContent = `Dossier relié : « ${st.nom} ». ${st.autorise ? 'Chargement à l\'ouverture et sauvegarde automatique après chaque saisie.' : 'Le navigateur redemandera l\'autorisation au prochain clic ; ensuite, sauvegarde automatique.'} Votre fichier : ${myFileName()}.`;
+    else status.textContent = `Dossier relié : « ${st.nom} ». ${st.autorise ? 'Chargement à l\'ouverture. L\'enregistrement dans le dossier est manuel pour le moment (bouton « Sauvegarder ») : la sauvegarde automatique est suspendue, rien n\'est envoyé tout seul.' : 'Le navigateur redemandera l\'autorisation au prochain clic. L\'enregistrement reste manuel (bouton « Sauvegarder »).'} Votre fichier : ${myFileName()}.`;
   });
   return card('Échange avec l\'équipe (provisoire)', { hint: 'En attendant SharePoint : chacun·e sauvegarde sa version dans le dossier OneDrive partagé ; « Charger » fusionne les versions de tout le monde. Si deux personnes modifient le même élément, la modification la plus récente l\'emporte.' },
     status,

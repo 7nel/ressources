@@ -29,7 +29,7 @@ Pour mettre à jour : **Add file → Upload files** à nouveau, avec les fichier
 ## 2 ter. Navigateur et installation comme application
 
 - **Navigateur recommandé : Microsoft Edge ou Google Chrome, sur ordinateur.** Ce sont les seuls à pouvoir lire et écrire
-  directement dans le dossier OneDrive (sauvegarde automatique, chargement à l'ouverture).
+  directement dans le dossier OneDrive (enregistrement manuel pour le moment, chargement à l'ouverture).
 - **Installer comme une application** (fenêtre à part, icône dans le menu Démarrer ou le Dock) :
   - Edge : menu `…` → Applications → **Installer RessourceS** (ou l'icône ⊕ dans la barre d'adresse).
   - Chrome : icône d'installation dans la barre d'adresse, ou menu `⋮` → Caster, enregistrer et partager → **Installer la page en tant qu'application**.
@@ -44,8 +44,8 @@ Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échan
 
 **Chrome ou Edge sur ordinateur (recommandé, presque sans manipulation)**
 - 1re fois : « Sauvegarder ma version » → choisir le dossier partagé → autoriser.
-- Ensuite : **sauvegarde automatique** dans le dossier après chaque saisie (`RessourceS_<initiales>.json`).
-  « Sauvegarder ma version » reste disponible (il intègre aussi les versions des collègues).
+- Ensuite : **enregistrement manuel** : « Sauvegarder ma version » écrit `RessourceS_<initiales>.json` dans le dossier après avoir intégré les versions des collègues.
+  La sauvegarde automatique est **suspendue** (elle pouvait écraser le travail d'un autre appareil) ; l'état « Modifications non enregistrées » reste affiché et un avertissement apparaît à la fermeture.
 - À l'ouverture, les versions de l'équipe se chargent seules si le navigateur a gardé l'autorisation ;
   sinon un clic sur « Charger les versions » suffit.
 
