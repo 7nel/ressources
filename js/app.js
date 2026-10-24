@@ -4,7 +4,7 @@ import { Store } from './data/store.js';
 import { LocalAdapter } from './data/local-adapter.js';
 import { SharePointAdapter } from './data/sharepoint-adapter.js';
 import { S, loadSettings, saveSettings, isSandbox, refDate, moi, enseignantsActifs, nav, applyTheme } from './state.js';
-import { h, icon, btn, field, select, notice, card } from './ui.js';
+import { h, icon, btn, field, select, notice, card, modal } from './ui.js';
 import { fmtDate } from './domain.js';
 import { sauvegarder, charger, chargerAuDemarrage, isDirty, markDirty, getMeta, syncState, wasLoadedThisSession, dismissLoad, supportsFolder } from './sync.js';
 
@@ -117,25 +117,63 @@ function themeBtn() {
     onClick: () => { S.settings.theme = isDark() ? 'light' : 'dark'; saveSettings(); applyTheme(); render(); } }, icon(dark ? 'sun' : 'moon'));
 }
 
+const NOTE_MANUEL = 'Enregistrement dans le dossier : manuel pour le moment (bouton Sauvegarder). Rien n\'est envoyé automatiquement.';
+/** Phrase complète de l'état, avec l'heure et la cause d'un échec. */
+function etatComplet(st) {
+  return [st.at ? `${st.label} ${hhmm(st.at)}` : st.label, st.detail && st.kind === 'error' ? `Cause : ${st.detail}. Cliquez sur « Sauvegarder » pour réessayer.` : st.detail ? `Cause : ${st.detail}.` : null].filter(Boolean).join('. ').replace(/\.\./g, '.');
+}
+/** Fenêtre d'aide de la barre étroite : l'explication complète de l'état, accessible au clavier. */
+function afficherEtat() {
+  const st = syncState();
+  modal('État de l\'enregistrement', h('div', { class: 'form' }, h('p', null, etatComplet(st)), h('p', { class: 'hint' }, NOTE_MANUEL)),
+    [{ label: 'Fermer', variant: 'secondary' }, { label: 'Sauvegarder', onClick: () => { sauvegarder(); } }]);
+}
+
 function syncBlock(compact = false) {
   const m = getMeta();
   const st = syncState();
-  const note = h('span', { class: 'sync-note' }, compact ? 'Enregistrement manuel pour le moment' : 'Enregistrement dans le dossier : manuel pour le moment (bouton Sauvegarder). Rien n\'est envoyé automatiquement.');
-  const dirty = st.kind === 'dirty' || st.kind === 'error' || st.kind === 'secours';
-  const texte = st.at ? `${st.label} ${hhmm(st.at)}` : st.label;
-  const status = h('span', { class: `sync-status ${st.kind === 'saved' ? 'ok' : dirty ? (st.kind === 'dirty' ? 'warn' : 'err') : ''}`, title: st.detail || null, role: st.kind === 'error' || st.kind === 'secours' ? 'alert' : null },
-    st.kind === 'saved' ? '✓ ' : dirty ? h('span', { class: 'dot-dirty' }) : null, texte, st.kind === 'error' ? ' : cliquez sur « Sauvegarder » pour réessayer' : null);
+  const dirty = st.kind === 'dirty' || st.kind === 'error' || st.kind === 'secours'; // bouton Sauvegarder mis en évidence
+  const classe = st.kind === 'saved' ? 'ok' : st.kind === 'error' || st.kind === 'secours' ? 'err' : dirty || st.kind === 'download' ? 'warn' : '';
+  // Un marqueur de forme (jamais la couleur seule) : ✓ enregistré dans le dossier ; ↓ copie téléchargée (pas dans le dossier) ; point = à faire.
+  const marque = st.kind === 'saved' ? '✓ ' : st.kind === 'download' ? '↓ ' : st.kind === 'saving' ? null : h('span', { class: 'dot-dirty' });
+  const status = compact
+    ? h('button', { type: 'button', class: `sync-status ${classe}`, 'aria-label': etatComplet(st), 'aria-haspopup': 'dialog', onClick: afficherEtat }, marque, st.court)
+    : h('span', { class: `sync-status ${classe}` }, marque, etatComplet(st));
+  const note = h('span', { class: 'sync-note' }, NOTE_MANUEL);
   const save = h('button', { type: 'button', class: `sync-save ${dirty ? 'dirty' : ''}`, onClick: () => sauvegarder(), title: 'Enregistrer ma version dans le dossier partagé' },
     icon('upload'), h('span', null, 'Sauvegarder'));
   const load = h('button', { type: 'button', class: 'sync-load', onClick: () => charger(), title: 'Charger les versions de l\'équipe' },
     icon('download'), h('span', { class: compact ? 'sr-only' : null }, 'Charger'));
-  if (compact) return h('div', { class: 'sync-bar' }, h('div', { class: 'sync-bar-st' }, status, note), h('div', { class: 'sync-bar-btns' },
+  if (compact) return h('div', { class: 'sync-bar' }, h('div', { class: 'sync-bar-st' }, status), h('div', { class: 'sync-bar-btns' },
     h('button', { type: 'button', class: 'sync-load', onClick: () => nav('profil'), title: 'Changer de profil' }, h('span', null, moi()?.Title || '—')),
     themeBtn(), load, save));
   return h('div', { class: 'sync' },
     h('div', { class: 'sync-title' }, 'Échange avec l\'équipe'),
     save, load,
     h('div', { class: 'sync-meta' }, status, note, m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
+}
+
+/**
+ * Annonce aux lecteurs d'écran : deux régions STABLES (créées une fois, hors du menu qui est redessiné à chaque changement),
+ * alimentées seulement quand le type d'état change. « Enregistrement… » n'est pas annoncé (le résultat suit aussitôt).
+ */
+let dernierEtat = null;
+function installerAnnonces() {
+  const info = h('div', { class: 'sr-only', role: 'status', 'aria-live': 'polite', 'aria-atomic': 'true', id: 'annonce-etat' });
+  const erreur = h('div', { class: 'sr-only', role: 'alert', 'aria-atomic': 'true', id: 'annonce-erreur' });
+  document.body.append(info, erreur);
+  dernierEtat = syncState().kind;
+  window.addEventListener('rs:sync', () => {
+    const st = syncState();
+    if (st.kind === dernierEtat) return;
+    dernierEtat = st.kind;
+    if (st.kind === 'saving') return;
+    const err = st.kind === 'error' || st.kind === 'secours';
+    const zone = err ? erreur : info;
+    const texte = err ? `${st.court}${st.detail ? ` : ${st.detail}` : ''}` : st.kind === 'saved' ? 'Enregistré dans le dossier' : st.court;
+    zone.textContent = '';
+    setTimeout(() => { zone.textContent = texte; }, 60); // vider puis remplir : un même texte est réannoncé s'il revient
+  });
 }
 
 let dernierHash = null;
@@ -230,6 +268,7 @@ async function start() {
   }
   S.store.onWrite = markDirty;
   window.addEventListener('beforeunload', e => { if (isSandbox() && isDirty()) { e.preventDefault(); e.returnValue = ''; } });
+  installerAnnonces();
   window.addEventListener('rs:sync', () => renderSidebar(ROUTES[S.route.name]?.nav === 'saisie' ? 'groupe' : ROUTES[S.route.name]?.nav));
   if (isSandbox() && S.settings.moiId) await chargerAuDemarrage();
   let first = true;

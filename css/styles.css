@@ -449,7 +449,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .sync-save svg, .sync-load svg { width: 18px; height: 18px; flex: none; }
 .sync-save { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
 .sync-save:hover { background: var(--accent-soft); }
-.sync-save.dirty { background: var(--warn); border-color: var(--warn); color: #fff; box-shadow: 0 0 0 4px var(--warn-soft); }
+.sync-save.dirty { background: var(--warn); border-color: var(--warn); color: var(--accent-ink); box-shadow: 0 0 0 4px var(--warn-soft); }
 .sync-save.dirty:hover { background: var(--warn); }
 .sync-load { background: transparent; color: var(--accent); border: 1.5px solid var(--line-strong); }
 .sync-load:hover { border-color: var(--accent); background: var(--accent-soft); }
@@ -458,7 +458,8 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .sync-status.ok { color: var(--accent); }
 .sync-status.warn { color: var(--warn); }
 .sync-note { display: block; font-weight: 400; font-size: .875rem; color: var(--muted); }
-.sync-bar-st { display: flex; flex-direction: column; min-width: 0; }
+.sync-bar-st { flex: 1 1 auto; min-width: 0; }
+button.sync-status { background: none; border: 0; padding: 6px 0; min-height: 36px; font: inherit; font-weight: 700; text-align: left; cursor: pointer; overflow-wrap: anywhere; }
 .sync-status.err { color: var(--danger); }
 .dot-dirty { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
 @media (prefers-reduced-motion: reduce) { .sync-save, .sync-load { transition: none; } }
@@ -467,8 +468,9 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .sync-bar-wrap { display: none; }
 @media (max-width: 760px) {
   .sync-bar-wrap { display: block; position: sticky; top: 0; z-index: 25; background: var(--card); border-bottom: 1px solid var(--line); }
-  .sync-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 12px; font-size: .875rem; }
-  .sync-bar-btns { display: flex; gap: 6px; }
+  /* Les boutons gardent leur taille ; l'état passe à la ligne du dessus quand il n'a plus la place (jamais de chevauchement ni de troncature). */
+  .sync-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 8px; padding: 2px 12px 6px; font-size: .875rem; }
+  .sync-bar-btns { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; margin-left: auto; max-width: 100%; }
   .sync-bar .sync-save, .sync-bar .sync-load { width: auto; min-height: 36px; padding: 6px 12px; font-size: .875rem; }
   .sync-bar .sync-load { padding: 6px 10px; }
   .sidebar .sync { display: none; }

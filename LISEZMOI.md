@@ -57,10 +57,11 @@ Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échan
 - « Sauvegarder ma version » télécharge `RessourceS_<initiales>.json` : le glisser dans le dossier partagé (remplacer l'ancien).
 - « Charger les versions » : sélectionner tous les fichiers du dossier (Ctrl+A / Cmd+A).
 
-**État de la sauvegarde** (en haut ou dans le menu) : « Modifications non enregistrées », « Enregistrement en cours… »,
-« Enregistré dans le dossier (contenu relu et identique) » (le fichier du dossier a été relu et comparé ; l'app ne peut pas vérifier que OneDrive l'a déjà transmis aux collègues), « Téléchargement de secours » (le dossier n'a rien reçu),
-« Fichier téléchargé, à déposer dans le dossier partagé » (Safari, Firefox, téléphone) ou « Échec de l'enregistrement » : il reste affiché
-jusqu'à ce qu'une écriture réussisse ; cliquer sur « Sauvegarder » pour réessayer.
+**État de la sauvegarde** (menu à gauche ; barre du haut sur téléphone, où un clic sur l'état ouvre l'explication complète) :
+« Non enregistré », « Enregistrement… », « ✓ Enregistré » (le fichier du dossier a été relu et comparé ; l'app ne peut pas vérifier que OneDrive l'a déjà transmis aux collègues),
+« ↓ Copie téléchargée » (Safari, Firefox, téléphone : à déposer dans le dossier partagé, qui n'est pas à jour tant que ce n'est pas fait) ou « Échec d'enregistrement »
+(y compris quand une copie de secours a été téléchargée : le dossier n'a rien reçu). Un échec reste affiché jusqu'à ce qu'une écriture réussisse ;
+cliquer sur « Sauvegarder » pour réessayer. Les changements d'état sont annoncés aux lecteurs d'écran (zone d'annonce discrète) ; non vérifié avec VoiceOver ou TalkBack.
 
 **Réglages > Données de ce navigateur** : « Remplacer par un fichier… » vérifie le fichier en entier avant de toucher aux données
 (un fichier invalide, incomplet ou vide est refusé, vos données restent intactes) et demande confirmation en indiquant ce que contient le fichier.

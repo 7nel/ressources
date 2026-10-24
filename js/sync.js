@@ -43,16 +43,19 @@ export function markDirty() {
   scheduleAutosave();
 }
 
-/** État affiché, un seul à la fois : jamais « enregistré » sans écriture confirmée dans le dossier partagé. */
+/**
+ * État affiché, un seul à la fois : jamais « enregistré » sans écriture confirmée dans le dossier.
+ * `court` : libellé de la barre étroite ; `label` : phrase complète (menu, fenêtre d'aide, lecteurs d'écran) qui commence par le libellé court.
+ */
 export function syncState() {
-  if (saving) return { kind: 'saving', label: 'Enregistrement en cours…' };
+  if (saving) return { kind: 'saving', court: 'Enregistrement…', label: 'Enregistrement… en cours dans le dossier' };
   if (meta.error) return meta.secours
-    ? { kind: 'secours', label: 'Téléchargement de secours : pas enregistré dans le dossier partagé', detail: meta.error }
-    : { kind: 'error', label: 'Échec de l\'enregistrement', detail: meta.error };
-  if (meta.dirty) return { kind: 'dirty', label: 'Modifications non enregistrées' };
-  if (meta.lastSave && (!meta.lastDownload || meta.lastSave >= meta.lastDownload)) return { kind: 'saved', label: 'Enregistré dans le dossier (contenu relu et identique)', at: meta.lastSave };
-  if (meta.lastDownload) return { kind: 'download', label: 'Fichier téléchargé, à déposer dans le dossier partagé', at: meta.lastDownload };
-  return { kind: 'none', label: 'Pas encore sauvegardé' };
+    ? { kind: 'secours', court: 'Échec d\'enregistrement', label: 'Échec d\'enregistrement dans le dossier : une copie de secours a été téléchargée, mais le dossier partagé n\'est pas à jour', detail: meta.error }
+    : { kind: 'error', court: 'Échec d\'enregistrement', label: 'Échec d\'enregistrement', detail: meta.error };
+  if (meta.dirty) return { kind: 'dirty', court: 'Non enregistré', label: 'Non enregistré : des modifications ne sont pas encore dans le dossier' };
+  if (meta.lastSave && (!meta.lastDownload || meta.lastSave >= meta.lastDownload)) return { kind: 'saved', court: 'Enregistré', label: 'Enregistré dans le dossier (contenu relu et identique)', at: meta.lastSave };
+  if (meta.lastDownload) return { kind: 'download', court: 'Copie téléchargée', label: 'Copie téléchargée, à déposer dans le dossier partagé : le dossier n\'est pas à jour tant que ce n\'est pas fait', at: meta.lastDownload };
+  return { kind: 'none', court: 'Non enregistré', label: 'Non enregistré : rien n\'a encore été enregistré dans le dossier' };
 }
 
 /** Écriture confirmée dans le dossier : seul cas où l'erreur disparaît. `r` = numéro de modification envoyé. */
