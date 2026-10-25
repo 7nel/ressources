@@ -4,7 +4,7 @@ import { Store } from './data/store.js';
 import { LocalAdapter } from './data/local-adapter.js';
 import { SharePointAdapter } from './data/sharepoint-adapter.js';
 import { S, loadSettings, saveSettings, isSandbox, refDate, moi, enseignantsActifs, nav, applyTheme } from './state.js';
-import { h, icon, btn, field, select, notice, card, modal } from './ui.js';
+import { h, icon, btn, field, select, notice, card, modal, memoriserFocus } from './ui.js';
 import { fmtDate } from './domain.js';
 import { sauvegarder, charger, chargerAuDemarrage, isDirty, markDirty, getMeta, syncState, wasLoadedThisSession, dismissLoad, supportsFolder } from './sync.js';
 
@@ -179,13 +179,15 @@ function installerAnnonces() {
 }
 
 let dernierHash = null;
-/** Affiche un écran, met le titre de la page à jour et, quand l'écran change, place le focus sur son titre (annonce au lecteur d'écran). */
+/** Affiche un écran, met le titre de la page à jour et, quand l'écran change, place le focus sur son titre (annonce au lecteur d'écran) ; sur un simple rafraîchissement, redonne le focus au contrôle qui l'avait. */
 function show(...nodes) {
+  const restaurerFocus = dernierHash !== null && location.hash === dernierHash ? memoriserFocus(mainEl) : null; // rafraîchissement du même écran
   mainEl.replaceChildren(...nodes);
   const titre = mainEl.querySelector('h1');
   document.title = titre ? `${titre.textContent} · RessourceS (test)` : 'RessourceS (test)';
   if (dernierHash !== null && location.hash !== dernierHash && titre) { titre.tabIndex = -1; titre.focus({ preventScroll: true }); }
   dernierHash = location.hash;
+  restaurerFocus?.();
 }
 
 async function render() {

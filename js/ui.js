@@ -28,6 +28,47 @@ function append(el, children) {
     else el.appendChild(document.createTextNode(String(c)));
   }
 }
+const FOCALISABLES = 'a[href], button, input, select, textarea, [tabindex]';
+/**
+ * Clé stable d'un contrôle : son id, sinon `data-cle-focus` (pour un contrôle dont le libellé change, comme « Afficher / Masquer »),
+ * sinon ce qui le désigne (aria-controls, name, libellé). Jamais sa position : deux contrôles voisins ne se confondent pas.
+ */
+const cleFocus = el => {
+  if (el.id) return `id:${el.id}`;
+  if (el.dataset.cleFocus) return `cle:${el.dataset.cleFocus}`;
+  const t = el.tagName.toLowerCase();
+  const ctrl = el.getAttribute('aria-controls');
+  if (ctrl) return `ctrl:${t}:${ctrl}`;
+  if (el.name) return `nom:${t}:${el.name}`;
+  const lib = (el.getAttribute('aria-label') || el.labels?.[0]?.textContent || (t === 'button' || t === 'a' ? el.textContent : '') || '').replace(/\s+/g, ' ').trim();
+  return lib ? `lib:${t}:${lib}` : null;
+};
+
+/**
+ * À appeler avant de remplacer le contenu de `racine` ; la fonction retournée, appelée après, redonne le focus au même contrôle.
+ * Une clé répétée (plusieurs boutons de même libellé) ne sert que si leur nombre n'a pas changé.
+ * Si le contrôle a disparu : repli sur le contrôle qui ouvrait son panneau (aria-controls), ou sur `data-focus-repli` (clé d'un autre contrôle).
+ * Sans cible sûre, le focus reste où le navigateur le met : on ne le déplace jamais vers un contrôle différent parce qu'il a le même rang.
+ */
+export function memoriserFocus(racine) {
+  const actif = document.activeElement;
+  if (!actif || actif === racine || !racine.contains(actif)) return () => {};
+  const cle = cleFocus(actif);
+  const memes = cle ? [...racine.querySelectorAll(FOCALISABLES)].filter(e => cleFocus(e) === cle) : [];
+  const nth = memes.indexOf(actif);
+  const ouvreurs = [];
+  for (let a = actif.parentElement; a && a !== racine; a = a.parentElement) if (a.id) ouvreurs.push(a.id);
+  const repli = actif.dataset.focusRepli || null;
+  return () => {
+    if (document.activeElement && document.activeElement !== document.body) return;
+    const apres = cle ? [...racine.querySelectorAll(FOCALISABLES)].filter(e => cleFocus(e) === cle) : [];
+    let cible = apres.length && apres.length === memes.length ? apres[nth] : null;
+    if (!cible && repli) cible = racine.querySelector(`[data-cle-focus="${CSS.escape(repli)}"]`);
+    if (!cible) for (const id of ouvreurs) { cible = racine.querySelector(`[aria-controls="${CSS.escape(id)}"]`); if (cible) break; }
+    cible?.focus({ preventScroll: true });
+  };
+}
+
 /** Valeurs d'un rendu conditionnel (`cond && h(...)`) qui ne produisent aucun contenu. 0, « 0 » et NaN ne sont pas vides. */
 const vide = c => c == null || c === false || c === '';
 /** Aplatit les enfants et retire les valeurs vides : `replaceChildren` écrirait sinon « null » ou « false » à l'écran. */
