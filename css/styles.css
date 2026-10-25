@@ -156,7 +156,7 @@ main { padding: 24px 28px 48px; min-width: 0; }
   .page { gap: 22px; }
   .card { padding: 14px; }
   main { padding: 16px 16px 6.75rem; } /* 6,75rem = 108 px au texte normal ; suit le texte agrandi, comme la barre du bas */
-  html { scroll-padding-bottom: 6.75rem; }
+  html { scroll-padding-top: var(--barre-h, 6.5rem); scroll-padding-bottom: 6.75rem; } /* --barre-h : hauteur réelle de la barre collante, posée par app.js */
   .banner { font-size: .875rem; padding: 4px 10px; gap: 8px; }
   .banner-long { display: none; }
   h1 { font-size: 1.75rem; }
