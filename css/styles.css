@@ -343,8 +343,19 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .ramp .p2 { background: var(--ph2); color: var(--ph2-ink); }
 .ramp .p3 { background: var(--ph3); color: var(--ph3-ink); }
 .ramp-wrap { position: relative; padding-top: 22px; }
-.ramp-marker { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; font-size: .875rem; font-weight: 700; color: var(--ink); pointer-events: none; }
-.ramp-marker::after { content: ""; width: 2px; height: 36px; background: var(--ink); margin-top: 2px; } /* s'arrête au bas de la rampe, sans mordre sur les dates */
+.ramp-marker { position: absolute; top: 14px; width: 0; height: 8px; z-index: 1; pointer-events: none; }
+.ramp-marker::after { content: ""; position: absolute; bottom: 0; left: -5px; border: 5px solid transparent; border-top: 8px solid var(--ink); border-bottom: 0; } /* pointe vers la rampe sans la traverser : l'ancien trait passait derrière la rampe */
+.ramp-date { position: absolute; top: -3px; transform: translateX(-50%); font-size: .875rem; font-weight: 700; color: var(--ink); white-space: nowrap; line-height: 1.1; pointer-events: none; }
+.ramp-date.debut, .ramp-date.fin { transform: none; } /* bord de la rampe : le texte reste dans la carte, sa pointe tombe sous le repère */
+.ramp-wrap .ramp > div { min-width: 0; container-type: inline-size; }
+.ramp-wrap .ph-court, .ramp-wrap .ph-num { display: none; }
+@container (max-width: 7.75rem) { .ramp-wrap .ph-nom { display: none; } .ramp-wrap .ph-court { display: inline; } }
+@container (max-width: 4.5rem) { .ramp-wrap .ph-court { display: none; } .ramp-wrap .ph-num { display: inline; } }
+.ramp-legende { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: .875rem; color: var(--muted); }
+.ramp-legende li { display: inline-flex; align-items: center; gap: 6px; }
+.ramp-legende b { color: var(--ink); }
+.ramp-pastille { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: none; font-size: .75rem; font-weight: 700; }
+.ramp-pastille.p1 { background: var(--ph1); color: var(--ph1-ink); } .ramp-pastille.p2 { background: var(--ph2); color: var(--ph2-ink); } .ramp-pastille.p3 { background: var(--ph3); color: var(--ph3-ink); }
 .ramp-dates { display: flex; justify-content: space-between; color: var(--muted); font-size: .875rem; margin-top: 4px; }
 
 /* ---------- Synthèse hebdomadaire ---------- */
