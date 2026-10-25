@@ -70,7 +70,7 @@ function syntheseCard(i) {
     const nCours = rows.filter(r => r.groupe === m.groupe).length;
     body.push(h('tr', { class: 'grp-head' },
       h('th', { scope: 'row' }, h('button', {
-        type: 'button', class: 'grp-toggle', 'aria-expanded': String(ouvert),
+        type: 'button', class: 'grp-toggle', 'aria-expanded': String(ouvert), 'data-cle-focus': `groupe-${m.groupe}`,
         title: ouvert ? 'Replier les cours' : `Afficher les ${nCours} cours`,
         onClick: () => { state.groupes = basculer(state.groupes, m.groupe); refresh(); },
       }, h('span', { class: 'chevron', 'aria-hidden': 'true' }, ouvert ? '▾' : '▸'),
@@ -113,8 +113,8 @@ function syntheseCard(i) {
   // Par défaut : graphique + tableau des seules moyennes ; un clic sur une moyenne déplie ses cours.
   return card('Synthèse hebdomadaire', {
     actions: [
-      btn(state.graph ? 'Masquer le graphique' : 'Afficher le graphique', () => { state.graph = !state.graph; refresh(); }, 'ghost small', { 'aria-pressed': String(!state.graph) }),
-      btn(state.table ? 'Masquer le tableau' : 'Afficher le tableau', () => { state.table = !state.table; refresh(); }, 'ghost small', { 'aria-pressed': String(!state.table) }),
+      btn(state.graph ? 'Masquer le graphique' : 'Afficher le graphique', () => { state.graph = !state.graph; refresh(); }, 'ghost small', { 'aria-pressed': String(!state.graph), 'data-cle-focus': 'graphique' }),
+      btn(state.table ? 'Masquer le tableau' : 'Afficher le tableau', () => { state.table = !state.table; refresh(); }, 'ghost small', { 'aria-pressed': String(!state.table), 'data-cle-focus': 'tableau' }),
     ],
   },
     !state.graph ? legende : null,
@@ -176,7 +176,7 @@ function chronologieCard(i) {
       h('ul', { class: 'list chrono-court' }, choisis.map(e => h('li', null,
         h('span', { class: 'chrono-date' }, fmtDate(e.date, { day: true, year: false })), e.node))),
       h('div', { style: { marginTop: '8px' } },
-        btn(`Tout afficher (${ev.length} événement${ev.length > 1 ? 's' : ''} sur ${jours.length} jour${jours.length > 1 ? 's' : ''})`, () => { state.chrono = true; refresh(); }, 'ghost small', { 'aria-expanded': 'false' })));
+        btn(`Tout afficher (${ev.length} événement${ev.length > 1 ? 's' : ''} sur ${jours.length} jour${jours.length > 1 ? 's' : ''})`, () => { state.chrono = true; refresh(); }, 'ghost small', { 'aria-expanded': 'false', 'data-cle-focus': 'chrono' })));
   }
 
   const rows = [];
@@ -191,7 +191,7 @@ function chronologieCard(i) {
   });
   return card('Ces deux dernières semaines', { hint },
     h('ol', { class: 'chrono' }, rows),
-    h('div', { style: { marginTop: '8px' } }, btn('Replier : 3 éléments principaux', () => { state.chrono = false; refresh(); }, 'ghost small', { 'aria-expanded': 'true' })));
+    h('div', { style: { marginTop: '8px' } }, btn('Replier : 3 éléments principaux', () => { state.chrono = false; refresh(); }, 'ghost small', { 'aria-expanded': 'true', 'data-cle-focus': 'chrono' })));
 }
 
 function devoirsCard(i) {
@@ -231,10 +231,10 @@ function filtreCoursCard(i) {
     h('div', { class: 'filtre-ligne' },
       h('span', { class: 'label' }, 'Suivis et évaluations :'),
       h('button', {
-        type: 'button', class: `menu-filtre ${n ? 'actif' : ''}`, 'aria-expanded': String(state.menuCours), 'aria-controls': 'menu-cours-dossier',
+        type: 'button', class: `menu-filtre ${n ? 'actif' : ''}`, 'aria-expanded': String(state.menuCours), 'aria-controls': 'menu-cours-dossier', 'data-cle-focus': 'menu-cours',
         onClick: () => { state.menuCours = !state.menuCours; refresh(); },
       }, h('span', null, resume), h('span', { class: 'chevron', 'aria-hidden': 'true' }, state.menuCours ? '▴' : '▾')),
-      n ? btn('Tout afficher', () => { state.cours = []; refresh(); }, 'ghost small') : null),
+      n ? btn('Tout afficher', () => { state.cours = []; refresh(); }, 'ghost small', { 'data-focus-repli': 'menu-cours' }) : null),
     state.menuCours && h('div', { class: 'panneau-filtre', id: 'menu-cours-dossier' },
       h('div', { class: 'chips', role: 'group', 'aria-label': 'Cours' }, liste.map(c => h('button', {
         type: 'button', class: 'chip puce', 'aria-pressed': String(state.cours.includes(c.ID)),
@@ -309,7 +309,7 @@ function suivisCard(i, e) {
         texts.map(t => h('div', { class: 'small' }, t))),
       editable && h('span', { class: 'muted', 'aria-hidden': 'true' }, '✎')));
     })) : empty('Aucun suivi.'),
-    sv.length > 12 && h('div', { style: { marginTop: '8px' } }, btn(state.showAll ? 'Afficher moins' : `Afficher les ${sv.length} suivis`, () => { state.showAll = !state.showAll; refresh(); }, 'ghost small')));
+    sv.length > 12 && h('div', { style: { marginTop: '8px' } }, btn(state.showAll ? 'Afficher moins' : `Afficher les ${sv.length} suivis`, () => { state.showAll = !state.showAll; refresh(); }, 'ghost small', { 'data-cle-focus': 'suivis-tout' })));
 }
 
 function inscriptionCard(i) {
