@@ -692,3 +692,20 @@ details.sub-fold > .hint { margin: 0 0 8px; }
   .bcr-fig .chart svg { height: auto; width: 100%; max-width: 340px; max-height: none; margin: 0 auto; }
   .bcr-fig .chart { text-align: center; }
 }
+
+/* ---- Fiche coaching : sous 560 px, une section par bilan et par semaine (le tableau reste sur grand écran et à l'impression) ---- */
+.coach-mobile { display: none; }
+@media (max-width: 560px) {
+  .coach-tableau { display: none; }
+  .coach-mobile { display: block; }
+}
+@media print { .coach-mobile { display: none !important; } .coach-tableau { display: block !important; } }
+.coach-groupe { padding: 12px 0; border-top: 1px solid var(--line-strong); }
+.coach-groupe:first-child { border-top: 0; padding-top: 0; }
+.coach-groupe h3 { font-family: var(--num); font-weight: 500; font-size: 1.05rem; margin: 0 0 8px; line-height: 1.3; }
+.coach-groupe dl { margin: 0; }
+.coach-groupe dt { font-weight: 700; font-size: .875rem; color: var(--muted); margin-top: 8px; }
+.coach-groupe dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+.coach-groupe dd div + div { margin-top: 4px; }
+.coach-vide { color: var(--muted); }
+.coach-sig { margin: 10px 0 0; font-size: .875rem; color: var(--muted); border-left: 3px solid var(--line-ctl); padding-left: 10px; }
