@@ -156,7 +156,7 @@ main { padding: 24px 28px 48px; min-width: 0; }
   .page { gap: 22px; }
   .card { padding: 14px; }
   main { padding: 16px 16px 6.75rem; } /* 6,75rem = 108 px au texte normal ; suit le texte agrandi, comme la barre du bas */
-  html { scroll-padding-bottom: 6.75rem; }
+  html { scroll-padding-top: var(--barre-h, 6.5rem); scroll-padding-bottom: 6.75rem; } /* --barre-h : hauteur réelle de la barre collante, posée par app.js */
   .banner { font-size: .875rem; padding: 4px 10px; gap: 8px; }
   .banner-long { display: none; }
   h1 { font-size: 1.75rem; }
@@ -292,7 +292,7 @@ input.invalid { border-color: var(--danger); }
 .level-legend { display: flex; gap: 12px; flex-wrap: wrap; font-size: .875rem; color: var(--muted); }
 .level-legend span { display: inline-flex; gap: 5px; align-items: center; }
 
-.badge { display: inline-flex; align-items: center; gap: 4px; border-radius: var(--r-label); padding: 2px 10px; font-size: .875rem; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+.badge { display: inline-flex; align-items: center; gap: 4px; border-radius: var(--r-label); padding: 2px 10px; font-size: .875rem; font-weight: 700; max-width: 100%; white-space: normal; text-align: left; border: 1px solid transparent; }
 .badge.ph1 { background: var(--ph1); color: var(--ph1-ink); }
 .badge.ph2 { background: var(--ph2); color: var(--ph2-ink); }
 .badge.ph3 { background: var(--ph3); color: var(--ph3-ink); }
@@ -343,8 +343,19 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .ramp .p2 { background: var(--ph2); color: var(--ph2-ink); }
 .ramp .p3 { background: var(--ph3); color: var(--ph3-ink); }
 .ramp-wrap { position: relative; padding-top: 22px; }
-.ramp-marker { position: absolute; top: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; font-size: .875rem; font-weight: 700; color: var(--ink); pointer-events: none; }
-.ramp-marker::after { content: ""; width: 2px; height: 36px; background: var(--ink); margin-top: 2px; } /* s'arrête au bas de la rampe, sans mordre sur les dates */
+.ramp-marker { position: absolute; top: 14px; width: 0; height: 8px; z-index: 1; pointer-events: none; }
+.ramp-marker::after { content: ""; position: absolute; bottom: 0; left: -5px; border: 5px solid transparent; border-top: 8px solid var(--ink); border-bottom: 0; } /* pointe vers la rampe sans la traverser : l'ancien trait passait derrière la rampe */
+.ramp-date { position: absolute; top: -3px; transform: translateX(-50%); font-size: .875rem; font-weight: 700; color: var(--ink); white-space: nowrap; line-height: 1.1; pointer-events: none; }
+.ramp-date.debut, .ramp-date.fin { transform: none; } /* bord de la rampe : le texte reste dans la carte, sa pointe tombe sous le repère */
+.ramp-wrap .ramp > div { min-width: 0; container-type: inline-size; }
+.ramp-wrap .ph-court, .ramp-wrap .ph-num { display: none; }
+@container (max-width: 7.75rem) { .ramp-wrap .ph-nom { display: none; } .ramp-wrap .ph-court { display: inline; } }
+@container (max-width: 4.5rem) { .ramp-wrap .ph-court { display: none; } .ramp-wrap .ph-num { display: inline; } }
+.ramp-legende { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: .875rem; color: var(--muted); }
+.ramp-legende li { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; overflow-wrap: anywhere; } /* à 200 %, « Décompression » + pastille dépassent la carte : la coupure n'a lieu qu'en dernier recours */
+.ramp-legende b { color: var(--ink); }
+.ramp-pastille { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: none; font-size: .75rem; font-weight: 700; }
+.ramp-pastille.p1 { background: var(--ph1); color: var(--ph1-ink); } .ramp-pastille.p2 { background: var(--ph2); color: var(--ph2-ink); } .ramp-pastille.p3 { background: var(--ph3); color: var(--ph3-ink); }
 .ramp-dates { display: flex; justify-content: space-between; color: var(--muted); font-size: .875rem; margin-top: 4px; }
 
 /* ---------- Synthèse hebdomadaire ---------- */
@@ -572,7 +583,7 @@ button.ligne-suivi:hover { background: var(--accent-soft); }
 /* ---------- Menu « Plus » et cartes repliables ---------- */
 .menu { position: relative; }
 .menu .chevron { width: 8px; height: 8px; border: solid currentColor; border-width: 0 2px 2px 0; transform: rotate(45deg) translateY(-2px); margin-left: 2px; }
-.menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 250px; padding: 6px; background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-ctl); box-shadow: var(--shadow-float); display: flex; flex-direction: column; }
+.menu-list { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 250px; max-width: calc(100vw - 32px); padding: 6px; background: var(--card); border: 1px solid var(--line-strong); border-radius: var(--r-ctl); box-shadow: var(--shadow-float); display: flex; flex-direction: column; }
 .menu-list.ancre-gauche { left: 0; right: auto; max-width: calc(100vw - 32px); }
 .menu-list button { background: none; border: 0; text-align: left; padding: 10px 12px; min-height: 44px; border-radius: 8px; cursor: pointer; color: var(--ink); }
 .menu-list button:hover, .menu-list button:focus-visible { background: var(--accent-soft); }
@@ -605,7 +616,7 @@ details.sub-fold > .hint { margin: 0 0 8px; }
 @media (max-width: 560px) { .chrono-court > li { grid-template-columns: 1fr; gap: 2px; } }
 .filtre-dossier .filtre-ligne { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .filtre-dossier .filtre-ligne .label { font-weight: 700; }
-.filtre-dossier .menu-filtre { width: auto; min-width: 14rem; }
+.filtre-dossier .menu-filtre { width: auto; min-width: min(14rem, 100%); max-width: 100%; }
 
 .syn-legende { display: flex; align-items: flex-start; gap: 10px; }
 .aide-rond { flex: none; width: 28px; height: 28px; border-radius: 50%; border: 1.5px solid var(--accent); background: var(--card); color: var(--accent); font: 700 .95rem/1 inherit; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; padding: 0; }

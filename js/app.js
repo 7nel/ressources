@@ -248,6 +248,8 @@ async function start() {
   sidebarEl = h('nav', { class: 'sidebar', 'aria-label': 'Menu principal' });
   mainEl = h('main', { id: 'main', tabindex: '-1' });
   syncBarEl = h('div', { class: 'sync-bar-wrap' });
+  // Barre mobile collante : sa hauteur réelle (états longs, texte agrandi) sert de marge de défilement, pour que le contenu ne passe pas dessous.
+  new ResizeObserver(() => document.documentElement.style.setProperty('--barre-h', `${syncBarEl.offsetHeight}px`)).observe(syncBarEl);
   const skip = h('a', { class: 'skip-link', href: '#main', onClick: e => { e.preventDefault(); mainEl.focus(); } }, 'Aller au contenu');
   root.replaceChildren(skip, bannerEl, syncBarEl, h('div', { class: 'shell' }, sidebarEl, mainEl));
   mainEl.replaceChildren(h('p', { class: 'muted' }, 'Chargement…'));

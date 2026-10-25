@@ -36,13 +36,22 @@ export function ramp(v, date) {
   const d3 = total - d1 - d2;
   const pos = Math.max(0, Math.min(1, (daysBetween(v.DateDebut, date) + 0.5) / total));
   const inside = date >= v.DateDebut && date <= v.DateFin;
-  return h('div', { class: 'ramp-wrap', role: 'img', 'aria-label': `Rampe de la volée ${v.Title} : décompression jusqu'au ${fmtDate(addDays(v.DateDebutRemob, -1))}, remobilisation jusqu'au ${fmtDate(addDays(v.DateDebutReexpo, -1))}, ré-exposition jusqu'au ${fmtDate(v.DateFin)}` },
-    inside && h('div', { class: 'ramp-marker', style: { left: `${pos * 100}%` } }, fmtDate(date, { year: false })),
-    h('div', { class: 'ramp' },
-      h('div', { class: 'p1', style: { flex: d1 } }, 'Décompression'),
-      h('div', { class: 'p2', style: { flex: d2 } }, 'Remobilisation'),
-      h('div', { class: 'p3', style: { flex: d3 } }, 'Ré-exposition')),
-    h('div', { class: 'ramp-dates' }, h('span', null, fmtDate(v.DateDebut)), h('span', null, fmtDate(v.DateFin))));
+  const phases = [
+    ['p1', d1, 'Décompression', 'Décomp.', '1', v.DateDebut, addDays(v.DateDebutRemob, -1)],
+    ['p2', d2, 'Remobilisation', 'Remob.', '2', v.DateDebutRemob, addDays(v.DateDebutReexpo, -1)],
+    ['p3', d3, 'Ré-exposition', 'Ré-exp.', '3', v.DateDebutReexpo, v.DateFin],
+  ];
+  const cote = pos < .12 ? 'debut' : pos > .88 ? 'fin' : '';
+  return h('div', { class: 'ramp-wrap' },
+    inside && h('div', { class: 'ramp-marker', style: { left: `${pos * 100}%` } }),
+    inside && h('div', { class: `ramp-date ${cote}`, style: cote === 'debut' ? { left: `max(0px, calc(${pos * 100}% - 5px))` } : cote === 'fin' ? { right: `max(0px, calc(${(1 - pos) * 100}% - 5px))` } : { left: `${pos * 100}%` } },
+      h('span', { class: 'sr-only' }, 'Date affichée : '), fmtDate(date, { year: false })),
+    h('div', { class: 'ramp', 'aria-hidden': 'true' },
+      phases.map(([c, d, nom, court, num]) => h('div', { class: c, style: { flex: d } },
+        h('span', { class: 'ph-nom' }, nom), h('span', { class: 'ph-court' }, court), h('span', { class: 'ph-num' }, num)))),
+    h('div', { class: 'ramp-dates' }, h('span', null, fmtDate(v.DateDebut)), h('span', null, fmtDate(v.DateFin))),
+    h('ul', { class: 'ramp-legende', 'aria-label': `Phases de la volée ${v.Title}` },
+      phases.map(([c, , nom, , num, du, au]) => h('li', null, h('span', { class: `ramp-pastille ${c}`, 'aria-hidden': 'true' }, num), h('b', null, nom), ` du ${fmtDate(du, { year: false })} au ${fmtDate(au, { year: false })}`))));
 }
 
 const pl = (n, un, plusieurs) => n > 1 ? plusieurs : un;
