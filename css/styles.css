@@ -352,7 +352,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 @container (max-width: 7.75rem) { .ramp-wrap .ph-nom { display: none; } .ramp-wrap .ph-court { display: inline; } }
 @container (max-width: 4.5rem) { .ramp-wrap .ph-court { display: none; } .ramp-wrap .ph-num { display: inline; } }
 .ramp-legende { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 18px; font-size: .875rem; color: var(--muted); }
-.ramp-legende li { display: inline-flex; align-items: center; gap: 6px; }
+.ramp-legende li { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; overflow-wrap: anywhere; } /* à 200 %, « Décompression » + pastille dépassent la carte : la coupure n'a lieu qu'en dernier recours */
 .ramp-legende b { color: var(--ink); }
 .ramp-pastille { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; flex: none; font-size: .75rem; font-weight: 700; }
 .ramp-pastille.p1 { background: var(--ph1); color: var(--ph1-ink); } .ramp-pastille.p2 { background: var(--ph2); color: var(--ph2-ink); } .ramp-pastille.p3 { background: var(--ph3); color: var(--ph3-ink); }
