@@ -77,7 +77,7 @@ function syntheseCard(i) {
       }, h('span', { class: 'chevron', 'aria-hidden': 'true' }, ouvert ? '▾' : '▸'),
         h('span', { class: 'dot', style: { background: GROUPE_COULEUR[m.groupe], marginRight: '6px' } }), `${m.groupe} · moyenne`,
         h('span', { class: 'muted', style: { fontWeight: 400 } }, ` (${nCours})`))),
-      m.semaines.map((w, k) => h('td', { class: nowCls(k) }, w.n ? h('span', { class: 'cell row' }, moyChip('C', w.c), moyChip('T', w.t)) : h('span', { class: 'none' }, '·')))));
+      m.semaines.map((w, k) => h('td', { class: nowCls(k) }, w.n ? h('span', { class: 'cell row' }, moyChip('C', w.c), moyChip('T', w.t)) : h('span', { class: 'none', 'aria-label': 'aucun suivi' }, '·')))));
     if (ouvert) for (const r of rows.filter(r => r.groupe === m.groupe)) {
       body.push(h('tr', null,
         h('th', { scope: 'row', class: 'sub' }, h('span', { class: 'dot', style: { background: r.cours.Couleur || 'var(--muted)', marginRight: '6px' } }), r.cours.Title),

@@ -382,7 +382,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .syn .now { background: var(--accent-soft); }
 .syn .cell { display: inline-flex; flex-direction: column; gap: 3px; align-items: center; }
 .syn .more { color: var(--muted); font-size: .875rem; }
-.syn .none { color: var(--line-strong); }
+.syn .none { color: var(--muted); }
 
 /* ---------- Modale & toast ---------- */
 .modal-back { position: fixed; inset: 0; background: rgba(20, 28, 27, .45); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
