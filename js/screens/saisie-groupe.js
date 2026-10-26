@@ -1,5 +1,5 @@
 import { S, nav, eleve, cours, refDate, moi, mesCours, coursActifs, voleeAt, inscriptionsEnCours, nomEleve, labels } from '../state.js';
-import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, empty, redraw } from '../ui.js';
+import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, empty, redraw, ctPair } from '../ui.js';
 import { phaseOf, semaineCle, sortBy, fmtDate, parseNote, evalMode, FORMATIF } from '../domain.js';
 
 const state = { coursId: null, date: null, forDate: null, portee: 'Séance', mode: 'cot' };
@@ -76,22 +76,41 @@ export function render(params) {
   }
 
   function cotations(c, v, phase, inscs, L) {
-    const deja = new Set(S.store.where('RS_Suivis', s => s.CoursID === c.ID && s.DateSuivi === state.date).map(s => s.EleveID));
-    const errBox = h('div');
+    const suivisDuJour = S.store.where('RS_Suivis', s => s.CoursID === c.ID && s.DateSuivi === state.date);
+    const deja = new Set(suivisDuJour.map(s => s.EleveID));
+    const errBox = h('div', { 'aria-live': 'assertive' }); // annoncé aux lecteurs d'écran, avertissements compris
+    const rowEls = new Map(); // élève → ligne affichée, pour marquer celle qui bloque l'enregistrement
     const list = h('div', null, inscs.map(({ i, e }) => {
       const done = deja.has(e.ID);
       const r = rows[e.ID] ||= { c: null, t: null, dv: false };
-      return h('div', { class: `grp-row ${done ? 'done' : ''}` },
-        h('div', { class: 'who' }, nomEleve(e), h('small', null, done ? '✓ déjà saisi pour ce cours et cette date' : `${i.Degre} · ${i.ClasseOrigine}`)),
-        done ? h('span') : h('div', { class: 'pk' }, h('span', { class: 'lab', title: 'Comportement : respect et ponctualité' }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
+      // ligne déjà saisie : on rappelle les niveaux enregistrés (C puis T) au lieu d'une ligne vide
+      const recap = el => { const sv = suivisDuJour.find(x => x.EleveID === el.ID); return typeof sv?.Comportement === 'number' ? ctPair(sv.Comportement, sv.Travail, L) : h('span'); };
+      const ligne = h('div', { class: `grp-row ${done ? 'done' : ''}` },
+        h('div', { class: 'who' }, nomEleve(e), h('small', null, done ? '✓ déjà saisi' : `${i.Degre} · ${i.ClasseOrigine}`)),
+        done ? recap(e) : h('div', { class: 'pk' }, h('span', { class: 'lab', title: 'Comportement : respect et ponctualité' }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
         done ? h('span') : h('div', { class: 'pk' }, h('span', { class: 'lab', title: 'Travail : matériel et mise au travail' }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
         done ? h('span') : checkbox('devoir non fait', r.dv, val => { r.dv = val; }));
+      rowEls.set(e.ID, ligne);
+      return ligne;
     }));
     async function save() {
+      rowEls.forEach(l => { l.classList.remove('err'); l.querySelector('.err-msg')?.remove(); });
       const todo = inscs.filter(({ e }) => !deja.has(e.ID) && (rows[e.ID]?.c || rows[e.ID]?.t || rows[e.ID]?.dv));
       const incomplete = todo.filter(({ e }) => !rows[e.ID].c || !rows[e.ID].t);
       if (!todo.length) { errBox.replaceChildren(notice('Rien à enregistrer : touchez les pastilles d\'au moins un élève.', 'warn')); return; }
-      if (incomplete.length) { errBox.replaceChildren(notice(`C et T sont obligatoires pour : ${incomplete.map(x => x.e.Prenom).join(', ')}.`, 'danger')); return; }
+      if (incomplete.length) {
+        for (const { e } of incomplete) {
+          const l = rowEls.get(e.ID), r = rows[e.ID];
+          l.classList.add('err');
+          l.appendChild(h('div', { class: 'err-msg' }, `${!r.c && !r.t ? 'C et T manquent' : !r.c ? 'C manque' : 'T manque'} : touchez une pastille.`));
+        }
+        errBox.replaceChildren(notice(`C et T sont obligatoires pour : ${incomplete.map(x => x.e.Prenom).join(', ')}.`, 'danger'));
+        const premiere = rowEls.get(incomplete[0].e.ID);
+        premiere.scrollIntoView({ block: 'center' });
+        const pickers = premiere.querySelectorAll('.picker'); // premier choix manquant : C, sinon T
+        pickers[rows[incomplete[0].e.ID].c ? 1 : 0]?.querySelector('button')?.focus({ preventScroll: true });
+        return;
+      }
       if (todo.some(({ e }) => rows[e.ID].dv) && !common.devoir.trim()) { errBox.replaceChildren(notice('Indiquez le devoir attendu (commun).', 'danger')); return; }
       const ensId = moi()?.ID ?? c.EnseignantID;
       const sk = semaineCle(state.date);
@@ -122,8 +141,9 @@ export function render(params) {
       h('div', { class: 'form', style: { marginTop: '12px' } },
         field('Devoir attendu (commun aux cases cochées)', input('text', common.devoir, { placeholder: 'ex. Exercices p. 34', onInput: ev => { common.devoir = ev.target.value; } }),
           { help: phase === 'Décompression' ? 'Décompression : devoirs enregistrés sans conséquence.' : 'Les devoirs non faits comptent pour la retenue du vendredi.' }),
-        errBox,
-        h('div', { class: 'btn-row' }, btn('Enregistrer', save))));
+        errBox),
+      // hors du formulaire : le bouton colle au bas de l'écran tant que la carte (liste comprise) est visible
+      h('div', { class: 'btn-row sticky-save' }, btn('Enregistrer', save)));
   }
 
   function evaluations(c, v, phase, inscs) {

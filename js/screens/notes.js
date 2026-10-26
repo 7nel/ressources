@@ -10,17 +10,17 @@ const toggle = (arr, id) => (arr.includes(id) ? arr.filter(x => x !== id) : [...
 export function noteChart(evals, { height = 220 } = {}) {
   const pts = sortBy(evals.filter(e => typeof e.Note === 'number'), 'DateEval');
   if (!pts.length) return empty('Aucune note à afficher.');
-  const W = Math.max(320, pts.length * 34 + 60), H = height, pl = 34, pr = 10, pt = 12, pb = 26;
+  const W = Math.max(320, pts.length * 48 + 60), H = height, pl = 34, pr = 10, pt = 18, pb = 30;
   const y = n => pt + (H - pt - pb) * (1 - (n - 1) / 5);
-  const bw = Math.min(26, (W - pl - pr) / pts.length - 6);
+  const bw = Math.min(30, (W - pl - pr) / pts.length - 8);
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Évolution des notes, une barre par évaluation, ligne de suffisance à 4">`;
-  for (let n = 1; n <= 6; n++) s += `<line x1="${pl}" x2="${W - pr}" y1="${y(n)}" y2="${y(n)}" stroke="var(--line)" stroke-width="1"/><text x="${pl - 8}" y="${y(n) + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${n}</text>`;
+  for (let n = 1; n <= 6; n++) s += `<line x1="${pl}" x2="${W - pr}" y1="${y(n)}" y2="${y(n)}" stroke="var(--line)" stroke-width="1"/><text x="${pl - 8}" y="${y(n) + 4}" text-anchor="end" font-size="14" fill="var(--muted)">${n}</text>`;
   pts.forEach((e, k) => {
     const x = pl + 6 + k * ((W - pl - pr) / pts.length);
     const col = cours(e.CoursID)?.Couleur || '#888';
     s += `<rect x="${x}" y="${y(e.Note)}" width="${bw}" height="${y(1) - y(e.Note)}" rx="3" fill="${esc(col)}"><title>${esc(fmtDate(e.DateEval))} · ${esc(cours(e.CoursID)?.Title)} · ${esc(e.Sujet)} : ${fmtNote(e.Note)}</title></rect>`;
-    s += `<text x="${x + bw / 2}" y="${y(e.Note) - 4}" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)">${fmtNote(e.Note)}</text>`;
-    s += `<text x="${x + bw / 2}" y="${H - 8}" text-anchor="middle" font-size="9.5" fill="var(--muted)">${esc(fmtDate(e.DateEval, { year: false }))}</text>`;
+    s += `<text x="${x + bw / 2}" y="${y(e.Note) - 4}" text-anchor="middle" font-size="14" font-weight="700" fill="var(--ink)">${fmtNote(e.Note)}</text>`;
+    s += `<text x="${x + bw / 2}" y="${H - 7}" text-anchor="middle" font-size="14" fill="var(--muted)">${esc(fmtDate(e.DateEval, { year: false }))}</text>`;
   });
   s += `<line x1="${pl}" x2="${W - pr}" y1="${y(4)}" y2="${y(4)}" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
   s += '</svg>';

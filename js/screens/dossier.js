@@ -107,7 +107,7 @@ function syntheseCard(i) {
     h('div', { class: 'syn-barre' },
       seg([{ value: 'CT', label: 'C et T' }, { value: 'C', label: 'Comportement' }, { value: 'T', label: 'Travail' }], tendState.vue, v => { tendState.vue = v; drawChart(); }, 'Courbes du graphique'), legende),
     aideTexte,
-    h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '560px' }, svg: tendanceSVG(weeks, moyennes, nowSk) })),
+    h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '760px' }, svg: tendanceSVG(weeks, moyennes, nowSk) })),
   ]));
   drawChart();
 

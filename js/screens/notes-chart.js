@@ -76,19 +76,22 @@ function evolutionSVG(series, lookup) {
   for (let n = nMin; n <= 6; n += 0.5) {
     const entier = Number.isInteger(n);
     s += `<line x1="${pl}" x2="${W - pr}" y1="${y(n)}" y2="${y(n)}" stroke="var(--line)" stroke-opacity="${entier ? 1 : 0.5}"/>`;
-    if (entier) s += `<text x="${pl - 10}" y="${y(n) + 4}" text-anchor="end" font-size="12" fill="var(--muted)">${n}</text>`;
+    if (entier) s += `<text x="${pl - 10}" y="${y(n) + 4}" text-anchor="end" font-size="14" fill="var(--muted)">${n}</text>`;
   }
   const weekly = (t1 - t0) < 70 * 864e5;
+  let lastTick = -Infinity;
   const d = new Date(t0); d.setUTCHours(0, 0, 0, 0);
   if (weekly) d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); else d.setUTCDate(1);
   for (; d.getTime() <= t1 + pad; weekly ? d.setUTCDate(d.getUTCDate() + 7) : d.setUTCMonth(d.getUTCMonth() + 1)) {
     const iso = d.toISOString().slice(0, 10);
     const xx = x(weekly ? addDays(iso, 2) : iso); // semaine : graduation au milieu, là où est posée la moyenne
     if (xx < pl || xx > W - pr) continue;
-    s += `<line x1="${xx}" x2="${xx}" y1="${H - pb}" y2="${H - pb + 5}" stroke="var(--line-strong)"/><text x="${xx}" y="${H - pb + 19}" text-anchor="middle" font-size="11" fill="var(--muted)">${esc(weekly ? `sem. ${fmtDate(iso, { year: false })}` : fmtDate(iso, { year: false }))}</text>`;
+    if (xx - lastTick < 84) continue; // texte de 14 px : on espace les graduations pour qu'elles ne se chevauchent pas
+    lastTick = xx;
+    s += `<line x1="${xx}" x2="${xx}" y1="${H - pb}" y2="${H - pb + 5}" stroke="var(--line-strong)"/><text x="${xx}" y="${H - pb + 19}" text-anchor="middle" font-size="14" fill="var(--muted)">${esc(weekly ? `sem. ${fmtDate(iso, { year: false })}` : fmtDate(iso, { year: false }))}</text>`;
   }
   s += `<line x1="${pl}" x2="${W - pr}" y1="${y(4)}" y2="${y(4)}" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="6 4"/>`;
-  s += `<text x="${W - pr}" y="${y(4) - 6}" text-anchor="end" font-size="11" fill="var(--danger)">4</text>`;
+  s += `<text x="${W - pr}" y="${y(4) - 6}" text-anchor="end" font-size="14" fill="var(--danger)">4</text>`;
 
   const order = [...series].sort((a, b) => (a.key === chartState.focus) - (b.key === chartState.focus)); // la série mise en avant passe devant
   for (const se of order) {
@@ -115,19 +118,19 @@ function evolutionSVG(series, lookup) {
 
 function moyennesSVG(series, lookup) {
   const rows = series.map(g => ({ ...g, avg: weightedAvg(g.items) })).filter(g => g.avg != null).sort((a, b) => a.avg - b.avg);
-  const rowH = 34, pl = 160, pr = 46, pt = 8, W = 760, H = pt + rows.length * rowH + 26;
+  const rowH = 34, pl = 160, pr = 60, pt = 8, W = 760, H = pt + rows.length * rowH + 26;
   const x = n => pl + (W - pl - pr) * ((n - 1) / 5);
   let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Moyennes pondérées, de la plus basse à la plus haute">`;
-  for (let n = 1; n <= 6; n++) s += `<line x1="${x(n)}" x2="${x(n)}" y1="${pt}" y2="${H - 22}" stroke="var(--line)"/><text x="${x(n)}" y="${H - 6}" text-anchor="middle" font-size="12" fill="var(--muted)">${n}</text>`;
+  for (let n = 1; n <= 6; n++) s += `<line x1="${x(n)}" x2="${x(n)}" y1="${pt}" y2="${H - 22}" stroke="var(--line)"/><text x="${x(n)}" y="${H - 6}" text-anchor="middle" font-size="14" fill="var(--muted)">${n}</text>`;
   rows.forEach((r, i) => {
     const yy = pt + i * rowH + 7, bh = rowH - 14;
     const dim = chartState.focus && chartState.focus !== r.key;
     const low = r.avg < 4;
     const k = `m${r.key}`;
     lookup[k] = [`${r.label} · ${arrondi(r.avg)}`, `${r.items.length} note${r.items.length > 1 ? 's' : ''}, moyenne pondérée`];
-    s += `<text x="${pl - 10}" y="${yy + bh / 2 + 4}" text-anchor="end" font-size="13" fill="var(--ink)">${esc(r.label.length > 22 ? r.label.slice(0, 21) + '…' : r.label)}</text>`;
+    s += `<text x="${pl - 10}" y="${yy + bh / 2 + 4}" text-anchor="end" font-size="14" fill="var(--ink)">${esc(r.label.length > 19 ? r.label.slice(0, 18) + '…' : r.label)}</text>`;
     s += `<rect data-k="${k}" tabindex="0" x="${x(1)}" y="${yy}" width="${Math.max(2, x(r.avg) - x(1))}" height="${bh}" rx="4" fill="${r.color}" fill-opacity="${dim ? 0.15 : 1}"/>`;
-    s += `<text x="${x(r.avg) + 6}" y="${yy + bh / 2 + 4}" font-size="12.5" font-weight="700" fill="${low ? 'var(--danger)' : 'var(--ink)'}" fill-opacity="${dim ? 0.4 : 1}">${low ? '▼ ' : ''}${arrondi(r.avg)}</text>`;
+    s += `<text x="${x(r.avg) + 6}" y="${yy + bh / 2 + 4}" font-size="14" font-weight="700" fill="${low ? 'var(--danger)' : 'var(--ink)'}" fill-opacity="${dim ? 0.4 : 1}">${low ? '▼ ' : ''}${arrondi(r.avg)}</text>`;
   });
   s += `<line x1="${x(4)}" x2="${x(4)}" y1="${pt}" y2="${H - 22}" stroke="var(--danger)" stroke-width="1.5" stroke-dasharray="6 4"/>`;
   return { svg: s + '</svg>', rows };
@@ -157,7 +160,7 @@ export function notesChartCard(evAll) {
       svg = m.svg;
       extra = h('p', { class: 'hint' }, `Moyennes pondérées des notes filtrées${par === 'eleve' ? ', toutes branches choisies confondues' : ''}, de la plus basse à la plus haute. ▼ : sous 4.`);
     }
-    const plot = h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '560px' }, svg }));
+    const plot = h('div', { class: 'chart scroll-x' }, h('div', { style: { minWidth: '760px' }, svg }));
     wireTooltips(plot, lookup);
     box.replaceChildren(controls, legend(series, redraw), plot, extra);
   };
