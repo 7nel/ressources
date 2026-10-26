@@ -381,10 +381,12 @@ export function render(params) {
     h('div', { class: 'btn-row' },
       enCours && btn('+ Nouveau suivi', () => nav('saisie', { eleve: e.ID })),
       menu('Plus', [
+        i && { titre: 'Autres écrans du dossier' },
         i && { label: 'Orientation', onClick: () => nav('orientation', { eleve: e.ID }) },
         i && { label: 'Fiche coaching', onClick: () => nav('coaching', { insc: i.ID }) },
         i && { label: `Compétences psychosociales (CPS)${cps.length ? ` · ${cps.length}` : ''}`, onClick: () => nav('cps', { eleve: e.ID, insc: i.ID }) },
         i && { sep: true },
+        { titre: 'Modifier' },
         { label: 'Modifier le dossier', onClick: () => editEleve(e) },
         { label: 'Nouvelle inscription', onClick: () => nav('inscription', { eleve: e.ID }) },
         enCours && { label: 'Clore l\'inscription…', danger: true, onClick: () => closeInscription(i, e) },

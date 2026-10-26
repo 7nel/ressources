@@ -88,7 +88,7 @@ export function render(params) {
     h('div', { class: 'page-head' },
       h('div', null, h('h1', null, `Bilans · ${nomEleve(e)}`), h('div', { class: 'sub' }, `${v.Title} · `, phaseBadge(phaseInscription(i), etatVolee(i) || undefined))),
       tabs),
-    h('div', { class: 'cols-dossier' },
+    h('div', { class: 'cols-dossier suivis-d-abord' },
       h('div', { class: 'stack' },
         card(`${type}${existing ? '' : ' (nouveau)'}`, { hint: 'Élaboré par les enseignant·es de la classe ressource.' }, h('div', { class: 'form' },
           h('div', { class: 'row' }, field('Date', d('DateBilan')), field('Participants', input('text', b.Participants, { onInput: ev => { b.Participants = ev.target.value; } }))),

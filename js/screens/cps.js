@@ -1,5 +1,5 @@
 import { S, nav, back, eleve, insc, volee, nomEleve, inscriptionCourante, refresh } from '../state.js';
-import { h, card, btn, badge, empty, notice, esc, checkbox } from '../ui.js';
+import { h, card, btn, empty, notice, esc, checkbox } from '../ui.js';
 import { enteteEleve } from '../voisins.js';
 import { DOMAINES, DOMAINES_COURTS, REGARDS, cpsKey, scaleBoussole, SEUIL_ECART, fmtDate, sortBy } from '../domain.js';
 
@@ -61,7 +61,7 @@ export function render(params) {
       h('div', { class: 'btn-row' },
         i && btn('QR codes Forms', () => nav('cpsqr', { insc: i.ID }), 'secondary'),
         btn('Réponses Forms', () => nav('cpsforms'), 'secondary'),
-        i && btn('+ Saisie à la main', () => nav('cpssaisie', { eleve: e.ID, insc: i.ID }))))];
+        i && btn('+ Saisir une passation', () => nav('cpssaisie', { eleve: e.ID, insc: i.ID }))))];
   if (!cur) return h('div', { class: 'page' }, head, card(null, {}, empty('Aucune passation enregistrée. Imprimez les QR codes Forms, puis intégrez les réponses depuis « Réponses Forms ».')));
 
   const idx = passations.indexOf(cur);
@@ -109,7 +109,7 @@ export function render(params) {
     chips,
     card(`${cur.Moment} · ${fmtDate(cur.DatePassation)}`, {
       hint: prev ? `Flèches : évolution depuis la passation précédente (${prev.Moment}, ${fmtDate(prev.DatePassation)}).` : 'Première passation : pas de comparaison.',
-      actions: [badge(`seuil d'écart ${String(SEUIL_ECART).replace('.', ',')} (arbitraire)`, 'warn')],
+      actions: [h('span', { class: 'badge warn', title: 'Seuil provisoire, à valider en équipe' }, `écart signalé dès ${String(SEUIL_ECART).replace('.', ',')}`)],
     }, table),
     card('Les regards en un coup d\'œil', { hint: 'La boussole du coach (1–4) est ramenée sur 1–5 pour le tracé.' },
       h('div', { style: { marginBottom: '8px' } }, REGARDS.map(r => h('span', { class: 'regard-key' }, h('span', { class: 'dot', style: { background: r.color, width: '14px', height: '4px', borderRadius: '2px' } }), r.label))),

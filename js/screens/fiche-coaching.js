@@ -46,8 +46,9 @@ export function render(params) {
 
   return h('div', { class: 'page' },
     enteteEleve({ route: 'coaching', eleveId: e.ID, inscId: i.ID, params: (x, xi) => ({ insc: xi.ID }), retour: { label: '‹ Retour au dossier', onClick: () => back('dossier', { eleve: e.ID }) } }),
-    h('div', { class: 'btn-row no-print' }, btn('Imprimer', () => window.print(), 'secondary')),
-    h('div', null, h('h1', null, `Coaching · ${nomEleve(e)}`), h('div', { class: 'sub muted' }, `${v.Title} · ${i.Degre} · classe ${i.ClasseOrigine} · titulaire ${i.Titulaire}`)),
+    h('div', { class: 'page-head' },
+      h('div', null, h('h1', null, `Coaching · ${nomEleve(e)}`), h('div', { class: 'sub muted' }, `${v.Title} · ${i.Degre} · classe ${i.ClasseOrigine} · titulaire ${i.Titulaire}`)),
+      h('div', { class: 'btn-row no-print' }, btn('Imprimer', () => window.print(), 'secondary'))),
     card('Bilans de coordination', {}, h('div', { class: 'scroll-x coach-tableau' }, tableauBilans), parEntreeBilans),
     card('Suivi hebdomadaire', { hint: `Tiré des suivis du cours ${[...coachingIds].map(id => cours(id)?.Title).join(', ')}.` }, h('div', { class: 'scroll-x coach-tableau' }, tableauHebdo), parEntreeHebdo));
 }

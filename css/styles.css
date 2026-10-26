@@ -302,7 +302,7 @@ input.invalid { border-color: var(--danger); }
 .badge.danger { background: var(--danger-soft); color: var(--danger); }
 .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; flex: none; }
 
-.notice { border-radius: 0; border-left: 4px solid currentColor; padding: 10px 14px; font-size: .92rem; }
+.notice { border-radius: 0; border-top: 3px solid currentColor; padding: 10px 14px; font-size: .92rem; }
 .notice.warn { background: var(--warn-soft); color: var(--warn); }
 .notice.danger { background: var(--danger-soft); color: var(--danger); }
 .notice.info { background: var(--accent-soft); color: var(--ink); }
@@ -602,6 +602,7 @@ button.ligne-suivi:hover { background: var(--accent-soft); }
 .menu-list button { background: none; border: 0; text-align: left; padding: 10px 12px; min-height: 44px; border-radius: 8px; cursor: pointer; color: var(--ink); }
 .menu-list button:hover, .menu-list button:focus-visible { background: var(--accent-soft); }
 .menu-list .danger-text { color: var(--danger); }
+.menu-list .menu-titre { padding: 8px 12px 2px; font-size: .875rem; font-weight: 700; color: var(--muted); }
 .menu-sep { border: 0; border-top: 1px solid var(--line); margin: 4px 0; width: 100%; }
 details.fold > summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; cursor: pointer; min-height: 32px; list-style: none; }
 details.fold > summary::-webkit-details-marker { display: none; }

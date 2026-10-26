@@ -235,6 +235,7 @@ export function menu(label, items) {
     els[(i + (e.key === 'ArrowDown' ? 1 : els.length - 1)) % els.length]?.focus();
   };
   for (const it of items.filter(Boolean)) {
+    if (it.titre) { list.appendChild(h('div', { class: 'menu-titre', role: 'presentation' }, it.titre)); continue; }
     if (it.sep) { list.appendChild(h('hr', { class: 'menu-sep', role: 'separator' })); continue; }
     list.appendChild(h('button', { type: 'button', role: 'menuitem', class: it.danger ? 'danger-text' : null, onClick: () => { close(); it.onClick(); } }, it.label));
   }
