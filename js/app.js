@@ -6,7 +6,7 @@ import { SharePointAdapter } from './data/sharepoint-adapter.js';
 import { S, loadSettings, saveSettings, isSandbox, refDate, moi, enseignantsActifs, nav, applyTheme } from './state.js';
 import { h, icon, btn, field, select, notice, card, modal, memoriserFocus } from './ui.js';
 import { fmtDate } from './domain.js';
-import { sauvegarder, charger, chargerAuDemarrage, isDirty, markDirty, getMeta, syncState, wasLoadedThisSession, dismissLoad, supportsFolder } from './sync.js';
+import { sauvegarder, charger, chargerAuDemarrage, isDirty, markDirty, getMeta, syncState, wasLoadedThisSession, dismissLoad, supportsFolder, autoPossible } from './sync.js';
 
 import * as Accueil from './screens/accueil.js';
 import * as Eleves from './screens/eleves.js';
@@ -117,7 +117,9 @@ function themeBtn() {
     onClick: () => { S.settings.theme = isDark() ? 'light' : 'dark'; saveSettings(); applyTheme(); render(); } }, icon(dark ? 'sun' : 'moon'));
 }
 
-const NOTE_MANUEL = 'Enregistrement dans le dossier : manuel pour le moment (bouton Sauvegarder). Rien n\'est envoyé automatiquement.';
+const noteEnregistrement = () => autoPossible()
+  ? 'Enregistrement automatique dans le dossier relié (app installée) : le dossier est relu et fusionné avant chaque écriture.'
+  : 'Enregistrement dans le dossier : manuel ici (bouton Sauvegarder). Il est automatique dans l\'app installée depuis Chrome ou Edge.';
 /** Phrase complète de l'état, avec l'heure et la cause d'un échec. */
 function etatComplet(st) {
   return [st.at ? `${st.label} ${hhmm(st.at)}` : st.label, st.detail && st.kind === 'error' ? `Cause : ${st.detail}. Cliquez sur « Sauvegarder » pour réessayer.` : st.detail ? `Cause : ${st.detail}.` : null].filter(Boolean).join('. ').replace(/\.\./g, '.');
@@ -125,7 +127,7 @@ function etatComplet(st) {
 /** Fenêtre d'aide de la barre étroite : l'explication complète de l'état, accessible au clavier. */
 function afficherEtat() {
   const st = syncState();
-  modal('État de l\'enregistrement', h('div', { class: 'form' }, h('p', null, etatComplet(st)), h('p', { class: 'hint' }, NOTE_MANUEL)),
+  modal('État de l\'enregistrement', h('div', { class: 'form' }, h('p', null, etatComplet(st)), h('p', { class: 'hint' }, noteEnregistrement())),
     [{ label: 'Fermer', variant: 'secondary' }, { label: 'Sauvegarder', onClick: () => { sauvegarder(); } }]);
 }
 
@@ -139,7 +141,7 @@ function syncBlock(compact = false) {
   const status = compact
     ? h('button', { type: 'button', class: `sync-status ${classe}`, 'aria-label': etatComplet(st), 'aria-haspopup': 'dialog', onClick: afficherEtat }, marque, st.court)
     : h('span', { class: `sync-status ${classe}` }, marque, etatComplet(st));
-  const note = h('span', { class: 'sync-note' }, NOTE_MANUEL);
+  const note = h('span', { class: 'sync-note' }, noteEnregistrement());
   const save = h('button', { type: 'button', class: `sync-save ${dirty ? 'dirty' : ''}`, onClick: () => sauvegarder(), title: 'Enregistrer ma version dans le dossier partagé' },
     icon('upload'), h('span', null, 'Sauvegarder'));
   const load = h('button', { type: 'button', class: 'sync-load', onClick: () => charger(), title: 'Charger les versions de l\'équipe' },

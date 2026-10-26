@@ -7,22 +7,24 @@
 // Deux modes, choisis automatiquement :
 //  - Dossier relié (Chrome / Edge sur ordinateur, dossier OneDrive synchronisé) : l'app lit et écrit
 //    directement dans le dossier. Sauvegarder = 1 clic ; charger = automatique à l'ouverture
-//    (ou 1 clic si le navigateur redemande l'autorisation).
+//    (ou 1 clic si le navigateur redemande l'autorisation). Dans l'app INSTALLÉE, l'enregistrement est
+//    aussi automatique : relecture et fusion du dossier, puis écriture de son fichier.
 //  - Sinon (Safari, Firefox, téléphone, aperçu) : le fichier est téléchargé, à déposer dans le dossier ;
 //    pour charger, on sélectionne les fichiers du dossier (Ctrl+A).
 
 import { S, moi, isSandbox } from './state.js';
 import { toast, h, modal } from './ui.js';
+import { saisieEnCours } from './voisins.js';
 
 const META_KEY = 'ressources_echange_v1';
 // dirty : des modifications ne sont enregistrées nulle part de sûr. lastSave : dernière écriture CONFIRMÉE dans le dossier partagé.
 // lastDownload : dernier fichier téléchargé ou partagé (ce n'est pas une synchronisation). error : cause de l'échec en cours.
 // secours : un fichier de secours a été téléchargé après un échec du dossier. Aucune donnée d'élève n'est conservée ici.
 const meta = { dirty: false, lastSave: null, lastLoad: null, folderName: null, lastDownload: null, error: null, secours: false };
-// Écriture automatique SUSPENDUE (décision du 2026-10-24) : elle remplaçait le fichier sans relire le dossier et pouvait écraser
-// le travail d'un autre appareil. Pour la rétablir (après validation d'une synchronisation fiable) : passer ce drapeau à true.
-// Seule l'écriture automatique est concernée ; « Sauvegarder » (qui fusionne d'abord) et « Charger » ne changent pas.
-export const ECRITURE_AUTO = false;
+// Écriture automatique, rétablie le 2026-10-26 dans l'app installée seulement. Suspendue le 2026-10-24 parce qu'elle remplaçait
+// le fichier sans relire le dossier et pouvait écraser le travail d'un autre appareil : elle relit et fusionne désormais tout
+// le dossier (son propre fichier compris) avant d'écrire, comme « Sauvegarder ». Pour la couper : passer ce drapeau à false.
+export const ECRITURE_AUTO = true;
 let rev = 0;      // compte les modifications : une sauvegarde n'efface « non enregistré » que si rien n'a changé depuis l'envoi
 let saving = false;
 let dirHandle = null;
@@ -72,14 +74,21 @@ function echec(message, { notifier = false } = {}) {
   if (notifier && premiere) toast(`Enregistrement automatique impossible : ${message}. Vos modifications ne sont pas dans le dossier partagé : cliquez sur « Sauvegarder » pour réessayer.`, 'err', undefined, { visuel: true });
 }
 
-/* ---------- Sauvegarde automatique (dossier relié et autorisé uniquement) ---------- */
+/* ---------- Sauvegarde automatique (app installée, dossier relié et autorisé uniquement) ---------- */
+/** App installée (fenêtre à part) : Chrome et Edge l'ouvrent en « standalone » d'après le manifeste. */
+export function estInstallee() {
+  try { return ['standalone', 'window-controls-overlay', 'minimal-ui'].some(m => window.matchMedia?.(`(display-mode: ${m})`).matches); } catch { return false; }
+}
+/** L'enregistrement automatique peut-il fonctionner ici (le dossier doit encore être relié et autorisé) ? */
+export const autoPossible = () => ECRITURE_AUTO && isSandbox() && supportsFolder() && estInstallee();
+
 let autoTimer = null;
 function scheduleAutosave() {
-  if (!ECRITURE_AUTO || !isSandbox() || !supportsFolder()) return;
+  if (!autoPossible()) return;
   clearTimeout(autoTimer);
   autoTimer = setTimeout(autosave, 1500);
 }
-async function autosave() {
+export async function autosave() {
   autoTimer = null;
   if (saving) { autoTimer = setTimeout(autosave, 1500); return; } // une écriture est déjà en cours : on repasse après
   let handle;
@@ -88,8 +97,17 @@ async function autosave() {
   saving = true; emit();
   try {
     if ((await handle.queryPermission({ mode: 'readwrite' })) !== 'granted') throw new Error('autorisation du dossier à renouveler');
+    // Relire et fusionner TOUT le dossier avant d'écrire : une version plus récente de son propre fichier
+    // (autre appareil) ou des collègues est intégrée, jamais écrasée.
+    const t = await mergeTexts(await readFolder(handle));
     const r = await writeOwnFile(handle);
     saving = false; reussite(r);
+    const n = t.ajoutes + t.misAJour;
+    if (n) {
+      toast(`${n} changement${n > 1 ? 's' : ''} du dossier intégré${n > 1 ? 's' : ''} pendant l'enregistrement.`);
+      // pas de nouvel affichage pendant une saisie : il effacerait les champs en cours ; l'écran suivant sera à jour
+      if (!saisieEnCours()) window.dispatchEvent(new Event('rs:refresh'));
+    }
   } catch (e) {
     saving = false;
     echec(e?.message || 'écriture impossible', { notifier: true });
@@ -352,6 +370,7 @@ export async function chargerAuDemarrage() {
 }
 
 export async function autosaveActive() {
+  if (!autoPossible()) return false;
   const st = await folderStatus();
   return st.mode === 'dossier' && st.relie && st.autorise;
 }

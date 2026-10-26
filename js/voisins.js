@@ -26,6 +26,9 @@ let modifie = false;      // un champ d'un formulaire de la page a changé depui
 let enregistrer = null;   // enregistre la saisie de l'écran affiché (donné par l'écran), sinon null
 let courante = null;      // { prev, next, aller } de l'écran affiché, pour les raccourcis clavier
 
+/** Un formulaire de l'écran affiché a été modifié et pas encore enregistré. */
+export const saisieEnCours = () => modifie;
+
 const AIDE_TRI = 'Élèves de la volée en cours, par ordre alphabétique du nom';
 
 if (typeof window !== 'undefined' && document.addEventListener) {
