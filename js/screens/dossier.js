@@ -376,7 +376,7 @@ export function render(params) {
 
   const head = h('header', { class: `page-head${phase ? ' ' + PHASE_CLASS[phase] : ''}` },
     h('div', null,
-      h('h1', null, nomEleve(e), ' ', e.Statut !== 'Actif' ? badge(e.Statut, 'warn') : null),
+      h('h1', null, nomEleve(e), ' ', e.Statut !== 'Actif' ? badge(e.Statut) : null),
       h('div', { class: 'sub' }, i ? `${volee(i.VoleeID)?.Title} · ${i.Degre} · classe ${i.ClasseOrigine} · titulaire ${i.Titulaire}` : 'Aucune inscription', ' ', i && phaseBadge(phase, etatVolee(i) || undefined))),
     h('div', { class: 'btn-row' },
       enCours && btn('+ Nouveau suivi', () => nav('saisie', { eleve: e.ID })),
