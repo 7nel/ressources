@@ -1,5 +1,6 @@
 import { S, nav, back, eleve, insc, nomEleve, refDate } from '../state.js';
 import { h, card, btn, field, select, input, notice, toast } from '../ui.js';
+import { enteteEleve } from '../voisins.js';
 import { DOMAINES, REGARDS, cpsKey } from '../domain.js';
 
 export function render(params) {
@@ -37,7 +38,7 @@ export function render(params) {
     if (Object.values(rec).every(v => v == null)) errs.push('Saisissez au moins un regard.');
     if (moment.value !== 'Autre' && S.store.all('RS_CPS').some(c => c.InscriptionID === i.ID && c.Moment === moment.value)) errs.push(`Une passation « ${moment.value} » existe déjà pour cette inscription.`);
     if (!date.value) errs.push('Date obligatoire.');
-    if (errs.length) { errBox.replaceChildren(notice(errs.join(' '), 'danger')); return; }
+    if (errs.length) { errBox.replaceChildren(notice(errs.join(' '), 'danger')); return false; }
     const incomplets = REGARDS.filter(r => [1, 2, 3, 4, 5].some(d => rec[cpsKey(d, r.key)] == null)).map(r => r.label);
     const created = await S.store.add('RS_CPS', { Title: `${nomEleve(e)} – ${moment.value}`, EleveID: e.ID, InscriptionID: i.ID, DatePassation: date.value, Moment: moment.value, ...rec });
     toast(incomplets.length ? `Passation enregistrée (incomplet : ${incomplets.join(', ')})` : 'Passation enregistrée');
@@ -45,7 +46,7 @@ export function render(params) {
   }
 
   return h('div', { class: 'page' },
-    h('button', { type: 'button', class: 'back', onClick: () => back('cps', { eleve: e.ID }) }, '‹ Retour'),
+    enteteEleve({ route: 'cpssaisie', eleveId: e.ID, inscId: i.ID, params: (x, xi) => ({ eleve: x.ID, insc: xi.ID }), enregistrer: save, retour: { label: '‹ Retour aux CPS', onClick: () => back('cps', { eleve: e.ID }) } }),
     h('h1', null, `Nouvelle passation CPS · ${nomEleve(e)}`),
     card(null, {}, h('div', { class: 'form' },
       h('div', { class: 'row' }, field('Date de passation', date), field('Moment', moment)),

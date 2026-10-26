@@ -23,6 +23,7 @@ Pour mettre à jour : **Add file → Upload files** à nouveau, avec les fichier
 - **Élèves d'exemple** : six élèves fictifs **archivés** dans la volée terminée 2025-26 V5 (Élèves → filtre « Archivé » ; Notes → volée « 2025-26 V5 »). Profils : sans évolution, deux petites améliorations, nette amélioration, aggravation, bon niveau stable. Notes dans toutes les branches, bilans et CPS complets. Pour les retirer : `DONNEES_EXEMPLE: false` dans `js/config.js`.
 - **Date** : l'app s'ouvre à la date du jour ; un clic sur la date de l'accueil permet d'en choisir une autre, « voir la volée d'exemple » ouvre la semaine du 15.06.2026.
 - **Échange avec l'équipe** (menu de gauche) : voir la section 2 bis.
+- **Passer d'un élève à l'autre** : depuis le dossier, l'orientation, le coaching, les CPS et les bilans, la barre en haut (« ‹ Prénom Nom   2 sur 6 · volée   Prénom Nom › ») ouvre l'élève voisin sur le même écran, par ordre alphabétique de la volée. Raccourcis : **Alt+Maj+←** et **Alt+Maj+→** (inactifs dans un champ de saisie). Si un formulaire est modifié, l'app demande d'enregistrer ou non avant de changer d'élève.
 - **Profil** : clic sur ses initiales en bas du menu (ou en haut sur téléphone). **Mode clair / sombre** : bouton lune / soleil à côté.
 - **Aucun vrai nom d'élève**, même pour essayer : le code est public et la version de test n'est pas validée (LIPDA).
 

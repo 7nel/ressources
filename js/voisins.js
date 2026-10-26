@@ -52,7 +52,7 @@ function allerAvecGarde(cible, vers) {
   const sauver = enregistrer;
   modal('Saisie non enregistrée', h('p', null, `Vous avez modifié ce formulaire sans l'enregistrer. Passer à ${nomEleve(cible.e)} sans enregistrer fera perdre ces changements.`), [
     { label: 'Rester ici', variant: 'secondary' },
-    { label: 'Passer sans enregistrer', variant: 'secondary', onClick: () => { modifie = false; vers(cible); } },
+    { label: 'Passer sans enregistrer', variant: 'danger secondary', onClick: () => { modifie = false; vers(cible); } },
     sauver && {
       label: 'Enregistrer et passer', onClick: async () => {
         if ((await sauver()) === false) return false; // contrôle de saisie refusé : l'écran affiche le message
@@ -78,14 +78,14 @@ export function enteteEleve({ route, eleveId, inscId, params, retour, enregistre
 
   const bouton = (x, sens) => x ? h('button', {
     type: 'button', class: 'btn secondary voisin', 'aria-label': `${nomEleve(x.e)}, ${sens < 0 ? 'élève précédent' : 'élève suivant'}`,
-    title: `${sens < 0 ? 'Élève précédent' : 'Élève suivant'} · Alt+Maj+${sens < 0 ? '←' : '→'}`,
+    title: `${sens < 0 ? 'Élève précédent' : 'Élève suivant'} · Alt+Maj+${sens < 0 ? '←' : '→'}`, 'aria-keyshortcuts': `Alt+Shift+Arrow${sens < 0 ? 'Left' : 'Right'}`,
     onClick: () => allerAvecGarde(x, aller),
   }, sens < 0 ? h('span', { 'aria-hidden': 'true' }, '‹ ') : null, nomEleve(x.e), sens > 0 ? h('span', { 'aria-hidden': 'true' }, ' ›') : null)
     : h('span', { class: 'voisin-vide', 'aria-hidden': 'true' });
 
   const barre = prev || next
     ? h('nav', { class: 'voisins', 'aria-label': 'Passer à un autre élève' },
-      bouton(prev, -1), h('span', { class: 'muted voisins-rang', title: AIDE_TRI }, `${rang} sur ${total}${titre ? ` · ${titre}` : ''}`), bouton(next, 1))
+      bouton(prev, -1), h('span', { class: 'voisins-rang', title: `${AIDE_TRI}. Raccourcis : Alt+Maj+← et Alt+Maj+→` }, `${rang} sur ${total}`, titre && h('span', { class: 'voisins-volee' }, ` · ${titre}`)), bouton(next, 1))
     : horsListe ? h('span', { class: 'muted voisins-rang' }, 'Inscription hors volée en cours : pas d\'élève voisin') : null;
 
   return h('div', { class: 'eleve-nav no-print' },

@@ -1,4 +1,4 @@
-import { S, nav, back, insc, eleve, volee, nomEleve, refDate, phaseInscription } from '../state.js';
+import { S, nav, back, insc, eleve, volee, nomEleve, refDate, phaseInscription, etatVolee } from '../state.js';
 import { h, card, btn, field, input, textarea, checkbox, notice, toast, empty, phaseBadge } from '../ui.js';
 import { DOMAINES, TYPES_BILAN, fmtDate } from '../domain.js';
 import { bilanDe, preuves } from '../queries.js';
@@ -86,7 +86,7 @@ export function render(params) {
   return h('div', { class: 'page' },
     enteteEleve({ route: 'bilan', eleveId: e.ID, inscId: i.ID, params: (x, xi) => ({ insc: xi.ID, type: params.type }), enregistrer: save, retour: { label: '‹ Retour au dossier', onClick: () => back('dossier', { eleve: e.ID, insc: i.ID }) } }),
     h('div', { class: 'page-head' },
-      h('div', null, h('h1', null, `Bilans · ${nomEleve(e)}`), h('div', { class: 'sub' }, `${v.Title} · `, phaseBadge(phaseInscription(i)))),
+      h('div', null, h('h1', null, `Bilans · ${nomEleve(e)}`), h('div', { class: 'sub' }, `${v.Title} · `, phaseBadge(phaseInscription(i), etatVolee(i) || undefined))),
       tabs),
     h('div', { class: 'cols-dossier' },
       h('div', { class: 'stack' },

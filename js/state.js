@@ -67,6 +67,13 @@ export function phaseInscription(i, date = refDate()) {
   return phaseOf(date, v);
 }
 
+/** Libellé quand l'inscription n'est pas dans sa volée à la date affichée : « volée terminée » ou « volée à venir ». */
+export function etatVolee(i, date = refDate()) {
+  const v = i && volee(i.VoleeID);
+  if (!v) return null;
+  return date > v.DateFin ? 'volée terminée' : date < v.DateDebut ? 'volée à venir' : null;
+}
+
 /* ---------- Identité (simulée en mode test) ---------- */
 export function moi() { return S.settings.moiId ? ens(S.settings.moiId) : null; }
 /** Coordination, ou personne non reconnue : voit tout (comme dans l'app Power Apps). */

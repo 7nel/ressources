@@ -1,4 +1,4 @@
-import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
+import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, etatVolee, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
 import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, seg, menu, levelLegend, propres } from '../ui.js';
 import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
@@ -377,7 +377,7 @@ export function render(params) {
   const head = h('header', { class: `page-head${phase ? ' ' + PHASE_CLASS[phase] : ''}` },
     h('div', null,
       h('h1', null, nomEleve(e), ' ', e.Statut !== 'Actif' ? badge(e.Statut, 'warn') : null),
-      h('div', { class: 'sub' }, i ? `${volee(i.VoleeID)?.Title} · ${i.Degre} · classe ${i.ClasseOrigine} · titulaire ${i.Titulaire}` : 'Aucune inscription', ' ', i && phaseBadge(phase))),
+      h('div', { class: 'sub' }, i ? `${volee(i.VoleeID)?.Title} · ${i.Degre} · classe ${i.ClasseOrigine} · titulaire ${i.Titulaire}` : 'Aucune inscription', ' ', i && phaseBadge(phase, etatVolee(i) || undefined))),
     h('div', { class: 'btn-row' },
       enCours && btn('+ Nouveau suivi', () => nav('saisie', { eleve: e.ID })),
       menu('Plus', [
@@ -401,7 +401,7 @@ export function render(params) {
     inscs.length > 1 && h('div', { class: 'chips', role: 'group', 'aria-label': 'Inscriptions' },
       inscs.map(x => h('button', { type: 'button', class: 'chip', 'aria-pressed': String(x.ID === i.ID), onClick: () => nav('dossier', { eleve: e.ID, insc: x.ID }) },
         volee(x.VoleeID)?.Title, h('span', { class: 'meta' }, `${x.Degre} · ${x.StatutInscription}`)))),
-    !enCours && notice(`Inscription ${i.StatutInscription.toLowerCase()} : dossier en lecture seule. Pour reprendre le suivi, ajoutez une nouvelle inscription (menu Plus).`, 'info'),
+    !enCours && notice(`Inscription ${i.StatutInscription.toLowerCase()} : le suivi est clos. Pour le reprendre, ajoutez une nouvelle inscription (menu Plus). Les bilans restent modifiables.`, 'info'),
     alerteSemaine.length ? notice(`Niveau 1 cette semaine, à discuter : ${alerteSemaine.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(', ')}.`, 'danger') : null,
     nRetenue ? notice(`Retenue du vendredi : ${retenueMinutes(nRetenue)} minutes (${nRetenue} devoir${nRetenue > 1 ? 's' : ''} non fait${nRetenue > 1 ? 's' : ''} cette semaine).`, 'warn') : null,
     syntheseCard(i),

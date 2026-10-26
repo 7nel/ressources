@@ -111,8 +111,8 @@ export function ctPair(c, t, labels, sm = true) {
   return h('span', { class: 'ct', title: desc, role: 'img', 'aria-label': desc },
     h('span', { class: 'k' }, 'C'), pastille(c, { sm }), h('span', { class: 'k' }, 'T'), pastille(t, { sm }));
 }
-export function phaseBadge(phase) {
-  if (!phase) return h('span', { class: 'badge neutral' }, 'hors volée');
+export function phaseBadge(phase, horsVolee = 'hors volée') {
+  if (!phase) return h('span', { class: 'badge neutral' }, horsVolee);
   return h('span', { class: `badge ${PHASE_CLASS[phase]}` }, phase);
 }
 export function badge(text, kind = 'neutral') { return h('span', { class: `badge ${kind}` }, text); }
