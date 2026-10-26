@@ -170,9 +170,9 @@ export function render(params) {
       draw();
     }
     const hint = {
-      formatif: 'Décompression : évaluation formative uniquement (réussi seul / avec aide / pas encore). Aucune note (R5).',
-      etayee: 'Remobilisation : note sur une tâche de niveau classe, avec l\'étayage apporté (R5).',
-      normale: 'Ré-exposition : note en conditions normales (R5).',
+      formatif: 'Décompression : évaluation formative uniquement (réussi seul / avec aide / pas encore). Aucune note.',
+      etayee: 'Remobilisation : note sur une tâche de niveau classe, avec l\'étayage apporté.',
+      normale: 'Ré-exposition : note en conditions normales.',
     }[mode];
     return card(`Évaluation · ${c.Title}`, { hint },
       h('div', { class: 'form', style: { marginBottom: '8px' } },

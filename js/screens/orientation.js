@@ -1,6 +1,6 @@
-import { S, nav, back, eleve, nomEleve, refDate, inscriptionCourante, refresh } from '../state.js';
+import { S, back, eleve, nomEleve, refDate, inscriptionCourante, refresh } from '../state.js';
 import { h, card, btn, field, select, input, textarea, badge, empty, modal, toast, notice } from '../ui.js';
-import { barreEleves } from '../voisins.js';
+import { enteteEleve } from '../voisins.js';
 import { fmtDate, sortBy, STATUTS_STAGE, TYPES_DOC, STATUTS_DOC } from '../domain.js';
 
 function editStage(e, s) {
@@ -57,8 +57,7 @@ export function render(params) {
   const kind = s => ({ Effectué: 'ok', Prévu: 'warn', Annulé: 'neutral', Demandé: 'neutral', Terminé: 'ok', 'En cours': 'warn', 'À faire': 'neutral' }[s] || 'neutral');
 
   return h('div', { class: 'page' },
-    h('button', { type: 'button', class: 'back', onClick: () => back('dossier', { eleve: e.ID }) }, '‹ Retour au dossier'),
-    barreEleves('orientation', e.ID, null, x => ({ eleve: x.ID })),
+    enteteEleve({ route: 'orientation', eleveId: e.ID, inscId: inscriptionCourante(e.ID)?.ID, params: x => ({ eleve: x.ID }), retour: { label: '‹ Retour au dossier', onClick: () => back('dossier', { eleve: e.ID }) } }),
     h('div', { class: 'page-head' },
       h('div', null, h('h1', null, `Orientation · ${nomEleve(e)}`),
         h('div', { class: 'sub' }, `${stages.length} stage${stages.length > 1 ? 's' : ''} (${done} effectué${done > 1 ? 's' : ''}) · ${docs.filter(d => d.Statut === 'Terminé').length}/${docs.length} documents terminés. Rattaché à l'élève : suit d'une volée à l'autre.`))),
@@ -76,5 +75,4 @@ export function render(params) {
             h('div', { class: 'title' }, d.TypeDoc + (d.Destinataire ? ` · ${d.Destinataire}` : '')),
             h('div', { class: 'meta' }, `mis à jour le ${fmtDate(d.DateMaj)}${d.Remarque ? ' · ' + d.Remarque : ''}`)),
           h('div', { class: 'end' }, badge(d.Statut, kind(d.Statut))))))) : empty('Aucun document.'))));
-  void nav;
 }

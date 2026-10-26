@@ -58,7 +58,7 @@ export function render(params) {
     }
 
     const hint = {
-      formatif: 'Décompression : formatif uniquement. Aucune note : l\'évaluation ne mesurerait que la fragilité (R5).',
+      formatif: 'Décompression : formatif uniquement. Aucune note : l\'évaluation ne mesurerait que la fragilité.',
       etayee: 'Remobilisation : note sur une tâche de niveau classe, travaillée avec soutien. Indiquez l\'étayage.',
       normale: 'Ré-exposition : note en conditions normales.',
     }[mode];

@@ -41,7 +41,7 @@ export function render() {
 
   return h('div', { class: 'page' },
     h('div', { class: 'page-head' },
-      h('div', null, h('h1', null, 'Élèves'), h('div', { class: 'sub' }, 'Un seul dossier par élève, jamais supprimé (R1).')),
+      h('div', null, h('h1', null, 'Élèves'), h('div', { class: 'sub' }, 'Un seul dossier par élève, jamais supprimé.')),
       btn('+ Nouvel élève', () => nav('inscription'))),
     card(null, {},
       h('div', { class: 'row', style: { alignItems: 'center', marginBottom: '8px' } },

@@ -35,7 +35,7 @@ export function render(params) {
     }
     if (bad) errs.push(`${bad} valeur${bad > 1 ? 's' : ''} hors échelle (questionnaires 1 à 5, boussole entier 1 à 4).`);
     if (Object.values(rec).every(v => v == null)) errs.push('Saisissez au moins un regard.');
-    if (moment.value !== 'Autre' && S.store.all('RS_CPS').some(c => c.InscriptionID === i.ID && c.Moment === moment.value)) errs.push(`Une passation « ${moment.value} » existe déjà pour cette inscription (R12).`);
+    if (moment.value !== 'Autre' && S.store.all('RS_CPS').some(c => c.InscriptionID === i.ID && c.Moment === moment.value)) errs.push(`Une passation « ${moment.value} » existe déjà pour cette inscription.`);
     if (!date.value) errs.push('Date obligatoire.');
     if (errs.length) { errBox.replaceChildren(notice(errs.join(' '), 'danger')); return; }
     const incomplets = REGARDS.filter(r => [1, 2, 3, 4, 5].some(d => rec[cpsKey(d, r.key)] == null)).map(r => r.label);

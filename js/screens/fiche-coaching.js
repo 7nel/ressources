@@ -2,7 +2,7 @@
 import { S, back, insc, eleve, volee, cours, nomEleve } from '../state.js';
 import { h, btn, notice, card } from '../ui.js';
 import { bilanDe } from '../queries.js';
-import { barreEleves } from '../voisins.js';
+import { enteteEleve } from '../voisins.js';
 import { modeleFiche } from '../fiche-coaching-modele.js';
 
 const LIB_TRAVAILLE = 'Ce qui a été travaillé / notion ciblée', LIB_PROGRES = 'Progrès · point de vigilance';
@@ -45,10 +45,8 @@ export function render(params) {
     [[LIB_TRAVAILLE, w.travaille], [LIB_PROGRES, w.progres]].map(([lib, textes]) => [h('dt', null, lib), h('dd', null, textes.length ? textes.map(t => h('div', null, t)) : valeur(''))]))));
 
   return h('div', { class: 'page' },
-    h('div', { class: 'btn-row no-print' },
-      h('button', { type: 'button', class: 'back', onClick: () => back('dossier', { eleve: e.ID }) }, '‹ Retour au dossier'),
-      btn('Imprimer', () => window.print(), 'secondary')),
-    h('div', { class: 'no-print' }, barreEleves('coaching', e.ID, i.ID, (x, xi) => ({ insc: xi.ID }))),
+    enteteEleve({ route: 'coaching', eleveId: e.ID, inscId: i.ID, params: (x, xi) => ({ insc: xi.ID }), retour: { label: '‹ Retour au dossier', onClick: () => back('dossier', { eleve: e.ID }) } }),
+    h('div', { class: 'btn-row no-print' }, btn('Imprimer', () => window.print(), 'secondary')),
     h('div', null, h('h1', null, `Coaching · ${nomEleve(e)}`), h('div', { class: 'sub muted' }, `${v.Title} · ${i.Degre} · classe ${i.ClasseOrigine} · titulaire ${i.Titulaire}`)),
     card('Bilans de coordination', {}, h('div', { class: 'scroll-x coach-tableau' }, tableauBilans), parEntreeBilans),
     card('Suivi hebdomadaire', { hint: `Tiré des suivis du cours ${[...coachingIds].map(id => cours(id)?.Title).join(', ')}.` }, h('div', { class: 'scroll-x coach-tableau' }, tableauHebdo), parEntreeHebdo));

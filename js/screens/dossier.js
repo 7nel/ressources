@@ -2,7 +2,7 @@ import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionC
 import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, seg, menu, levelLegend, propres } from '../ui.js';
 import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
-import { barreEleves } from '../voisins.js';
+import { enteteEleve } from '../voisins.js';
 
 // Affichage du dossier : revient au défaut à chaque ouverture (changement d'adresse), pas lors d'un simple rafraîchissement.
 const DEFAUT = () => ({ showAll: false, chrono: false, graph: true, table: true, groupes: [], aide: false, cours: [], menuCours: false });
@@ -376,7 +376,6 @@ export function render(params) {
 
   const head = h('header', { class: `page-head${phase ? ' ' + PHASE_CLASS[phase] : ''}` },
     h('div', null,
-      h('button', { type: 'button', class: 'back', onClick: () => back('eleves') }, '‹ Retour'),
       h('h1', null, nomEleve(e), ' ', e.Statut !== 'Actif' ? badge(e.Statut, 'warn') : null),
       h('div', { class: 'sub' }, i ? `${volee(i.VoleeID)?.Title} · ${i.Degre} · classe ${i.ClasseOrigine} · titulaire ${i.Titulaire}` : 'Aucune inscription', ' ', i && phaseBadge(phase))),
     h('div', { class: 'btn-row' },
@@ -391,14 +390,14 @@ export function render(params) {
         enCours && { label: 'Clore l\'inscription…', danger: true, onClick: () => closeInscription(i, e) },
       ])));
 
-  if (!i) return h('div', { class: 'page' }, head, card(null, {}, empty('Cet élève n\'a encore aucune inscription.')));
+  if (!i) return h('div', { class: 'page' }, h('div', { class: 'eleve-nav no-print' }, h('button', { type: 'button', class: 'back', onClick: () => back('eleves') }, '‹ Liste des élèves')), head, card(null, {}, empty('Cet élève n\'a encore aucune inscription.')));
 
   const alerteSemaine = S.store.where('RS_Suivis', s => s.InscriptionID === i.ID && s.SemaineCle === sk && (s.Comportement === 1 || s.Travail === 1));
   const nRetenue = S.store.where('RS_Devoirs', d => d.InscriptionID === i.ID && d.SemaineCle === sk && !d.SansConsequence).length;
 
   return h('div', { class: 'page' },
+    enteteEleve({ route: 'dossier', eleveId: e.ID, inscId: i.ID, params: (x, xi) => ({ eleve: x.ID, insc: xi.ID }), retour: { label: '‹ Liste des élèves', onClick: () => back('eleves') } }),
     head,
-    barreEleves('dossier', e.ID, i.ID, (x, xi) => ({ eleve: x.ID, insc: xi.ID })),
     inscs.length > 1 && h('div', { class: 'chips', role: 'group', 'aria-label': 'Inscriptions' },
       inscs.map(x => h('button', { type: 'button', class: 'chip', 'aria-pressed': String(x.ID === i.ID), onClick: () => nav('dossier', { eleve: e.ID, insc: x.ID }) },
         volee(x.VoleeID)?.Title, h('span', { class: 'meta' }, `${x.Degre} · ${x.StatutInscription}`)))),

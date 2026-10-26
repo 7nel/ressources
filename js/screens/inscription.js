@@ -20,7 +20,7 @@ export function render(params) {
     const matches = S.store.where('RS_Eleves', e => e.CleDoublon === key);
     if (!matches.length) { dupBox.replaceChildren(); return; }
     dupBox.replaceChildren(h('div', { class: 'notice warn' },
-      h('p', null, h('strong', null, 'Attention : un dossier existe déjà avec ce nom (R2).')),
+      h('p', null, h('strong', null, 'Attention : un dossier existe déjà avec ce nom.')),
       ...matches.map(e => h('div', { class: 'btn-row', style: { marginBottom: '6px' } },
         h('span', null, `${nomEleve(e)} · ${e.Statut}`),
         btn('Utiliser ce dossier', () => nav('inscription', { eleve: e.ID }), 'small'))),
@@ -78,7 +78,7 @@ export function render(params) {
   return h('div', { class: 'page' },
     h('button', { type: 'button', class: 'back', onClick: () => back('eleves') }, '‹ Retour'),
     h('h1', null, editing ? 'Modifier l\'inscription' : e0 ? `Nouvelle inscription · ${nomEleve(e0)}` : 'Nouvel élève et inscription'),
-    !e0 && card('Élève', { cls: 'narrow', hint: 'Seuls le nom et le prénom sont enregistrés. Aucune donnée médicale, familiale ni de contact (R13).' },
+    !e0 && card('Élève', { cls: 'narrow', hint: 'Seuls le nom et le prénom sont enregistrés. Aucune donnée médicale, familiale ni de contact.' },
       h('div', { class: 'form' },
         h('div', { class: 'row' }, field('Nom', nom), field('Prénom', prenom)),
         dupBox)),

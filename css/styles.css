@@ -325,10 +325,11 @@ button.item { min-height: 44px; }
 .item[aria-expanded="true"] .apercu { display: none; }
 .item .apercu { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .empty { color: var(--muted); font-style: italic; padding: 8px 2px; }
-.voisins { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 4px 0; }
-.voisins .voisin, .voisins .voisin-vide { min-width: 0; max-width: 40%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.eleve-nav { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
+@media (min-width: 761px) { .eleve-nav { position: sticky; top: 0; z-index: 20; background: var(--bg); padding: 6px 0; margin: -6px 0; } }
+.voisins { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.voisins .voisin { min-height: 44px; font-size: .95rem; max-width: 100%; overflow-wrap: anywhere; text-align: center; }
 .voisins-rang { font-size: .875rem; }
-@media print { .voisins { display: none; } }
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
 .chip { border: 1.5px solid var(--line-ctl); background: var(--card); border-radius: var(--r-ctl); padding: 6px 12px; cursor: pointer; text-align: left; }
 .chip[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); } /* sélection : bordure seulement, pas de fond */

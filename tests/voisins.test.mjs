@@ -26,3 +26,10 @@ test('voisins : pas de bouclage aux extrémités', () => {
 test('voisins : sans inscription fournie, prend celle de l\'élève', () => {
   assert.equal(voisins(3, null).total, 3);
 });
+
+test('voisins : volée affichée et élève hors de la liste', () => {
+  eleves.push({ ID: 5, Nom: 'Ancien', Prenom: 'Max' });
+  inscs.push({ ID: 15, EleveID: 5, VoleeID: 5, StatutInscription: 'Interrompue' });
+  const v = voisins(5, 15);
+  assert.equal(v.horsListe, true); assert.equal(v.prev, null); assert.equal(v.next, null);
+});
