@@ -1,5 +1,6 @@
 import { S, nav, back, eleve, nomEleve, refDate, inscriptionCourante, refresh } from '../state.js';
 import { h, card, btn, field, select, input, textarea, badge, empty, modal, toast, notice } from '../ui.js';
+import { barreEleves } from '../voisins.js';
 import { fmtDate, sortBy, STATUTS_STAGE, TYPES_DOC, STATUTS_DOC } from '../domain.js';
 
 function editStage(e, s) {
@@ -57,6 +58,7 @@ export function render(params) {
 
   return h('div', { class: 'page' },
     h('button', { type: 'button', class: 'back', onClick: () => back('dossier', { eleve: e.ID }) }, '‹ Retour au dossier'),
+    barreEleves('orientation', e.ID, null, x => ({ eleve: x.ID })),
     h('div', { class: 'page-head' },
       h('div', null, h('h1', null, `Orientation · ${nomEleve(e)}`),
         h('div', { class: 'sub' }, `${stages.length} stage${stages.length > 1 ? 's' : ''} (${done} effectué${done > 1 ? 's' : ''}) · ${docs.filter(d => d.Statut === 'Terminé').length}/${docs.length} documents terminés. Rattaché à l'élève : suit d'une volée à l'autre.`))),

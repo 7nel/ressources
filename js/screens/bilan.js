@@ -2,6 +2,7 @@ import { S, nav, back, insc, eleve, volee, nomEleve, refDate, phaseInscription }
 import { h, card, btn, field, input, textarea, checkbox, notice, toast, empty, phaseBadge } from '../ui.js';
 import { DOMAINES, TYPES_BILAN, fmtDate } from '../domain.js';
 import { bilanDe, preuves } from '../queries.js';
+import { barreEleves } from '../voisins.js';
 
 const KEY = { 'Mise en route': 'MR', 'Intermédiaire': 'INT', 'Final': 'FIN' };
 
@@ -84,6 +85,7 @@ export function render(params) {
 
   return h('div', { class: 'page' },
     h('button', { type: 'button', class: 'back', onClick: () => back('dossier', { eleve: e.ID, insc: i.ID }) }, '‹ Retour au dossier'),
+    barreEleves('bilan', e.ID, i.ID, (x, xi) => ({ insc: xi.ID, type: params.type })),
     h('div', { class: 'page-head' },
       h('div', null, h('h1', null, `Bilans · ${nomEleve(e)}`), h('div', { class: 'sub' }, `${v.Title} · `, phaseBadge(phaseInscription(i)))),
       tabs),

@@ -1,5 +1,6 @@
 import { S, nav, back, eleve, insc, volee, nomEleve, inscriptionCourante, refresh } from '../state.js';
 import { h, card, btn, badge, empty, notice, esc, checkbox } from '../ui.js';
+import { barreEleves } from '../voisins.js';
 import { DOMAINES, DOMAINES_COURTS, REGARDS, cpsKey, scaleBoussole, SEUIL_ECART, fmtDate, sortBy } from '../domain.js';
 
 const state = { moyenne: false };
@@ -55,6 +56,7 @@ export function render(params) {
 
   const head = h('div', null,
     h('button', { type: 'button', class: 'back', onClick: () => back('dossier', { eleve: e.ID }) }, '‹ Retour au dossier'),
+    barreEleves('cps', e.ID, i?.ID, (x, xi) => ({ eleve: x.ID, insc: xi.ID })),
     h('div', { class: 'page-head' },
       h('div', null, h('h1', null, `CPS · ${nomEleve(e)}`), h('div', { class: 'sub' }, 'Compétences psychosociales : 5 domaines, 4 regards côte à côte, sans moyenne globale (R12).')),
       h('div', { class: 'btn-row' },
