@@ -1,4 +1,4 @@
-import { S, back, eleve, nomEleve, refDate, inscriptionCourante, refresh } from '../state.js';
+import { S, nav, back, eleve, nomEleve, refDate, inscriptionCourante, refresh } from '../state.js';
 import { h, card, btn, field, select, input, textarea, badge, empty, modal, toast, notice } from '../ui.js';
 import { enteteEleve } from '../voisins.js';
 import { fmtDate, sortBy, STATUTS_STAGE, TYPES_DOC, STATUTS_DOC } from '../domain.js';
@@ -50,7 +50,7 @@ function editDoc(e, d) {
 
 export function render(params) {
   const e = eleve(params.eleve);
-  if (!e) return h('div', { class: 'page' }, notice('Élève introuvable.', 'danger'));
+  if (!e) return h('div', { class: 'page' }, notice('Élève introuvable.', 'danger'), btn('Retour à la liste', () => nav('eleves'), 'secondary'));
   const stages = sortBy(S.store.where('RS_Stages', s => s.EleveID === e.ID), '-DateDebut');
   const docs = sortBy(S.store.where('RS_DocsOrientation', d => d.EleveID === e.ID), 'TypeDoc');
   const done = stages.filter(s => s.Statut === 'Effectué').length;

@@ -49,7 +49,7 @@ export function radarSVG(p, { moyenne = false } = {}) {
 
 export function render(params) {
   const e = eleve(params.eleve);
-  if (!e) return h('div', { class: 'page' }, notice('Élève introuvable.', 'danger'));
+  if (!e) return h('div', { class: 'page' }, notice('Élève introuvable.', 'danger'), btn('Retour à la liste', () => nav('eleves'), 'secondary'));
   const passations = sortBy(S.store.where('RS_CPS', c => c.EleveID === e.ID), 'DatePassation');
   const cur = (params.id && passations.find(p => p.ID === Number(params.id))) || passations.at(-1);
   const i = params.insc ? insc(params.insc) : inscriptionCourante(e.ID);

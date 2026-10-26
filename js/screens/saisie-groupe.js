@@ -35,7 +35,7 @@ export function render(params) {
     inscs.sort((a, b) => a.e.Nom.localeCompare(b.e.Nom, 'fr'));
     const coursOpts = [...mine, ...coursActifs().filter(x => !mine.includes(x))];
 
-    const controls = card(null, {}, h('div', { class: 'form' },
+    const controls = card(null, { cls: 'grp-controls' }, h('div', { class: 'form' },
       h('div', { class: 'row' },
         field('Cours', select([{ value: '', label: 'Choisir…' }, ...coursOpts.map(x => ({ value: x.ID, label: x.Title + (mine.includes(x) ? ' (mon cours)' : '') }))], state.coursId || '', {
           onChange: e => { state.coursId = e.target.value ? Number(e.target.value) : null; rows = {}; draw(); },

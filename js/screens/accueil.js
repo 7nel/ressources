@@ -21,8 +21,9 @@ const REGROUPE = {
   'Devoirs ouverts': n => `${n} élèves avec des devoirs ouverts`,
   'Devoir à contrôler': n => `${n} devoirs à contrôler`,
   'Évaluation à saisir': n => `${n} évaluations à saisir`,
-  'Ma tâche · en retard': n => `Mes tâches en retard (${n})`,
-  'Ma tâche': n => `Mes tâches (${n})`,
+  // sous l'intertitre « Mes tâches » : pas de répétition du mot
+  'Ma tâche · en retard': n => `${n} en retard`,
+  'Ma tâche': n => `${n} non terminée${n > 1 ? 's' : ''}`,
   'Action en retard': n => `${n} actions en retard`,
   'Tâche de l\'équipe en retard': n => `${n} tâches de l'équipe en retard`,
   'Tâche de l\'équipe': n => `${n} tâches de l'équipe cette semaine`,
@@ -61,6 +62,21 @@ function tile(num, mot, label, { alert = false, onClick } = {}) {
   const t = h(onClick ? 'button' : 'div', { class: `tile ${alert && num > 0 ? 'alert' : ''}`, type: onClick ? 'button' : null, onClick },
     h('div', { class: 'num' }, num, h('span', { class: 'mot' }, mot)), h('div', { class: 'lab' }, label));
   return t;
+}
+
+/** Texte d'aide d'une carte : replié derrière un « ? », pour que le contenu passe avant le mode d'emploi. */
+function aideRepliable(c, label) {
+  const hint = c.querySelector(':scope > .hint');
+  const head = c.querySelector(':scope > .card-head');
+  if (!hint || !head) return c;
+  hint.hidden = true;
+  hint.id = `aide-${label.toLowerCase().replace(/\W+/g, '-')}`;
+  const b = h('button', { type: 'button', class: 'aide-rond', 'aria-expanded': 'false', 'aria-controls': hint.id, 'aria-label': `Comment est calculé « ${label} »`, title: 'Comment ça se calcule', onClick: () => {
+    hint.hidden = !hint.hidden;
+    b.setAttribute('aria-expanded', String(!hint.hidden));
+  } }, '?');
+  (head.querySelector('.btn-row') || head.appendChild(h('div', { class: 'btn-row' }))).append(b);
+  return c;
 }
 
 /** Amène une zone de l'accueil à l'écran et y place le focus (pour le clavier et les lecteurs d'écran). */
@@ -200,10 +216,10 @@ export function render() {
       h('div', { class: 'duo' },
         h('div', { class: 'num' }, c.nd, h('span', { class: 'mot' }, pl(c.nd, 'devoir à rendre', 'devoirs à rendre'))),
         h('div', { class: 'num' }, c.ne, h('span', { class: 'mot' }, pl(c.ne, 'évaluation', 'évaluations')))));
-    return h('button', { type: 'button', class: 'tile tile-duo tile-large', title: 'Voir les devoirs et évaluations à venir', onClick: () => nav('travaux') },
+    return h('button', { type: 'button', class: `tile tile-duo tile-large ${tous.n ? '' : 'tile-vide'}`, title: 'Voir les devoirs et évaluations à venir', onClick: () => nav('travaux') },
       tous.n
         ? [miens && ligne('Mes cours', miens), ligne(miens ? 'Tous les cours' : null, tous)]
-        : h('div', { class: 'num' }, '–'),
+        : null,
       h('div', { class: 'lab' }, tous.n ? `pour la ${sem}` : `Rien de prévu pour la ${sem}`));
   };
   // Deux signaux à suivre dans une même tuile : élèves sans suivi et élèves au niveau 1.
@@ -223,14 +239,14 @@ export function render() {
 
   /* ---- Alertes ---- */
   const L = labels();
-  const alertCard = card('Niveau 1 cette semaine', { id: 'carte-niveau1', hint: 'Un niveau 1 en comportement ou en travail cette semaine. Indicateur de tendance, à discuter.' },
+  const alertCard = aideRepliable(card('Niveau 1 cette semaine', { id: 'carte-niveau1', hint: 'Un niveau 1 en comportement ou en travail cette semaine. Indicateur de tendance, à discuter.' },
     al.length ? h('ul', { class: 'list' }, al.map(a => h('li', null,
       h('button', { type: 'button', class: 'item', onClick: () => nav('dossier', { eleve: a.eleveId }) },
         pastille(1),
         h('div', { class: 'main' },
           h('div', { class: 'title' }, nomEleve(eleve(a.eleveId))),
           h('div', { class: 'meta' }, a.suivis.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(' · '))),
-        h('div', { class: 'end' }, ctPair(a.suivis[0].Comportement, a.suivis[0].Travail, L)))))) : empty('Aucun niveau 1 cette semaine.'));
+        h('div', { class: 'end' }, ctPair(a.suivis[0].Comportement, a.suivis[0].Travail, L)))))) : empty('Aucun niveau 1 cette semaine.')), 'Niveau 1 cette semaine');
 
   /* ---- Ce qui va mieux ---- */
   let progresCard = null;
@@ -247,20 +263,20 @@ export function render() {
     const toutVoir = lignes.length > NB_PROGRES
       ? btn(`Voir tous (${lignes.length})`, e => { lignes.forEach(li => { li.hidden = false; }); e.currentTarget.remove(); }, 'secondary small')
       : null;
-    progresCard = card('Ce qui va mieux', { hint: 'Moyenne hebdomadaire de C ou de T en hausse d\'au moins 0,5 dans une famille de cours, ou action réalisée cette semaine. Indicateur de tendance, à discuter.' },
+    progresCard = aideRepliable(card('Ce qui va mieux', { hint: 'Moyenne hebdomadaire de C ou de T en hausse d\'au moins 0,5 dans une famille de cours, ou action réalisée cette semaine. Indicateur de tendance, à discuter.' },
       lignes.length ? h('ul', { class: 'list' }, lignes) : empty('Rien à signaler cette semaine.'),
-      toutVoir);
+      toutVoir), 'Ce qui va mieux');
   }
 
   /* ---- Retenue du vendredi ---- */
-  const retenueCard = card('Retenue du vendredi', { id: 'carte-retenue', hint: 'Durée = min(60 ; 15 + 5 × (n − 1)) minutes, n = devoirs non faits de la semaine. Pas de retenue en décompression.' },
+  const retenueCard = aideRepliable(card('Retenue du vendredi', { id: 'carte-retenue', hint: 'Quinze minutes pour le premier devoir non fait de la semaine, cinq de plus par devoir suivant, soixante au maximum. Pas de retenue en décompression.' },
     phaseNow === 'Décompression' ? notice('Décompression : devoirs enregistrés sans conséquence.', 'info') : null,
     col.length ? h('ul', { class: 'list' }, col.map(c => h('li', null,
       h('button', { type: 'button', class: 'item', onClick: () => nav('dossier', { eleve: c.eleveId }) },
         h('div', { class: 'main' },
           h('div', { class: 'title' }, nomEleve(eleve(c.eleveId))),
           h('div', { class: 'meta' }, `${c.n} devoir${c.n > 1 ? 's' : ''} : ${c.devoirs.map(d => cours(d.CoursID)?.Title).join(', ')}`)),
-        h('div', { class: 'end' }, h('strong', null, `${c.minutes} min`)))))) : empty('Pas de retenue cette semaine.'));
+        h('div', { class: 'end' }, h('strong', null, `${c.minutes} min`)))))) : empty('Pas de retenue cette semaine.')), 'Retenue du vendredi');
 
   /* ---- À faire ---- */
   const todo = aFaire(date, v, { restreint, coursIds });
