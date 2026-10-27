@@ -345,13 +345,24 @@ button.item { min-height: 44px; }
 .chip[aria-pressed="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); } /* sélection : bordure seulement, pas de fond */
 .chip .meta { font-size: .875rem; color: var(--muted); display: block; }
 
-/* Suivi : cotations de la semaine et actions en cours, une ligne par élève */
-.suivi-cell { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+/* Suivi : une ligne par élève, une colonne par cours ; actions séparées par un filet */
+.suivi-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px 18px; }
+.suivi-mini { display: grid; gap: 2px; align-content: start; }
+.suivi-mini-nom { font-weight: 700; }
+.suivi-mini svg { width: 100%; height: auto; display: block; }
+.suivi-cell { display: flex; flex-direction: column; gap: 4px; }
 .suivi-it { display: inline-flex; align-items: center; gap: 8px; }
 .suivi-cours { font-size: .875rem; color: var(--muted); }
+.suivi-vide { color: var(--muted); }
+.suivi-reperes { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.suivi-tbl tbody th { position: sticky; left: 0; background: var(--card); }
+.suivi-tbl tbody th .back { font-weight: 700; color: var(--ink); text-align: left; }
+.suivi-col-actions { border-left: 1px solid var(--line-strong); min-width: 260px; }
 .suivi-actions { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.tbl tbody th .back { font-weight: 700; color: var(--ink); text-align: left; }
-.tbl .suivi-actions .back { text-align: left; }
+.suivi-actions li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.suivi-actions .back { text-align: left; }
+.suivi-ech { font-family: var(--num); font-size: .875rem; min-width: 3.2rem; }
+.suivi-actions .retard .suivi-ech { color: var(--danger); font-weight: 700; }
 table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .tbl th, .tbl td { padding: 8px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; }
 .tbl th { font-size: .875rem; color: var(--ink); font-weight: 700; border-bottom: 2px solid var(--rule); }
