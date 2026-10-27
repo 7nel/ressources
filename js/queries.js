@@ -159,10 +159,7 @@ export function aFaire(date, v, { restreint, coursIds }) {
     }
   }
   // Mes tâches en tête : toutes celles qui me sont attribuées et pas terminées, par échéance (sans échéance : à la fin).
-  // Tâches d'exemple : visibles seulement quand on regarde la volée d'exemple (sinon elles resteraient « en retard » pour toujours)
-  const v0 = v;
-  const visible = t => !String(t.UID || '').startsWith('seed-') || (v0 && t.Echeance && v0.DateDebut <= t.Echeance && t.Echeance <= v0.DateFin);
-  const mesTaches = st().where('RS_Taches', t => t.Statut !== 'Terminée' && m && t.Responsable === m.Title && visible(t))
+  const mesTaches = st().where('RS_Taches', t => t.Statut !== 'Terminée' && m && t.Responsable === m.Title)
     .sort((a, b) => (a.Echeance || '9999').localeCompare(b.Echeance || '9999'));
   for (const t of mesTaches) {
     const late = t.Echeance && t.Echeance < date;

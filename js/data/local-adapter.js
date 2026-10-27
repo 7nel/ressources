@@ -84,7 +84,7 @@ export class LocalAdapter {
     const v = validateImport(json);
     const actuel = countLists(this.db.lists);
     if (v.total === 0 && totalOf(actuel) > 0) {
-      throw new ImportError('Ce fichier est valide mais ne contient aucune donnée : il effacerait toutes vos données. Import refusé. Pour repartir des données d\'exemple, utilisez « Recharger les données d\'exemple ».', 'vide');
+      throw new ImportError('Ce fichier est valide mais ne contient aucune donnée : il effacerait toutes vos données. Import refusé. Pour repartir d\'une base de départ, utilisez « Réinitialiser les données ».', 'vide');
     }
     return { fichier: v.counts, actuel, total: v.total, absentes: v.absentes, lists: v.lists };
   }
@@ -113,8 +113,8 @@ export class LocalAdapter {
       const byUid = new Map(local.map(r => [r.UID, r]));
       for (const src of incoming[list] || []) {
         if (!src || !src.UID) continue;
-        // Données d'exemple : générées par le code, identiques pour tous. On ne les fusionne pas
-        // (un fichier d'une version précédente ne doit pas les ramener) ; on garde seulement la correspondance des ID.
+        // Base de départ (enseignant·es, cours, volées) : générée par le code, identique pour tous. On ne la fusionne pas
+        // (un fichier d'une version précédente ne doit pas la ramener) ; on garde seulement la correspondance des ID.
         if (String(src.UID).startsWith('seed-')) {
           const ex = byUid.get(src.UID);
           if (ex) idMap[list].set(src.ID, ex.ID);

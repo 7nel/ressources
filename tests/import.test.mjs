@@ -5,11 +5,16 @@ import assert from 'node:assert/strict';
 import { LocalAdapter } from '../js/data/local-adapter.js';
 import { Store, LISTS } from '../js/data/store.js';
 import { ImportError } from '../js/data/import-validation.js';
-import { CONFIG } from '../js/config.js';
 
-CONFIG.DONNEES_EXEMPLE = true; // ces tests ont besoin d'une base non vide ; l'app livrée démarre sans données d'exemple
-
-const neuf = async () => { const a = new LocalAdapter({ memoryOnly: true }); const s = new Store(a); await s.init(); return { a, s }; };
+// Base de test : base de départ de l'app (sans élève) + quelques enregistrements fictifs minimaux.
+const neuf = async () => {
+  const a = new LocalAdapter({ memoryOnly: true }); const s = new Store(a); await s.init();
+  for (const n of ['A', 'B', 'C']) await s.add('RS_Eleves', { Title: `Élève ${n}` });
+  for (let k = 0; k < 4; k++) await s.add('RS_Suivis', { Title: `Suivi ${k}` });
+  for (let k = 0; k < 5; k++) await s.add('RS_Evaluations', { Title: `Évaluation ${k}` });
+  await s.add('RS_Taches', { Title: 'Tâche' });
+  return { a, s };
+};
 const instantane = a => JSON.stringify(a.db);
 const refuse = async (s, a, texte, code) => {
   const avant = instantane(a);
@@ -18,10 +23,10 @@ const refuse = async (s, a, texte, code) => {
   assert.equal(JSON.stringify(s.cache.RS_Eleves), JSON.stringify(a.db.lists.RS_Eleves), 'le cache doit rester aligné');
 };
 
-test('base de départ : données d\'exemple présentes', async () => {
-  const { a } = await neuf();
-  assert.equal(a.db.lists.RS_Eleves.length, 6);
-  assert.equal(a.db.lists.RS_Evaluations.length, 330);
+test('base de départ : enseignant·es, cours et volées, aucun élève', async () => {
+  const a = new LocalAdapter({ memoryOnly: true }); const s = new Store(a); await s.init();
+  assert.equal(a.db.lists.RS_Eleves.length, 0);
+  assert.ok(a.db.lists.RS_Enseignants.length > 0 && a.db.lists.RS_Cours.length > 0 && a.db.lists.RS_Volees.length > 0);
 });
 
 test('{"lists":{}} est refusé (listes essentielles absentes)', async () => {
@@ -66,7 +71,7 @@ test('aperçu : ne modifie rien et rend les décomptes', async () => {
   const { a, s } = await neuf();
   const avant = instantane(a);
   const p = s.previewImport(JSON.stringify({ lists: a.db.lists }));
-  assert.equal(p.fichier.RS_Eleves, 6); assert.equal(p.actuel.RS_Evaluations, 330);
+  assert.equal(p.fichier.RS_Eleves, 3); assert.equal(p.actuel.RS_Evaluations, 5);
   assert.equal(instantane(a), avant);
 });
 
@@ -80,7 +85,7 @@ test('import valide : export puis restauration à l\'identique, et marque « à 
   assert.equal(marque, 1);
   assert.ok(autre.s.all('RS_Taches').some(t => t.Title === 'ALLER-RETOUR'));
   assert.deepEqual(autre.a.db.lists, JSON.parse(export1).lists);
-  assert.equal(autre.s.all('RS_Eleves').length, 6);
+  assert.equal(autre.s.all('RS_Eleves').length, 3);
 });
 
 test('listes inconnues du fichier conservées ; listes optionnelles absentes créées vides', async () => {

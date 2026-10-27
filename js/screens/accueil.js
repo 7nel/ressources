@@ -1,8 +1,6 @@
 import { S, isSandbox, refDate, setDateCourante, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
 import { h, card, btn, badge, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
 import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, mondayOf, addDays, weeksOfVolee, nextVolee, lastVolee } from '../domain.js';
-import { CONFIG } from '../config.js';
-const DATE_EXEMPLE = '2026-06-17'; // mercredi de la dernière semaine de la volée d'exemple
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
 import { retenues, alertes, progres, sansSuivi, aFaire, travauxSemaine, aCloturer, aPreparer } from '../queries.js';
 
@@ -120,8 +118,6 @@ function listeGroupee(items, prefixe) {
 
 export function render() {
   const date = refDate();
-  // Volée d'exemple (élèves fictifs archivés) : permet de voir l'accueil « en vrai » en dehors des volées.
-  const exemple = CONFIG.DONNEES_EXEMPLE ? volees().find(v => v.Title === '2025-26 V5') : null;
   const sk = semaineCle(date);
   const v = voleeAt(date);
   const m = moi();
@@ -144,8 +140,7 @@ export function render() {
         h('button', { type: 'button', class: 'date-btn', onClick: openPicker, title: 'Choisir une autre date' },
           `${fmtDateLong(date)} · semaine ${sk % 100}`),
         picker,
-        !isToday && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(null); nav('accueil'); } }, 'revenir à aujourd\'hui'),
-        exemple && !(exemple.DateDebut <= date && date <= exemple.DateFin) && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(DATE_EXEMPLE); nav('accueil'); } }, 'voir la volée d\'exemple'))),
+        !isToday && h('button', { type: 'button', class: 'back', onClick: () => { setDateCourante(null); nav('accueil'); } }, 'revenir à aujourd\'hui'))),
     h('div', { class: 'btn-row' },
       !isCoord() && mine.length ? btn(S.settings.vueTout ? 'Ma vue' : 'Tout voir', () => { S.settings.vueTout = !S.settings.vueTout; saveSettings(); nav('accueil'); }, 'secondary') : null,
       mine.map(c => btn(c.Title, () => nav(c.EstCoaching ? 'saisie' : 'groupe', { cours: c.ID }), 'secondary', { title: 'Ouvre la saisie préréglée pour ce cours' })),

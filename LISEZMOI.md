@@ -20,8 +20,7 @@ Pour mettre à jour : **Add file → Upload files** à nouveau, avec les fichier
 ## 2. Ce que les collègues doivent savoir
 
 - Chacun·e choisit **ses initiales** au premier lancement (PL, ME, CM, ET, DAH, OG, DA, VO, XG) : cela simule la connexion Microsoft et affiche ses propres cours. PL et ME ont le rôle coordination.
-- **Données d'exemple** : désactivées (`DONNEES_EXEMPLE: false` dans `js/config.js`). L'app démarre sans élève. Pour retrouver les six élèves fictifs archivés de la volée terminée 2025-26 V5, passer l'option à `true`, puis vider les données du navigateur.
-- **Date** : l'app s'ouvre à la date du jour ; un clic sur la date de l'accueil permet d'en choisir une autre. Avec les données d'exemple activées, « voir la volée d'exemple » ouvre la semaine du 15.06.2026.
+- **Date** : l'app s'ouvre à la date du jour ; un clic sur la date de l'accueil permet d'en choisir une autre.
 - **Échange avec l'équipe** (menu de gauche) : voir la section 2 bis.
 - **Passer d'un élève à l'autre** : depuis le dossier, l'orientation, le coaching, les CPS et les bilans, la barre en haut (« ‹ Prénom Nom   2 sur 6 · volée   Prénom Nom › ») ouvre l'élève voisin sur le même écran, par ordre alphabétique de la volée. Raccourcis : **Alt+Maj+←** et **Alt+Maj+→** (inactifs dans un champ de saisie). Si un formulaire est modifié, l'app demande d'enregistrer ou non avant de changer d'élève.
 - **Profil** : clic sur ses initiales en bas du menu (ou en haut sur téléphone). **Mode clair / sombre** : bouton lune / soleil à côté.
@@ -70,7 +69,7 @@ cliquer sur « Sauvegarder » pour réessayer. Les changements d'état sont anno
 
 **Réglages > Données de ce navigateur** : « Remplacer par un fichier… » vérifie le fichier en entier avant de toucher aux données
 (un fichier invalide, incomplet ou vide est refusé, vos données restent intactes) et demande confirmation en indiquant ce que contient le fichier.
-« Recharger les données d'exemple » remplace tout par les données fictives ; avec `DONNEES_EXEMPLE: false`, cela repart d'une base sans élève.
+« Réinitialiser les données » remplace tout par la base de départ : enseignant·es, cours et volées, sans aucun élève.
 
 Règles de fusion : rien n'est jamais supprimé ; si deux personnes modifient le même élément, la modification la plus récente l'emporte.
 **Aucune copie dans le navigateur** (réglage « Ne rien garder dans ce navigateur », activé par défaut) :
