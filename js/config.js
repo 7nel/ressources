@@ -14,7 +14,7 @@ export const CONFIG = {
   },
   // true : six élèves fictifs d'exemple, ARCHIVÉS, dans la volée terminée 2025-26 V5
   // (profils variés, notes dans toutes les branches, bilans et CPS complets).
-  DONNEES_EXEMPLE: true,
+  DONNEES_EXEMPLE: false,
   // Questionnaires CPS dans Microsoft Forms (compte edu.vs.ch). Valeurs tirées des liens « préremplis » :
   // id = paramètre id= du lien ; qCode / qMoment = noms des paramètres r… des questions Code et Moment.
   // Si un Forms est recréé, ses identifiants changent : recopier ici les valeurs du nouveau lien prérempli.

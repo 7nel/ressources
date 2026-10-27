@@ -5,6 +5,9 @@ import assert from 'node:assert/strict';
 import { LocalAdapter } from '../js/data/local-adapter.js';
 import { Store, LISTS } from '../js/data/store.js';
 import { ImportError } from '../js/data/import-validation.js';
+import { CONFIG } from '../js/config.js';
+
+CONFIG.DONNEES_EXEMPLE = true; // ces tests ont besoin d'une base non vide ; l'app livrée démarre sans données d'exemple
 
 const neuf = async () => { const a = new LocalAdapter({ memoryOnly: true }); const s = new Store(a); await s.init(); return { a, s }; };
 const instantane = a => JSON.stringify(a.db);

@@ -186,7 +186,7 @@ function show(...nodes) {
   const restaurerFocus = dernierHash !== null && location.hash === dernierHash ? memoriserFocus(mainEl) : null; // rafraîchissement du même écran
   mainEl.replaceChildren(...nodes);
   const titre = mainEl.querySelector('h1');
-  document.title = titre ? `${titre.textContent} · RessourceS (test)` : 'RessourceS (test)';
+  document.title = titre ? `${titre.textContent} · RessourceS` : 'RessourceS';
   if (dernierHash !== null && location.hash !== dernierHash && titre) { titre.tabIndex = -1; titre.focus({ preventScroll: true }); }
   dernierHash = location.hash;
   restaurerFocus?.();
