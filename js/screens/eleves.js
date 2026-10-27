@@ -1,4 +1,4 @@
-import { S, nav, inscriptionCourante, volee, phaseInscription, nomEleve, refDate } from '../state.js';
+import { S, nav, inscriptionCourante, volee, phaseInscription, nomEleve, refDate, isCoord } from '../state.js';
 import { h, card, btn, phaseBadge, badge, empty, seg } from '../ui.js';
 import { normalise, sortBy, semaineCle } from '../domain.js';
 
@@ -42,7 +42,9 @@ export function render() {
   return h('div', { class: 'page' },
     h('div', { class: 'page-head' },
       h('div', null, h('h1', null, 'Élèves'), h('div', { class: 'sub' }, 'Un seul dossier par élève, jamais supprimé.')),
-      btn('+ Nouvel élève', () => nav('inscription'))),
+      h('div', { class: 'btn-row' },
+        isCoord() && btn('Bilan CR', () => nav('bilancr'), 'secondary', { title: 'Évolution pendant le passage, agrégée et anonyme' }),
+        btn('+ Nouvel élève', () => nav('inscription')))),
     card(null, {},
       h('div', { class: 'row', style: { alignItems: 'center', marginBottom: '8px' } },
         h('div', { style: { flex: '1 1 260px' } }, search),

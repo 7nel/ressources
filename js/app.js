@@ -24,6 +24,7 @@ import * as Action from './screens/action.js';
 import * as Orientation from './screens/orientation.js';
 import * as Bilan from './screens/bilan.js';
 import * as BilanCR from './screens/bilan-cr.js';
+import * as Suivi from './screens/suivi.js';
 import * as CPS from './screens/cps.js';
 import * as CPSSaisie from './screens/cps-saisie.js';
 import * as CPSForms from './screens/cps-forms.js';
@@ -48,7 +49,8 @@ const ROUTES = {
   action: { mod: Action, nav: 'eleves' },
   orientation: { mod: Orientation, nav: 'eleves' },
   bilan: { mod: Bilan, nav: 'eleves' },
-  bilancr: { mod: BilanCR, nav: 'bilancr' },
+  suivi: { mod: Suivi, nav: 'suivi' },
+  bilancr: { mod: BilanCR, nav: 'eleves' }, // plus dans le menu ; bouton « Bilan CR » sur la page Élèves (coordination)
   cps: { mod: CPS, nav: 'eleves' },
   cpssaisie: { mod: CPSSaisie, nav: 'eleves' },
   cpsforms: { mod: CPSForms, nav: 'eleves' },
@@ -60,7 +62,7 @@ const ROUTES = {
 };
 const MENU = [
   ['accueil', 'Accueil', 'home'], ['eleves', 'Élèves', 'users'], ['groupe', 'Saisie', 'pen'],
-  ['notes', 'Notes', 'chart'], ['bilancr', 'Bilan CR', 'trend'], ['taches', 'Tâches', 'check'],
+  ['notes', 'Notes', 'chart'], ['suivi', 'Suivi', 'trend'], ['taches', 'Tâches', 'check'],
 ];
 
 let mainEl, sidebarEl, bannerEl, syncBarEl;

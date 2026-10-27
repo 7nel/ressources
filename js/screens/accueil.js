@@ -217,13 +217,13 @@ export function render() {
         : null,
       h('div', { class: 'lab' }, tous.n ? `pour la ${sem}` : `Rien de prévu pour la ${sem}`));
   };
-  // Deux signaux à suivre dans une même tuile : élèves sans suivi et élèves au niveau 1.
+  // Deux signaux à suivre dans une même tuile : élèves sans suivi et élèves désengagés.
   const tuileSuivi = () => {
     const ligne = (n, label, onClick) => h(n > 0 ? 'button' : 'div', { class: `ligne-suivi ${n > 0 ? 'alert' : ''}`, type: n > 0 ? 'button' : null, onClick: n > 0 ? onClick : null },
       h('div', { class: 'num' }, n, h('span', { class: 'mot' }, pl(n, 'élève', 'élèves'))), h('div', { class: 'lab' }, label));
     return h('div', { class: 'tile tile-multi' },
       ligne(sans, restreint ? 'sans suivi dans mes cours' : 'sans suivi cette semaine', () => versAFaire('Sans suivi cette semaine')),
-      ligne(al.length, 'au niveau 1 cette semaine', () => vers(document.getElementById('carte-niveau1'))));
+      ligne(al.length, `${pl(al.length, 'désengagé', 'désengagés')} cette semaine`, () => vers(document.getElementById('carte-niveau1'))));
   };
   const tiles = [
     // Pas de retenue en décompression : la tuile serait toujours à zéro.
@@ -234,14 +234,14 @@ export function render() {
 
   /* ---- Alertes ---- */
   const L = labels();
-  const alertCard = aideRepliable(card('Niveau 1 cette semaine', { id: 'carte-niveau1', hint: 'Un niveau 1 en comportement ou en travail cette semaine. Indicateur de tendance, à discuter.' },
+  const alertCard = aideRepliable(card('Désengagé cette semaine', { id: 'carte-niveau1', hint: 'Un niveau 1 en comportement ou en travail cette semaine. Indicateur de tendance, à discuter.' },
     al.length ? h('ul', { class: 'list' }, al.map(a => h('li', null,
       h('button', { type: 'button', class: 'item', onClick: () => nav('dossier', { eleve: a.eleveId }) },
         pastille(1),
         h('div', { class: 'main' },
           h('div', { class: 'title' }, nomEleve(eleve(a.eleveId))),
           h('div', { class: 'meta' }, a.suivis.map(s => `${cours(s.CoursID)?.Title} (${fmtDate(s.DateSuivi, { day: true, year: false })})`).join(' · '))),
-        h('div', { class: 'end' }, ctPair(a.suivis[0].Comportement, a.suivis[0].Travail, L)))))) : empty('Aucun niveau 1 cette semaine.')), 'Niveau 1 cette semaine');
+        h('div', { class: 'end' }, ctPair(a.suivis[0].Comportement, a.suivis[0].Travail, L)))))) : empty('Aucun élève désengagé cette semaine.')), 'Désengagé cette semaine');
 
   /* ---- Ce qui va mieux ---- */
   let progresCard = null;
