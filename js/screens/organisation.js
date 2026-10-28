@@ -104,7 +104,7 @@ function pourMoi(today) {
   ];
   const tri = list => [...list].sort((a, b) => (b.late - a.late) || String(a.date).localeCompare(String(b.date)));
   const cartes = groupes.map(([titre, f]) => { const l = items.filter(f); return l.length ? card(titre, {}, liste(tri(l))) : null; });
-  return items.length ? cartes : card(null, {}, empty('Rien à faire pour vous. Les tâches, les actions dont vous êtes responsable et les contrôles de vos cours arrivent ici.'));
+  return { corps: items.length ? cartes : card(null, {}, empty('Rien à faire pour vous. Les tâches, les actions dont vous êtes responsable et les contrôles de vos cours arrivent ici.')) };
 }
 
 /* ---------- Devoirs et évaluations : par cours (mes cours, tous, ou un seul) ---------- */
@@ -116,10 +116,11 @@ function devoirsEvals(today) {
   const ids = unSeul ? [unSeul.ID] : state.cours === 'mes' ? mine.map(c => c.ID) : null;
   const dans = id => !ids || ids.includes(id);
 
-  const choix = field('Cours', select([
+  // à côté des onglets : pas d'intitulé visible, le choix se lit de lui-même (« Mes cours », « Français »…)
+  const choix = select([
     { value: 'mes', label: 'Mes cours' }, { value: 'tous', label: 'Tous les cours' },
     ...tousCours.map(c => ({ value: c.ID, label: c.Title + (mine.includes(c) ? ' (mon cours)' : '') })),
-  ], String(state.cours), { onChange: e => { const v = e.target.value; state.cours = v === 'mes' || v === 'tous' ? v : Number(v); refresh(); } }));
+  ], String(state.cours), { 'aria-label': 'Cours', onChange: e => { const v = e.target.value; state.cours = v === 'mes' || v === 'tous' ? v : Number(v); refresh(); } });
 
   const aControler = travauxAControler(today, ids);
   const deja = new Set(aControler.map(t => t.ID));
@@ -160,14 +161,13 @@ function devoirsEvals(today) {
       t.Type === 'Évaluation' && h('span', { class: 'muted small' }, `${nbNotes(t)} résultat${nbNotes(t) > 1 ? 's' : ''}`))))));
 
   const rien = !aControler.length && !parSemaine.size && !nonRendus.length && !faits.length;
-  return [
-    h('div', { class: 'org-filtre' }, choix),
+  return { filtre: choix, corps: [
     aControler.length > 0 && card('À contrôler', { hint: 'Échéance passée : un clic ouvre le contrôle du devoir ou la saisie de l\'évaluation.' }, liste(aControler.map(t => itemTravail(t, true)))),
     carteNonRendus,
     [...parSemaine].map(([mon, list]) => card(labelSemaine(mon, list[0].Echeance), {}, liste(list.map(t => itemTravail(t, false))))),
     carteFaits,
     rien && card(null, {}, empty(state.cours === 'mes' ? 'Rien de prévu ni à contrôler dans vos cours.' : 'Rien de prévu ni à contrôler.')),
-  ];
+  ] };
 }
 
 /* ---------- Équipe : tâches et actions de tout le monde, par responsable ---------- */
@@ -178,7 +178,7 @@ function equipe(today) {
       ...S.store.where('RS_Taches', t => t.Statut === 'Terminée').map(t => ({ ...itemTache(t, today, { avecResp: true }), clos: t.DateCloture })),
       ...S.store.where('RS_Actions', a => a.Statut === 'Fait').map(a => ({ ...itemAction(a, today, { avecResp: true }), clos: a.DateCloture })),
     ].sort((a, b) => String(b.clos).localeCompare(String(a.clos))).slice(0, 40);
-    return card(null, {}, h('div', { style: { marginBottom: '10px' } }, filtre), fini.length ? liste(fini) : empty('Rien de terminé pour l\'instant.'));
+    return { filtre, corps: card(null, {}, fini.length ? liste(fini) : empty('Rien de terminé pour l\'instant.')) };
   }
   const ouverts = [
     ...S.store.where('RS_Taches', t => t.Statut !== 'Terminée').map(t => ({ resp: t.Responsable, ...itemTache(t, today) })),
@@ -192,14 +192,13 @@ function equipe(today) {
   const rang = k => k === m?.Title ? 0 : profs.has(k) ? 1 : 2;
   const ordre = [...parResp.keys()].sort((a, b) => rang(a) - rang(b) || a.localeCompare(b, 'fr'));
   const tri = list => [...list].sort((a, b) => (b.late - a.late) || (a.date || '9999').localeCompare(b.date || '9999'));
-  return [
-    h('div', { class: 'org-filtre' }, filtre),
+  return { filtre, corps: [
     ordre.length ? ordre.map(k => {
       const list = parResp.get(k);
       const retard = list.filter(x => x.late).length;
       return card(k, { actions: retard ? [badge(`${retard} en retard`, 'danger')] : null }, liste(tri(list)));
     }) : card(null, {}, empty('Aucune tâche ni action ouverte.')),
-  ];
+  ] };
 }
 
 export function render(params) {
@@ -209,7 +208,7 @@ export function render(params) {
   if (params.id) setTimeout(() => { const t = S.store.get('RS_Taches', params.id); if (t) editTache(t); history.replaceState(null, '', '#/organisation'); }, 0);
 
   const coursParDefaut = typeof state.cours === 'number' ? { cours: state.cours } : {};
-  const corps = state.onglet === 'cours' ? devoirsEvals(today) : state.onglet === 'equipe' ? equipe(today) : pourMoi(today);
+  const { filtre, corps } = state.onglet === 'cours' ? devoirsEvals(today) : state.onglet === 'equipe' ? equipe(today) : pourMoi(today);
   return h('div', { class: 'page' },
     h('div', { class: 'page-head' },
       h('div', null, h('h1', null, 'Organisation'), h('div', { class: 'sub' }, 'Ce que vous avez à faire, les devoirs et évaluations des cours, et le travail de l\'équipe.')),
@@ -217,6 +216,7 @@ export function render(params) {
         btn('+ Tâche', () => editTache(null), state.onglet === 'cours' ? 'secondary' : ''),
         btn('+ Devoir', () => nav('travail', { type: 'Devoir', ...coursParDefaut }), 'secondary'),
         btn('+ Évaluation', () => nav('travail', { type: 'Évaluation', ...coursParDefaut }), 'secondary'))),
-    h('div', { class: 'org-onglets' }, seg(ONGLETS, state.onglet, v => { state.onglet = v; nav('organisation', { onglet: v }); }, 'Onglets')),
+    // onglets et filtre de l'onglet sur une même ligne
+    h('div', { class: 'org-onglets' }, seg(ONGLETS, state.onglet, v => { state.onglet = v; nav('organisation', { onglet: v }); }, 'Onglets'), filtre),
     corps);
 }
