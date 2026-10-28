@@ -62,11 +62,13 @@ export function render() {
           h('button', { type: 'button', class: 'back', onClick: () => nav('action', { id: a.ID }) }, a.Description || '(sans description)'),
           h('span', { class: 'muted small' }, a.Responsable || '—'),
           enRetard(a) && badge('en retard', 'danger'))),
-        obs.map(s => h('li', null,
-          h('span', { class: 'suivi-tag o', title: 'Observation' }, 'O'),
-          h('span', { class: 'suivi-ech' }, fmtDate(s.DateSuivi, { day: true, year: false })),
-          h('span', null, texteObs(s)),
-          h('span', { class: 'muted small' }, cours(s.CoursID)?.Title || ''))))
+        // observation repliée sur une ligne (début du texte), dépliée au clic
+        obs.map(s => h('li', null, h('details', { class: 'suivi-obs' },
+          h('summary', null,
+            h('span', { class: 'suivi-tag o', title: 'Observation' }, 'O'),
+            h('span', { class: 'suivi-ech' }, fmtDate(s.DateSuivi, { day: true, year: false })),
+            h('span', { class: 'suivi-obs-txt' }, texteObs(s)),
+            h('span', { class: 'muted small suivi-obs-cours' }, cours(s.CoursID)?.Title || ''))))))
       : h('span', { class: 'muted' }, 'aucune');
   };
 
