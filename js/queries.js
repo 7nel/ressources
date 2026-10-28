@@ -169,7 +169,7 @@ export function aFaire(date, v, { restreint, coursIds }) {
   }
   // Coordination : tâches de l'équipe de la semaine ou en retard (hors les miennes, déjà listées)
   if (isCoord()) {
-    for (const t of tachesDeLaSemaine(date).filter(t => t.Responsable !== m?.Title && visible(t))) {
+    for (const t of tachesDeLaSemaine(date).filter(t => t.Responsable !== m?.Title)) {
       const late = t.Echeance < date;
       items.push({ prio: late ? 1 : 5, kind: late ? 'Tâche de l\'équipe en retard' : 'Tâche de l\'équipe', title: t.Title, meta: `${t.Responsable} · ${t.Echeance.split('-').reverse().join('.')}`, late, go: ['organisation', { id: t.ID }] });
     }
