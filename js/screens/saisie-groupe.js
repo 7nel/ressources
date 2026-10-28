@@ -1,6 +1,6 @@
 import { S, nav, eleve, cours, refDate, moi, mesCours, coursActifs, voleeAt, inscriptionsEnCours, nomEleve, labels } from '../state.js';
-import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, empty, redraw, ctPair } from '../ui.js';
-import { phaseOf, semaineCle, sortBy, fmtDate, parseNote, evalMode, FORMATIF } from '../domain.js';
+import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, empty, redraw, ctPair, reperesSuivi } from '../ui.js';
+import { phaseOf, semaineCle, sortBy, fmtDate, parseNote, evalMode, FORMATIF, DEF_C, DEF_T } from '../domain.js';
 
 const state = { coursId: null, date: null, forDate: null, portee: 'Séance', mode: 'cot' };
 
@@ -82,20 +82,30 @@ export function render(params) {
     const rowEls = new Map(); // élève → ligne affichée, pour marquer celle qui bloque l'enregistrement
     const list = h('div', null, inscs.map(({ i, e }) => {
       const done = deja.has(e.ID);
-      const r = rows[e.ID] ||= { c: null, t: null, dv: false };
-      // ligne déjà saisie : on rappelle les niveaux enregistrés (C puis T) au lieu d'une ligne vide
-      const recap = el => { const sv = suivisDuJour.find(x => x.EleveID === el.ID); return typeof sv?.Comportement === 'number' ? ctPair(sv.Comportement, sv.Travail, L) : h('span'); };
+      const r = rows[e.ID] ||= { c: null, t: null, dv: false, rt: false, mat: false, obs: '', obsOuvert: false };
+      // ligne déjà saisie : on rappelle les niveaux enregistrés (C puis T) et les cases cochées au lieu d'une ligne vide
+      const recap = el => { const sv = suivisDuJour.find(x => x.EleveID === el.ID); return typeof sv?.Comportement === 'number' ? h('span', { class: 'pk' }, ctPair(sv.Comportement, sv.Travail, L), reperesSuivi(sv)) : h('span'); };
+      // commentaire : champ fermé par défaut, ouvert au clic (ou d'emblée s'il contient déjà du texte)
+      const obsZone = h('div', { class: 'grp-obs' });
+      const drawObs = () => obsZone.replaceChildren(r.obsOuvert
+        ? textarea(r.obs, { rows: 2, 'aria-label': `Commentaire ${e.Prenom}`, onInput: ev => { r.obs = ev.target.value; } })
+        : btn('+ commentaire', () => { r.obsOuvert = true; drawObs(); obsZone.querySelector('textarea')?.focus(); }, 'ghost small', { 'aria-label': `Ajouter un commentaire pour ${e.Prenom}` }));
+      if (!done) drawObs();
       const ligne = h('div', { class: `grp-row ${done ? 'done' : ''}` },
         h('div', { class: 'who' }, nomEleve(e), h('small', null, done ? '✓ déjà saisi' : `${i.Degre} · ${i.ClasseOrigine}`)),
-        done ? recap(e) : h('div', { class: 'pk' }, h('span', { class: 'lab', title: 'Comportement : respect et ponctualité' }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
-        done ? h('span') : h('div', { class: 'pk' }, h('span', { class: 'lab', title: 'Travail : matériel et mise au travail' }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
-        done ? h('span') : checkbox('devoir non fait', r.dv, val => { r.dv = val; }));
+        done ? recap(e) : h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Comportement : ${DEF_C}` }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
+        done ? h('span') : h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Travail : ${DEF_T}` }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
+        done ? h('span') : obsZone,
+        done ? h('span') : h('div', { class: 'grp-checks' },
+          checkbox('en retard', r.rt, val => { r.rt = val; }),
+          checkbox('matériel manquant', r.mat, val => { r.mat = val; }),
+          checkbox('devoir non fait', r.dv, val => { r.dv = val; })));
       rowEls.set(e.ID, ligne);
       return ligne;
     }));
     async function save() {
       rowEls.forEach(l => { l.classList.remove('err'); l.querySelector('.err-msg')?.remove(); });
-      const todo = inscs.filter(({ e }) => !deja.has(e.ID) && (rows[e.ID]?.c || rows[e.ID]?.t || rows[e.ID]?.dv));
+      const todo = inscs.filter(({ e }) => { const r = rows[e.ID]; return !deja.has(e.ID) && r && (r.c || r.t || r.dv || r.rt || r.mat || r.obs.trim()); });
       const incomplete = todo.filter(({ e }) => !rows[e.ID].c || !rows[e.ID].t);
       if (!todo.length) { errBox.replaceChildren(notice('Rien à enregistrer : touchez les pastilles d\'au moins un élève.', 'warn')); return; }
       if (incomplete.length) {
@@ -120,7 +130,7 @@ export function render(params) {
         await S.store.add('RS_Suivis', {
           Title: title, EleveID: e.ID, InscriptionID: i.ID, CoursID: c.ID, EnseignantID: ensId,
           DateSuivi: state.date, SemaineCle: sk, Portee: state.portee, Phase: phase,
-          Comportement: r.c, Travail: r.t, Observation: '', CoachTravaille: '', CoachProgres: '',
+          Comportement: r.c, Travail: r.t, Retard: r.rt, MaterielManquant: r.mat, Observation: r.obs.trim(), CoachTravaille: '', CoachProgres: '',
         });
         if (r.dv) {
           await S.store.add('RS_Devoirs', {

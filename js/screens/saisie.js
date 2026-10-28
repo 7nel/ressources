@@ -21,7 +21,7 @@ export function render(params) {
   const f = editing ? { ...editing } : {
     EleveID: params.eleve ? Number(params.eleve) : null,
     CoursID: params.cours ? Number(params.cours) : (mine.length === 1 ? mine[0].ID : null), // plusieurs cours : à choisir, pas de présélection au hasard
-    DateSuivi: refDate(), Portee: 'Séance', Comportement: null, Travail: null,
+    DateSuivi: refDate(), Portee: 'Séance', Comportement: null, Travail: null, Retard: false, MaterielManquant: false,
     Observation: '', CoachTravaille: '', CoachProgres: '',
   };
   const dv = { on: false, desc: '' };
@@ -71,6 +71,7 @@ export function render(params) {
         EnseignantID: editing ? editing.EnseignantID : (m?.ID ?? c.EnseignantID),
         DateSuivi: f.DateSuivi, SemaineCle: semaineCle(f.DateSuivi), Portee: f.Portee, Phase: phase,
         Comportement: coaching ? null : f.Comportement, Travail: coaching ? null : f.Travail,
+        Retard: !coaching && !!f.Retard, MaterielManquant: !coaching && !!f.MaterielManquant,
         Observation: coaching ? '' : f.Observation.trim(),
         CoachTravaille: coaching ? f.CoachTravaille.trim() : '', CoachProgres: coaching ? f.CoachProgres.trim() : '',
       };
@@ -105,7 +106,10 @@ export function render(params) {
           levelLegend(L),
           h('div', { class: 'row' },
             field('Comportement (C)', levelPicker(f.Comportement, val => { f.Comportement = val; }, { labels: L, name: 'Comportement' })),
-            field('Travail (T)', levelPicker(f.Travail, val => { f.Travail = val; }, { labels: L, name: 'Travail' })))],
+            field('Travail (T)', levelPicker(f.Travail, val => { f.Travail = val; }, { labels: L, name: 'Travail' }))),
+          h('div', { class: 'btn-row' },
+            checkbox('En retard', !!f.Retard, val => { f.Retard = val; }),
+            checkbox('Matériel manquant', !!f.MaterielManquant, val => { f.MaterielManquant = val; }))],
         coaching
           ? [field('Ce qui a été travaillé / notion ciblée', textarea(f.CoachTravaille, { onInput: ev => { f.CoachTravaille = ev.target.value; } })),
             field('Progrès · point de vigilance', textarea(f.CoachProgres, { onInput: ev => { f.CoachProgres = ev.target.value; } }))]

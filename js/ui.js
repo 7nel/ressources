@@ -1,5 +1,5 @@
 // Petits outils d'affichage. Tout texte passe par textContent : pas d'injection possible.
-import { PHASE_CLASS, DEF_C, DEF_T } from './domain.js';
+import { PHASE_CLASS, DEF_C, DEF_T, REPERES } from './domain.js';
 
 export function h(tag, props, ...children) {
   const el = document.createElement(tag);
@@ -111,6 +111,11 @@ export function ctPair(c, t, labels, sm = true) {
   return h('span', { class: 'ct', title: desc, role: 'img', 'aria-label': desc },
     h('span', { class: 'k' }, 'C'), pastille(c, { sm }), h('span', { class: 'k' }, 'T'), pastille(t, { sm }));
 }
+/** Retard et matériel manquant d'un suivi, en étiquettes neutres (rien si aucun). */
+export function reperesSuivi(s) {
+  const l = REPERES.filter(([k]) => s?.[k]).map(([, txt]) => badge(txt));
+  return l.length ? h('span', { class: 'reperes' }, l) : null;
+}
 export function phaseBadge(phase, horsVolee = 'hors volée') {
   if (!phase) return h('span', { class: 'badge neutral' }, horsVolee);
   return h('span', { class: `badge ${PHASE_CLASS[phase]}` }, phase);
@@ -164,12 +169,13 @@ export function levelPicker(value, onChange, { labels, compact = false, name = '
   render(value ?? null);
   return wrap;
 }
-/** `compact` : C et T en deux mots (la définition complète est alors donnée à côté, repliée). */
+/** `compact` : C et T réduits à ce qu'ils cotent (respect, mise au travail). */
 export function levelLegend(labels, { compact = false } = {}) {
   return h('div', { class: 'level-legend-wrap' },
     h('div', { class: 'ct-def' },
-      h('span', null, h('strong', null, 'C'), compact ? ' = comportement' : ` = comportement : ${DEF_C}`),
-      h('span', null, h('strong', null, 'T'), compact ? ' = travail' : ` = travail : ${DEF_T}`)),
+      h('span', null, h('strong', null, 'C'), compact ? ` = ${DEF_C}` : ` = comportement : ${DEF_C}`),
+      h('span', null, h('strong', null, 'T'), compact ? ` = ${DEF_T}` : ` = travail : ${DEF_T}`),
+      !compact && h('span', null, 'Ponctualité et matériel : cases à cocher')),
     h('div', { class: 'level-legend' }, [1, 2, 3, 4].map(n => h('span', null, pastille(n, { sm: true }), labels[n - 1]))));
 }
 

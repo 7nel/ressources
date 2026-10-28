@@ -1,5 +1,5 @@
 import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, etatVolee, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
-import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, seg, menu, levelLegend, propres } from '../ui.js';
+import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, seg, menu, levelLegend, propres, reperesSuivi } from '../ui.js';
 import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
 import { enteteEleve } from '../voisins.js';
@@ -101,7 +101,7 @@ function syntheseCard(i) {
     title: 'Comment lire cette synthèse', onClick: () => { state.aide = !state.aide; refresh(); },
   }, '?');
   const legende = h('div', { class: 'syn-legende' }, aide, levelLegend(L, { compact: true }));
-  const aideTexte = state.aide ? h('p', { class: 'hint aide-texte' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; cliquez sur une moyenne pour voir les pastilles de chaque cours. Le coaching n'est pas coté.`) : null;
+  const aideTexte = state.aide ? h('p', { class: 'hint aide-texte' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Ponctualité et matériel sont cochés à part, sans niveau. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; cliquez sur une moyenne pour voir les pastilles de chaque cours. Le coaching n'est pas coté.`) : null;
   const chartBox = h('div');
   const drawChart = () => chartBox.replaceChildren(...propres([
     h('div', { class: 'syn-barre' },
@@ -141,7 +141,7 @@ function chronologieCard(i) {
       type: editable ? 'button' : null, class: 'item', onClick: editable ? () => nav('saisie', { id: s.ID }) : null,
     },
     typeof s.Comportement === 'number' ? ctPair(s.Comportement, s.Travail, L, false) : badge('Coaching'),
-    h('div', { class: 'main' }, h('div', { class: 'title' }, cours(s.CoursID)?.Title || ''), texte && h('div', { class: 'meta clip' }, texte)))) });
+    h('div', { class: 'main' }, h('div', { class: 'title' }, cours(s.CoursID)?.Title || ''), reperesSuivi(s), texte && h('div', { class: 'meta clip' }, texte)))) });
   }
   for (const d of S.store.where('RS_Devoirs', x => x.InscriptionID === i.ID && dans(x.DateConstat))) {
     ev.push({ date: d.DateConstat, ordre: 1, signal: d.Statut === 'Ouvert', node: (h('div', { class: 'item' },
@@ -307,6 +307,7 @@ function suivisCard(i, e) {
       h('div', { class: 'main' },
         h('div', { class: 'title' }, `${c?.Title}`, h('span', { class: 'muted', style: { fontWeight: 400 } }, ` · ${fmtDate(s.DateSuivi, { day: true })}${s.Portee === 'Semaine' ? ' (semaine)' : ''}`)),
         h('div', { class: 'meta' }, ens(s.EnseignantID)?.Title || ''),
+        reperesSuivi(s),
         texts.map(t => h('div', { class: 'small' }, t))),
       editable && h('span', { class: 'muted', 'aria-hidden': 'true' }, '✎')));
     })) : empty('Aucun suivi.'),

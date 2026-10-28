@@ -48,8 +48,10 @@ export function groupeCours(c) {
 export const estCote = s => typeof s.Comportement === 'number' && typeof s.Travail === 'number';
 export function moyenne(xs) { return xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null; }
 
-export const DEF_C = 'respect et ponctualité';
-export const DEF_T = 'matériel et mise au travail';
+export const DEF_C = 'respect';
+export const DEF_T = 'mise au travail';
+/** Ponctualité et matériel : constats cochés à part, hors cotation C/T. */
+export const REPERES = [['Retard', 'en retard'], ['MaterielManquant', 'matériel manquant']];
 export const DEFAULT_LEVEL_LABELS = ['désengagé', 'engagement fragile', 'globalement engagé', 'engagé'];
 
 /* ---------- Dates (chaînes ISO AAAA-MM-JJ, calculs en UTC pour éviter les décalages) ---------- */

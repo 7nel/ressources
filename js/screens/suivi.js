@@ -1,4 +1,4 @@
-// Suivi : cotations de comportement et de travail de la semaine, et actions en cours, pour tous les élèves de la volée.
+// Suivi : cotations de comportement et de travail de la semaine, actions en cours et observations, pour tous les élèves de la volée.
 import { S, nav, voleeAt, inscriptionsEnCours, eleve, nomEleve, cours, refDate, vueRestreinte, mesCours, moi, labels } from '../state.js';
 import { h, card, btn, empty, notice, badge, ctPair, levelLegend, phaseBadge, esc } from '../ui.js';
 import { fmtDate, fmtDateLong, mondayOf, addDays, semaineCle, phaseOf, sortBy, weeksOfVolee, estCote, moyenne } from '../domain.js';
@@ -50,22 +50,43 @@ export function render() {
       ctPair(s.Comportement, s.Travail, L)))));
   };
 
-  const cellActions = list => list.length
-    ? h('ul', { class: 'suivi-actions' }, sortBy(list, 'Echeance').map(a => h('li', { class: enRetard(a) ? 'retard' : '' },
-      h('span', { class: 'suivi-ech' }, a.Echeance ? fmtDate(a.Echeance, { day: true, year: false }) : 'sans date'),
-      h('button', { type: 'button', class: 'back', onClick: () => nav('action', { id: a.ID }) }, a.Description || '(sans description)'),
-      h('span', { class: 'muted small' }, a.Responsable || '—'),
-      enRetard(a) && badge('en retard', 'danger'))))
-    : h('span', { class: 'muted' }, 'aucune');
+  // une colonne pour les deux : actions ouvertes (A, par échéance) puis observations de la semaine (O, par date)
+  const texteObs = s => [s.Observation, s.CoachTravaille, s.CoachProgres].filter(Boolean).join(' · ');
+  const cellActions = (list, sv) => {
+    const obs = sortBy(sv.filter(s => texteObs(s)), 'DateSuivi');
+    return list.length || obs.length
+      ? h('ul', { class: 'suivi-actions' },
+        sortBy(list, 'Echeance').map(a => h('li', { class: enRetard(a) ? 'retard' : '' },
+          h('span', { class: 'suivi-tag a', title: 'Action' }, 'A'),
+          h('span', { class: 'suivi-ech' }, a.Echeance ? fmtDate(a.Echeance, { day: true, year: false }) : 'sans date'),
+          h('button', { type: 'button', class: 'back', onClick: () => nav('action', { id: a.ID }) }, a.Description || '(sans description)'),
+          h('span', { class: 'muted small' }, a.Responsable || '—'),
+          enRetard(a) && badge('en retard', 'danger'))),
+        obs.map(s => h('li', null,
+          h('span', { class: 'suivi-tag o', title: 'Observation' }, 'O'),
+          h('span', { class: 'suivi-ech' }, fmtDate(s.DateSuivi, { day: true, year: false })),
+          h('span', null, texteObs(s)),
+          h('span', { class: 'muted small' }, cours(s.CoursID)?.Title || ''))))
+      : h('span', { class: 'muted' }, 'aucune');
+  };
+
+  // retards et matériel manquant de la semaine : un décompte sous le nom plutôt qu'une étiquette par cotation
+  const decompte = sv => {
+    const n = k => sv.filter(s => s[k]).length;
+    const rt = n('Retard'), mat = n('MaterielManquant');
+    const txt = [rt && `${rt} retard${rt > 1 ? 's' : ''}`, mat && `${mat} matériel${mat > 1 ? 's' : ''} manquant${mat > 1 ? 's' : ''}`].filter(Boolean).join(' · ');
+    return txt ? h('div', { class: 'suivi-decompte' }, txt) : null;
+  };
 
   const corps = triees.map(r => h('tr', null,
     h('th', { scope: 'row' },
       h('button', { type: 'button', class: 'back', onClick: () => nav('dossier', { eleve: r.i.EleveID }) }, nomEleve(r.e)),
+      decompte(r.sv),
       (r.niveau1 || r.retard) && h('div', { class: 'suivi-reperes' },
         r.niveau1 && badge(L[0] || 'niveau 1', 'danger'),
         r.retard && badge('action en retard', 'danger'))),
     colonnes.map(c => caseCours(r.sv, c)),
-    h('td', { class: 'suivi-col-actions' }, cellActions(r.ac))));
+    h('td', { class: 'suivi-col-actions' }, cellActions(r.ac, r.sv))));
 
   /* ---- Tendance : moyenne hebdomadaire de C et de T, une petite courbe par élève, de la 1re semaine à celle affichée ---- */
   const cles = semaines.map(semaineCle);
@@ -104,11 +125,11 @@ export function render() {
     triees.length ? h('div', { class: 'suivi-mini-grid' }, triees.map(courbe)) : empty('Aucun élève inscrit dans cette volée.'));
 
   const tableau = h('div', { class: 'scroll-x' }, h('table', { class: 'tbl suivi-tbl' },
-    h('caption', { class: 'sr-only' }, `Cotations de comportement (C) et de travail (T) de la semaine ${sk % 100}, par élève et par cours, et actions en cours`),
+    h('caption', { class: 'sr-only' }, `Cotations de comportement (C) et de travail (T) de la semaine ${sk % 100}, par élève et par cours, actions en cours (A) et observations de la semaine (O)`),
     h('thead', null, h('tr', null,
       h('th', { scope: 'col' }, 'Élève'),
       colonnes.map(c => h('th', { scope: 'col' }, c.Title)),
-      h('th', { scope: 'col', class: 'suivi-col-actions' }, 'Actions en cours'))),
+      h('th', { scope: 'col', class: 'suivi-col-actions' }, 'Actions (A) et observations (O)'))),
     h('tbody', null, corps)));
 
   return h('div', { class: 'page' },
@@ -123,7 +144,7 @@ export function render() {
         lundi !== mondayOf(refDate()) && btn('Cette semaine', () => aller(null), 'secondary'),
         btn(state.alpha ? 'À discuter en premier' : 'Ordre alphabétique', () => { state.alpha = !state.alpha; nav('suivi'); }, 'secondary', { title: 'Changer l\'ordre des élèves' }))),
     tendance,
-    card('Cotations et actions', { hint: (restreint ? 'Vue limitée à vos cours et aux actions qui vous sont attribuées. ' : 'Toutes les cotations de la semaine et toutes les actions ouvertes. ') + (state.alpha ? 'Ordre alphabétique.' : 'Les élèves à discuter (désengagement, action en retard) sont en tête.') },
+    card('Cotations, actions et observations', { hint: (restreint ? 'Vue limitée à vos cours et aux actions qui vous sont attribuées. ' : 'Toutes les cotations et observations de la semaine, et toutes les actions ouvertes. ') + (state.alpha ? 'Ordre alphabétique.' : 'Les élèves à discuter (désengagement, action en retard) sont en tête.') },
       levelLegend(L, { compact: true }),
       triees.length ? tableau : empty('Aucun élève inscrit dans cette volée.')));
 }
