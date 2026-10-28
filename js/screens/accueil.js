@@ -211,7 +211,7 @@ export function render() {
       h('div', { class: 'duo' },
         h('div', { class: 'num' }, c.nd, h('span', { class: 'mot' }, pl(c.nd, 'devoir à rendre', 'devoirs à rendre'))),
         h('div', { class: 'num' }, c.ne, h('span', { class: 'mot' }, pl(c.ne, 'évaluation', 'évaluations')))));
-    return h('button', { type: 'button', class: `tile tile-duo tile-large ${tous.n ? '' : 'tile-vide'}`, title: 'Voir les devoirs et évaluations à venir', onClick: () => nav('travaux') },
+    return h('button', { type: 'button', class: `tile tile-duo tile-large ${tous.n ? '' : 'tile-vide'}`, title: 'Voir les devoirs et évaluations à venir', onClick: () => nav('organisation', { onglet: 'cours' }) },
       tous.n
         ? [miens && ligne('Mes cours', miens), ligne(miens ? 'Tous les cours' : null, tous)]
         : null,
@@ -329,7 +329,7 @@ export function render() {
   });
   const nbGroupes = parSection.filter(({ r }) => r.g && r.g.items.length > 1).length;
   basculeTout.textContent = 'Tout déplier';
-  const todoCard = card('À faire', { id: 'carte-afaire', hint: restreint ? 'Limité à vos cours, à vos actions et à vos tâches.' : null, actions: [nbGroupes > 0 && basculeTout, btn('Mes tâches', () => nav('taches'), 'secondary small')] },
+  const todoCard = card('À faire', { id: 'carte-afaire', hint: restreint ? 'Limité à vos cours, à vos actions et à vos tâches.' : null, actions: [nbGroupes > 0 && basculeTout, btn('Organisation', () => nav('organisation', { onglet: 'moi' }), 'secondary small')] },
     todoLis.length ? h('ul', { class: 'list' }, todoLis) : empty('Rien en attente.'));
   majBascule();
 

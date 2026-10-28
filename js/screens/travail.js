@@ -33,17 +33,17 @@ export function render(params) {
       if (editing) await S.store.update('RS_Travaux', editing.ID, rec);
       else await S.store.add('RS_Travaux', rec);
       toast(devoir ? 'Devoir enregistré' : 'Évaluation enregistrée');
-      nav('travaux');
+      nav('organisation', { onglet: 'cours' });
     }
 
     async function annuler() {
       await S.store.update('RS_Travaux', editing.ID, { Statut: 'Annulé' });
       toast('Travail annulé');
-      nav('travaux');
+      nav('organisation', { onglet: 'cours' });
     }
 
     redraw(root,
-      h('button', { type: 'button', class: 'back', onClick: () => back('travaux') }, '‹ Retour'),
+      h('button', { type: 'button', class: 'back', onClick: () => back('organisation') }, '‹ Retour'),
       h('h1', null, editing ? (devoir ? 'Devoir à rendre' : 'Évaluation') : (devoir ? 'Nouveau devoir à rendre' : 'Nouvelle évaluation')),
       editing && editing.Statut !== 'Prévu' && notice(`Ce travail est « ${editing.Statut.toLowerCase()} ».`, 'info'),
       card(null, { cls: 'narrow' }, h('div', { class: 'form' },
@@ -57,7 +57,7 @@ export function render(params) {
         errBox,
         h('div', { class: 'btn-row' },
           btn('Enregistrer', save),
-          btn('Annuler', () => back('travaux'), 'secondary'),
+          btn('Annuler', () => back('organisation'), 'secondary'),
           editing?.Statut === 'Prévu' && btn('Annuler ce travail', annuler, 'ghost')))));
   }
 

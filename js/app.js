@@ -17,8 +17,7 @@ import * as SaisieGroupe from './screens/saisie-groupe.js';
 import * as Evaluation from './screens/evaluation.js';
 import * as Notes from './screens/notes.js';
 import * as Branche from './screens/branche.js';
-import * as Taches from './screens/taches.js';
-import * as Travaux from './screens/travaux.js';
+import * as Organisation from './screens/organisation.js';
 import * as Travail from './screens/travail.js';
 import * as Action from './screens/action.js';
 import * as Orientation from './screens/orientation.js';
@@ -43,9 +42,11 @@ const ROUTES = {
   evaluation: { mod: Evaluation, nav: 'saisie' },
   notes: { mod: Notes, nav: 'notes' },
   branche: { mod: Branche, nav: 'notes' },
-  taches: { mod: Taches, nav: 'taches' },
-  travaux: { mod: Travaux, nav: 'accueil' },
-  travail: { mod: Travail, nav: 'accueil' },
+  organisation: { mod: Organisation, nav: 'organisation' },
+  // anciennes adresses (favoris) : ouvrent l'onglet correspondant d'Organisation
+  taches: { mod: { render: p => Organisation.render({ onglet: 'moi', ...p }) }, nav: 'organisation' },
+  travaux: { mod: { render: p => Organisation.render({ onglet: 'cours', ...p }) }, nav: 'organisation' },
+  travail: { mod: Travail, nav: 'organisation' },
   action: { mod: Action, nav: 'eleves' },
   orientation: { mod: Orientation, nav: 'eleves' },
   bilan: { mod: Bilan, nav: 'eleves' },
@@ -62,7 +63,7 @@ const ROUTES = {
 };
 const MENU = [
   ['accueil', 'Accueil', 'home'], ['eleves', 'Élèves', 'users'], ['groupe', 'Saisie', 'pen'],
-  ['notes', 'Notes', 'chart'], ['suivi', 'Suivi', 'trend'], ['taches', 'Tâches', 'check'],
+  ['notes', 'Notes', 'chart'], ['suivi', 'Suivi', 'trend'], ['organisation', 'Organisation', 'check'],
 ];
 
 let mainEl, sidebarEl, bannerEl, syncBarEl;
@@ -240,6 +241,7 @@ function welcome(changer = false) {
       h('ul', { class: 'welcome-list' },
         h('li', null, h('strong', null, 'Accueil'), ' : vos cours, vos alertes et vos retenues, et vos tâches en tête de « À faire ».'),
         h('li', null, h('strong', null, 'Saisie'), ' : la saisie de groupe s\'ouvre directement sur votre cours.'),
+        h('li', null, h('strong', null, 'Organisation'), ' : vos tâches, vos actions et les contrôles de vos cours ; les devoirs et évaluations de vos cours.'),
         h('li', null, h('strong', null, 'Suivis et notes'), ' : vos saisies sont enregistrées à vos initiales ; vous pouvez corriger les vôtres pendant 7 jours.'),
         h('li', null, h('strong', null, 'Échange'), ' : votre version est enregistrée dans le dossier partagé sous votre nom (RessourceS_initiales.json).')),
       h('div', { class: 'form', style: { marginTop: '14px' } },

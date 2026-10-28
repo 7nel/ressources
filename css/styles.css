@@ -346,6 +346,9 @@ button.item { min-height: 44px; }
 .chip .meta { font-size: .875rem; color: var(--muted); display: block; }
 
 /* Suivi : une ligne par élève, une colonne par cours ; actions séparées par un filet */
+/* Organisation : onglets, puis filtre de l'onglet (cours, en cours / terminées) */
+.org-filtre { max-width: 420px; }
+.org-filtre .field { margin: 0; }
 .suivi-mini-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px 18px; }
 .suivi-mini { display: grid; gap: 2px; align-content: start; }
 .suivi-mini-nom { font-weight: 700; }

@@ -165,13 +165,13 @@ export function aFaire(date, v, { restreint, coursIds }) {
     const late = t.Echeance && t.Echeance < date;
     items.push({ prio: 0, kind: late ? 'Ma tâche · en retard' : 'Ma tâche', title: t.Title,
       meta: [t.Echeance ? `échéance ${t.Echeance.split('-').reverse().join('.')}` : 'sans échéance', t.Statut === 'En cours' ? 'en cours' : ''].filter(Boolean).join(' · '),
-      late, go: ['taches', { id: t.ID }] });
+      late, go: ['organisation', { id: t.ID }] });
   }
   // Coordination : tâches de l'équipe de la semaine ou en retard (hors les miennes, déjà listées)
   if (isCoord()) {
     for (const t of tachesDeLaSemaine(date).filter(t => t.Responsable !== m?.Title && visible(t))) {
       const late = t.Echeance < date;
-      items.push({ prio: late ? 1 : 5, kind: late ? 'Tâche de l\'équipe en retard' : 'Tâche de l\'équipe', title: t.Title, meta: `${t.Responsable} · ${t.Echeance.split('-').reverse().join('.')}`, late, go: ['taches', { id: t.ID }] });
+      items.push({ prio: late ? 1 : 5, kind: late ? 'Tâche de l\'équipe en retard' : 'Tâche de l\'équipe', title: t.Title, meta: `${t.Responsable} · ${t.Echeance.split('-').reverse().join('.')}`, late, go: ['organisation', { id: t.ID }] });
     }
   }
   return items.sort((a, b) => a.prio - b.prio); // tri stable : l'ordre par échéance est conservé
