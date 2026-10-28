@@ -85,21 +85,25 @@ export function render(params) {
       const r = rows[e.ID] ||= { c: null, t: null, dv: false, rt: false, mat: false, obs: '', obsOuvert: false };
       // ligne déjà saisie : on rappelle les niveaux enregistrés (C puis T) et les cases cochées au lieu d'une ligne vide
       const recap = el => { const sv = suivisDuJour.find(x => x.EleveID === el.ID); return typeof sv?.Comportement === 'number' ? h('span', { class: 'pk' }, ctPair(sv.Comportement, sv.Travail, L), reperesSuivi(sv)) : h('span'); };
-      // commentaire : champ fermé par défaut, ouvert au clic (ou d'emblée s'il contient déjà du texte)
+      // commentaire : lien sous le nom ; le champ s'ouvre au clic, sur toute la largeur de la ligne
       const obsZone = h('div', { class: 'grp-obs' });
-      const drawObs = () => obsZone.replaceChildren(r.obsOuvert
-        ? textarea(r.obs, { rows: 2, 'aria-label': `Commentaire ${e.Prenom}`, onInput: ev => { r.obs = ev.target.value; } })
-        : btn('+ commentaire', () => { r.obsOuvert = true; drawObs(); obsZone.querySelector('textarea')?.focus(); }, 'ghost small', { 'aria-label': `Ajouter un commentaire pour ${e.Prenom}` }));
+      const obsBtn = h('span');
+      const drawObs = () => {
+        obsZone.replaceChildren(...(r.obsOuvert ? [textarea(r.obs, { rows: 2, 'aria-label': `Commentaire ${e.Prenom}`, onInput: ev => { r.obs = ev.target.value; } })] : []));
+        obsBtn.replaceChildren(...(r.obsOuvert ? [] : [btn('+ commentaire', () => { r.obsOuvert = true; drawObs(); obsZone.querySelector('textarea')?.focus(); }, 'ghost small grp-obs-btn', { 'aria-label': `Ajouter un commentaire pour ${e.Prenom}` })]));
+      };
       if (!done) drawObs();
       const ligne = h('div', { class: `grp-row ${done ? 'done' : ''}` },
-        h('div', { class: 'who' }, nomEleve(e), h('small', null, done ? '✓ déjà saisi' : `${i.Degre} · ${i.ClasseOrigine}`)),
-        done ? recap(e) : h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Comportement : ${DEF_C}` }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
-        done ? h('span') : h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Travail : ${DEF_T}` }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
-        done ? h('span') : obsZone,
-        done ? h('span') : h('div', { class: 'grp-checks' },
-          checkbox('en retard', r.rt, val => { r.rt = val; }),
-          checkbox('matériel manquant', r.mat, val => { r.mat = val; }),
-          checkbox('devoir non fait', r.dv, val => { r.dv = val; })));
+        h('div', { class: 'who' }, nomEleve(e), h('small', null, done ? '✓ déjà saisi' : `${i.Degre} · ${i.ClasseOrigine}`), !done && obsBtn),
+        done ? recap(e) : h('div', { class: 'grp-col' },
+          h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Comportement : ${DEF_C}` }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
+          h('div', { class: 'grp-checks' }, checkbox('en retard', r.rt, val => { r.rt = val; }))),
+        done ? h('span') : h('div', { class: 'grp-col grp-col-t' },
+          h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Travail : ${DEF_T}` }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
+          h('div', { class: 'grp-checks' },
+            checkbox('matériel manquant', r.mat, val => { r.mat = val; }),
+            checkbox('devoir non fait', r.dv, val => { r.dv = val; }))),
+        done ? h('span') : obsZone);
       rowEls.set(e.ID, ligne);
       return ligne;
     }));
