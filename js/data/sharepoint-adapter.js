@@ -133,6 +133,10 @@ export class SharePointAdapter {
     return this.fromGraph(list, it);
   }
 
+  async remove(list, id) {
+    await this.call(`${this.listUrl(list)}/items/${id}`, { method: 'DELETE' });
+  }
+
   exportJSON() { return null; }
   async importJSON() { throw new Error('Import désactivé en mode SharePoint.'); }
   async reset() { throw new Error('Réinitialisation désactivée en mode SharePoint.'); }

@@ -190,17 +190,17 @@ export function myFileName() {
 function payload() {
   return JSON.stringify({
     format: 'RessourceS-version', version: 2, auteur: moi()?.Title || null, enregistre: new Date().toISOString(),
-    lists: S.store.adapter.db.lists,
+    lists: S.store.adapter.db.lists, supprimes: S.store.adapter.db.supprimes || [],
   });
 }
 const isVersionFile = name => /^RessourceS_.*\.json$/i.test(name);
 
 async function mergeTexts(texts) {
-  const total = { fichiers: 0, ajoutes: 0, misAJour: 0, erreurs: 0 };
+  const total = { fichiers: 0, ajoutes: 0, misAJour: 0, supprimes: 0, erreurs: 0 };
   for (const t of texts) {
     try {
       const st = await S.store.mergeJSON(t);
-      total.fichiers++; total.ajoutes += st.ajoutes; total.misAJour += st.misAJour;
+      total.fichiers++; total.ajoutes += st.ajoutes; total.misAJour += st.misAJour; total.supprimes += st.supprimes || 0;
     } catch { total.erreurs++; }
   }
   return total;
@@ -208,9 +208,9 @@ async function mergeTexts(texts) {
 function report(t, silent) {
   meta.lastLoad = new Date().toISOString(); saveMeta();
   loadedThisSession = true;
-  const changes = t.ajoutes + t.misAJour;
+  const changes = t.ajoutes + t.misAJour + (t.supprimes || 0);
   if (!silent || changes || t.erreurs) {
-    toast(`${t.fichiers} version${t.fichiers > 1 ? 's' : ''} chargée${t.fichiers > 1 ? 's' : ''} : ${changes ? `${t.ajoutes} ajout${t.ajoutes > 1 ? 's' : ''}, ${t.misAJour} mise${t.misAJour > 1 ? 's' : ''} à jour` : 'rien de nouveau'}${t.erreurs ? ` · ${t.erreurs} fichier${t.erreurs > 1 ? 's' : ''} illisible${t.erreurs > 1 ? 's' : ''}` : ''}`, t.erreurs ? 'err' : 'ok');
+    toast(`${t.fichiers} version${t.fichiers > 1 ? 's' : ''} chargée${t.fichiers > 1 ? 's' : ''} : ${changes ? `${t.ajoutes} ajout${t.ajoutes > 1 ? 's' : ''}, ${t.misAJour} mise${t.misAJour > 1 ? 's' : ''} à jour${t.supprimes ? `, ${t.supprimes} suppression${t.supprimes > 1 ? 's' : ''}` : ''}` : 'rien de nouveau'}${t.erreurs ? ` · ${t.erreurs} fichier${t.erreurs > 1 ? 's' : ''} illisible${t.erreurs > 1 ? 's' : ''}` : ''}`, t.erreurs ? 'err' : 'ok');
   }
   window.dispatchEvent(new Event('rs:refresh'));
 }

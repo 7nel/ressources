@@ -97,10 +97,10 @@ test('listes inconnues du fichier conservées ; listes optionnelles absentes cr�
   assert.deepEqual(a.db.lists.RS_Travaux, []);
 });
 
-test('l\'export contient toujours le même format (v1, clés inchangées)', async () => {
+test('l\'export contient toujours le même format (v1 ; « supprimes » ajouté le 2026-10-29)', async () => {
   const { s } = await neuf();
   const e = JSON.parse(s.exportJSON());
-  assert.equal(e.format, 'RessourceS-bac-a-sable'); assert.equal(e.version, 1); assert.deepEqual(Object.keys(e), ['format', 'version', 'exporte', 'lists']);
+  assert.equal(e.format, 'RessourceS-bac-a-sable'); assert.equal(e.version, 1); assert.deepEqual(Object.keys(e), ['format', 'version', 'exporte', 'lists', 'supprimes']);
 });
 
 test('fusion : une liste mal formée est refusée sans toucher à la base', async () => {

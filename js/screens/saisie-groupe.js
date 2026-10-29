@@ -90,10 +90,10 @@ export function render(params) {
       const r = rows[e.ID] ||= { c: null, t: null, dv: false, rt: false, mat: false, obs: '', obsOuvert: false };
       // ligne déjà saisie : on rappelle les niveaux enregistrés (C puis T) et les cases cochées au lieu d'une ligne vide
       const recap = () => typeof sv?.Comportement === 'number' ? h('span', { class: 'pk' }, ctPair(sv.Comportement, sv.Travail, L), reperesSuivi(sv)) : h('span');
-      // « Modifier » rouvre la ligne avec les valeurs enregistrées ; un devoir déjà constaté reste coché
+      // « Modifier » rouvre la ligne avec les valeurs enregistrées ; retirer les deux pastilles marque l'élève absent (saisie supprimée)
       const rouvrir = () => {
         const dvEx = devoirDuJour(e);
-        rows[e.ID] = { edit: sv.ID, c: sv.Comportement, t: sv.Travail, rt: !!sv.Retard, mat: !!sv.MaterielManquant, dv: !!dvEx, dvDeja: !!dvEx, obs: sv.Observation || '', obsOuvert: !!sv.Observation };
+        rows[e.ID] = { edit: sv.ID, c: sv.Comportement, t: sv.Travail, rt: !!sv.Retard, mat: !!sv.MaterielManquant, dv: !!dvEx, dvDeja: !!dvEx, dvId: dvEx?.ID, obs: sv.Observation || '', obsOuvert: !!sv.Observation };
         draw();
         root.querySelector(`[data-eleve="${e.ID}"] .picker button`)?.focus();
       };
@@ -119,23 +119,26 @@ export function render(params) {
           h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Travail : ${DEF_T}` }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
           h('div', { class: 'grp-checks' },
             checkbox('matériel manquant', r.mat, val => { r.mat = val; }),
-            r.dvDeja ? checkbox('devoir non fait (déjà enregistré)', true, null, { disabled: true }) : checkbox('devoir non fait', r.dv, val => { r.dv = val; }))),
+            checkbox('devoir non fait', r.dv, val => { r.dv = val; }))),
         done ? h('span') : obsZone);
       rowEls.set(e.ID, ligne);
       return ligne;
     }));
     async function save() {
       rowEls.forEach(l => { l.classList.remove('err'); l.querySelector('.err-msg')?.remove(); });
-      const todo = inscs.filter(({ e }) => { const r = rows[e.ID]; return r && (r.edit || (!deja.has(e.ID) && (r.c || r.t || r.dv || r.rt || r.mat || r.obs.trim()))); });
-      const incomplete = todo.filter(({ e }) => !rows[e.ID].c || !rows[e.ID].t);
+      // aucune pastille = absent : la ligne n'est pas enregistrée, même avec une case cochée ou un commentaire
+      const todo = inscs.filter(({ e }) => { const r = rows[e.ID]; return r && (r.edit || (!deja.has(e.ID) && (r.c || r.t))); });
+      const absentsRemplis = inscs.filter(({ e }) => { const r = rows[e.ID]; return r && !r.edit && !deja.has(e.ID) && !r.c && !r.t && (r.dv || r.rt || r.mat || r.obs.trim()); });
+      const absent = r => r.edit && !r.c && !r.t;
+      const incomplete = todo.filter(({ e }) => !absent(rows[e.ID]) && (!rows[e.ID].c || !rows[e.ID].t));
       if (!todo.length) { errBox.replaceChildren(notice('Rien à enregistrer : touchez les pastilles d\'au moins un élève.', 'warn')); return; }
       if (incomplete.length) {
         for (const { e } of incomplete) {
           const l = rowEls.get(e.ID), r = rows[e.ID];
           l.classList.add('err');
-          l.appendChild(h('div', { class: 'err-msg' }, `${!r.c && !r.t ? 'C et T manquent' : !r.c ? 'C manque' : 'T manque'} : touchez une pastille.`));
+          l.appendChild(h('div', { class: 'err-msg' }, `${!r.c ? 'C manque' : 'T manque'} : touchez une pastille.`));
         }
-        errBox.replaceChildren(notice(`C et T sont obligatoires pour : ${incomplete.map(x => x.e.Prenom).join(', ')}.`, 'danger'));
+        errBox.replaceChildren(notice(`Une seule pastille sur deux pour : ${incomplete.map(x => x.e.Prenom).join(', ')}. Cotez C et T, ou aucune des deux si l'élève est absent.`, 'danger'));
         const premiere = rowEls.get(incomplete[0].e.ID);
         premiere.scrollIntoView({ block: 'center' });
         const pickers = premiere.querySelectorAll('.picker'); // premier choix manquant : C, sinon T
@@ -146,9 +149,17 @@ export function render(params) {
       if (todo.some(nouveauDevoir) && !common.devoir.trim()) { errBox.replaceChildren(notice('Indiquez le devoir attendu (commun).', 'danger')); return; }
       const ensId = moi()?.ID ?? c.EnseignantID;
       const sk = semaineCle(state.date);
+      const retires = []; // [liste, copie] : de quoi rétablir avec « Annuler »
+      const retirer = async (list, id) => { const x = S.store.get(list, id); if (!x) return; retires.push([list, x]); await S.store.remove(list, id); };
       for (const { i, e } of todo) {
         const r = rows[e.ID];
         const title = `${e.Prenom} ${e.Nom} · ${c.Title} · ${state.date}`;
+        if (absent(r)) {
+          await retirer('RS_Suivis', r.edit);
+          if (r.dvId) await retirer('RS_Devoirs', r.dvId);
+          continue;
+        }
+        if (r.dvDeja && !r.dv) await retirer('RS_Devoirs', r.dvId);
         if (r.edit) await S.store.update('RS_Suivis', r.edit, { Comportement: r.c, Travail: r.t, Retard: r.rt, MaterielManquant: r.mat, Observation: r.obs.trim() });
         else await S.store.add('RS_Suivis', {
           Title: title, EleveID: e.ID, InscriptionID: i.ID, CoursID: c.ID, EnseignantID: ensId,
@@ -164,12 +175,20 @@ export function render(params) {
         }
       }
       if (travail?.Type === 'Devoir' && todo.some(nouveauDevoir)) await changeStatut('Contrôlé');
-      const nMod = todo.filter(({ e }) => rows[e.ID].edit).length, nNew = todo.length - nMod;
-      toast([nNew && `${nNew} suivi${nNew > 1 ? 's' : ''} enregistré${nNew > 1 ? 's' : ''}`, nMod && `${nMod} modifié${nMod > 1 ? 's' : ''}`].filter(Boolean).join(' · '));
+      const nRet = todo.filter(({ e }) => absent(rows[e.ID])).length;
+      const nMod = todo.filter(({ e }) => rows[e.ID].edit).length - nRet, nNew = todo.length - nMod - nRet;
+      const nAbs = absentsRemplis.length;
+      const annuler = retires.length ? { label: 'Annuler', onClick: async () => {
+        for (const [list, x] of retires) { const { ID, UID, Created, Modified, ...champs } = x; await S.store.add(list, champs); }
+        toast('Suppression annulée'); draw();
+      } } : undefined;
+      toast([nNew && `${nNew} suivi${nNew > 1 ? 's' : ''} enregistré${nNew > 1 ? 's' : ''}`, nMod && `${nMod} modifié${nMod > 1 ? 's' : ''}`,
+        nRet && `${nRet} marqué${nRet > 1 ? 's' : ''} absent${nRet > 1 ? 's' : ''} (saisie supprimée)`,
+        nAbs && `${nAbs} sans pastille, compté${nAbs > 1 ? 's' : ''} absent${nAbs > 1 ? 's' : ''}`].filter(Boolean).join(' · '), 'ok', annuler);
       rows = {};
       draw();
     }
-    return card(`Cotations · ${c.Title}`, { hint: 'Touchez une pastille pour coter, touchez-la à nouveau pour annuler. Un élève sans pastille n\'est pas enregistré (absent).' },
+    return card(`Cotations · ${c.Title}`, { hint: 'Touchez une pastille pour coter, touchez-la à nouveau pour annuler. Un élève sans pastille n\'est pas enregistré (absent). Pour un élève saisi par erreur, « Modifier » puis retirez ses deux pastilles.' },
       levelLegend(L),
       list,
       h('div', { class: 'form', style: { marginTop: '12px' } },

@@ -11,6 +11,7 @@ import { validateImport, countLists, totalOf, ImportError } from './import-valid
 const KEY = 'ressources_bac_a_sable_v3';
 const FK = { EnseignantID: 'RS_Enseignants', VoleeID: 'RS_Volees', CoursID: 'RS_Cours', EleveID: 'RS_Eleves', InscriptionID: 'RS_Inscriptions' };
 const MERGE_ORDER = ['RS_Enseignants', 'RS_Volees', 'RS_Cours', 'RS_Eleves', 'RS_Inscriptions', 'RS_Suivis', 'RS_Devoirs', 'RS_Evaluations', 'RS_Bilans', 'RS_Actions', 'RS_CPS', 'RS_Stages', 'RS_DocsOrientation', 'RS_Taches', 'RS_Travaux'];
+const uidsSupprimes = v => (Array.isArray(v) ? v.filter(u => typeof u === 'string' && u) : []);
 const newUid = () => (crypto.randomUUID ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`);
 
 export class LocalAdapter {
@@ -33,6 +34,7 @@ export class LocalAdapter {
     }
     if (!this.db || !this.db.lists) this.db = buildSeed();
     for (const l of LISTS) this.db.lists[l] ||= [];
+    this.db.supprimes ||= [];
     this.ensureUids();
     this.persist();
   }
@@ -77,6 +79,16 @@ export class LocalAdapter {
     return structuredClone(arr[i]);
   }
 
+  /** Supprime un élément et garde son UID : une version d'un·e collègue qui le contient encore ne le ramènera pas. */
+  async remove(list, id) {
+    const arr = this.db.lists[list];
+    const i = arr.findIndex(x => x.ID === id);
+    if (i < 0) throw new Error(`Élément ${id} introuvable dans ${list}`);
+    const [rec] = arr.splice(i, 1);
+    (this.db.supprimes ||= []).push(rec.UID);
+    this.persist();
+  }
+
   exportJSON() { return JSON.stringify({ format: 'RessourceS-bac-a-sable', version: 1, exporte: new Date().toISOString(), ...this.db }, null, 1); }
 
   /** Analyse un fichier sans rien modifier : renvoie le contenu du fichier et celui de la base actuelle, ou lève une ImportError. */
@@ -92,7 +104,8 @@ export class LocalAdapter {
   /** Remplace la base par le contenu du fichier, en une seule opération : la base active n'est touchée qu'après validation complète. */
   async importJSON(json) {
     const { lists } = this.previewImport(json);
-    const next = { lists };
+    const data = typeof json === 'string' ? JSON.parse(json) : json;
+    const next = { lists, supprimes: uidsSupprimes(data?.supprimes) };
     for (const l of LISTS) next.lists[l] ||= [];
     this.ensureUids(next);
     this.db = next; // seule affectation : tout ce qui précède a pu échouer sans rien changer
@@ -103,16 +116,24 @@ export class LocalAdapter {
    * Fusionne les listes d'une autre version (fichier d'un·e collègue).
    * Même UID : la version modifiée le plus récemment l'emporte. Nouvel UID : ajouté avec un nouvel ID local.
    * Les liens (EleveID, InscriptionID…) sont renumérotés pour pointer vers les ID locaux.
+   * Les suppressions (UID) des deux versions s'additionnent : un élément supprimé d'un côté disparaît des deux.
    */
-  mergeLists(incoming) {
-    const stats = { ajoutes: 0, misAJour: 0 };
+  mergeLists(incoming, supprimes = []) {
+    const stats = { ajoutes: 0, misAJour: 0, supprimes: 0 };
     const idMap = {};
+    const gone = new Set([...(this.db.supprimes || []), ...uidsSupprimes(supprimes)]);
+    this.db.supprimes = [...gone];
+    for (const list of MERGE_ORDER) {
+      const avant = this.db.lists[list].length;
+      this.db.lists[list] = this.db.lists[list].filter(r => !gone.has(r.UID));
+      stats.supprimes += avant - this.db.lists[list].length;
+    }
     for (const list of MERGE_ORDER) {
       idMap[list] = new Map();
       const local = this.db.lists[list];
       const byUid = new Map(local.map(r => [r.UID, r]));
       for (const src of incoming[list] || []) {
-        if (!src || !src.UID) continue;
+        if (!src || !src.UID || gone.has(src.UID)) continue;
         // Base de départ (enseignant·es, cours, volées) : générée par le code, identique pour tous. On ne la fusionne pas
         // (un fichier d'une version précédente ne doit pas la ramener) ; on garde seulement la correspondance des ID.
         if (String(src.UID).startsWith('seed-')) {
@@ -149,6 +170,7 @@ export class LocalAdapter {
 
   async reset() {
     this.db = buildSeed();
+    this.db.supprimes = [];
     this.ensureUids();
     this.persist();
   }

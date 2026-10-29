@@ -49,6 +49,12 @@ export class Store {
     return updated;
   }
 
+  async remove(list, id) {
+    await this.adapter.remove(list, id);
+    this.cache[list] = this.cache[list].filter(x => x.ID !== id);
+    this.onWrite?.();
+  }
+
   /* Outils du bac à sable (sans effet en mode SharePoint) */
   exportJSON() { return this.adapter.exportJSON?.(); }
   /** Contrôle un fichier sans rien modifier (voir LocalAdapter.previewImport). */
@@ -59,7 +65,7 @@ export class Store {
     const data = typeof json === 'string' ? JSON.parse(json) : json;
     if (!data?.lists) throw new Error('Fichier non reconnu');
     checkMergeShape(data.lists); // une liste mal formée ferait échouer la fusion en cours de route
-    const stats = this.adapter.mergeLists(data.lists);
+    const stats = this.adapter.mergeLists(data.lists, data.supprimes);
     await this.init();
     return stats;
   }
