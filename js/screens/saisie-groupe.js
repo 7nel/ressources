@@ -1,6 +1,6 @@
-import { S, nav, eleve, cours, refDate, moi, mesCours, coursActifs, voleeAt, inscriptionsEnCours, nomEleve, labels } from '../state.js';
+import { S, nav, eleve, cours, refDate, moi, isCoord, mesCours, coursActifs, voleeAt, inscriptionsEnCours, nomEleve, labels } from '../state.js';
 import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, empty, redraw, ctPair, reperesSuivi } from '../ui.js';
-import { phaseOf, semaineCle, sortBy, fmtDate, parseNote, evalMode, FORMATIF, DEF_C, DEF_T } from '../domain.js';
+import { phaseOf, semaineCle, sortBy, fmtDate, daysBetween, parseNote, fmtNote, evalMode, FORMATIF, DEF_C, DEF_T } from '../domain.js';
 
 const state = { coursId: null, date: null, forDate: null, portee: 'Séance', mode: 'cot' };
 
@@ -24,6 +24,7 @@ export function render(params) {
 
   const root = h('div', { class: 'page' });
   let rows = {}; // eleveId → saisie en cours
+  let evalEdit = null; // résultat d'évaluation déjà enregistré, rouvert pour correction
   const common = { devoir: travail?.Type === 'Devoir' ? travail.Title : '', sujet: travail?.Type === 'Évaluation' ? travail.Title : '', coef: '1' };
 
   function draw() {
@@ -78,13 +79,25 @@ export function render(params) {
   function cotations(c, v, phase, inscs, L) {
     const suivisDuJour = S.store.where('RS_Suivis', s => s.CoursID === c.ID && s.DateSuivi === state.date);
     const deja = new Set(suivisDuJour.map(s => s.EleveID));
+    // même règle que la saisie individuelle : l'auteur corrige pendant 7 jours, la coordination toujours
+    const modifiable = sv => typeof sv?.Comportement === 'number' && (isCoord() || (moi()?.ID === sv.EnseignantID && daysBetween(String(sv.Created).slice(0, 10), refDate()) <= 7));
+    const devoirDuJour = el => S.store.where('RS_Devoirs', d => d.EleveID === el.ID && d.CoursID === c.ID && d.DateConstat === state.date)[0];
     const errBox = h('div', { 'aria-live': 'assertive' }); // annoncé aux lecteurs d'écran, avertissements compris
     const rowEls = new Map(); // élève → ligne affichée, pour marquer celle qui bloque l'enregistrement
     const list = h('div', null, inscs.map(({ i, e }) => {
-      const done = deja.has(e.ID);
+      const sv = suivisDuJour.find(x => x.EleveID === e.ID);
+      const done = deja.has(e.ID) && !rows[e.ID]?.edit;
       const r = rows[e.ID] ||= { c: null, t: null, dv: false, rt: false, mat: false, obs: '', obsOuvert: false };
       // ligne déjà saisie : on rappelle les niveaux enregistrés (C puis T) et les cases cochées au lieu d'une ligne vide
-      const recap = el => { const sv = suivisDuJour.find(x => x.EleveID === el.ID); return typeof sv?.Comportement === 'number' ? h('span', { class: 'pk' }, ctPair(sv.Comportement, sv.Travail, L), reperesSuivi(sv)) : h('span'); };
+      const recap = () => typeof sv?.Comportement === 'number' ? h('span', { class: 'pk' }, ctPair(sv.Comportement, sv.Travail, L), reperesSuivi(sv)) : h('span');
+      // « Modifier » rouvre la ligne avec les valeurs enregistrées ; un devoir déjà constaté reste coché
+      const rouvrir = () => {
+        const dvEx = devoirDuJour(e);
+        rows[e.ID] = { edit: sv.ID, c: sv.Comportement, t: sv.Travail, rt: !!sv.Retard, mat: !!sv.MaterielManquant, dv: !!dvEx, dvDeja: !!dvEx, obs: sv.Observation || '', obsOuvert: !!sv.Observation };
+        draw();
+        root.querySelector(`[data-eleve="${e.ID}"] .picker button`)?.focus();
+      };
+      const annuler = () => { delete rows[e.ID]; draw(); };
       // commentaire : lien sous le nom ; le champ s'ouvre au clic, sur toute la largeur de la ligne
       const obsZone = h('div', { class: 'grp-obs' });
       const obsBtn = h('span');
@@ -93,23 +106,27 @@ export function render(params) {
         obsBtn.replaceChildren(...(r.obsOuvert ? [] : [btn('+ commentaire', () => { r.obsOuvert = true; drawObs(); obsZone.querySelector('textarea')?.focus(); }, 'ghost small grp-obs-btn', { 'aria-label': `Ajouter un commentaire pour ${e.Prenom}` })]));
       };
       if (!done) drawObs();
-      const ligne = h('div', { class: `grp-row ${done ? 'done' : ''}` },
-        h('div', { class: 'who' }, nomEleve(e), h('small', null, done ? '✓ déjà saisi' : `${i.Degre} · ${i.ClasseOrigine}`), !done && obsBtn),
-        done ? recap(e) : h('div', { class: 'grp-col' },
+      const ligne = h('div', { class: `grp-row ${done ? 'done' : ''} ${r.edit ? 'editing' : ''}`, 'data-eleve': e.ID },
+        h('div', { class: 'who' }, nomEleve(e),
+          h('small', null, done ? '✓ déjà saisi' : r.edit ? 'modification en cours' : `${i.Degre} · ${i.ClasseOrigine}`),
+          done && modifiable(sv) && btn('Modifier', rouvrir, 'ghost small grp-obs-btn', { 'aria-label': `Modifier la saisie de ${e.Prenom}` }),
+          !done && obsBtn,
+          r.edit && btn('Annuler', annuler, 'ghost small grp-obs-btn', { 'aria-label': `Annuler la modification de ${e.Prenom}` })),
+        done ? recap() : h('div', { class: 'grp-col' },
           h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Comportement : ${DEF_C}` }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
           h('div', { class: 'grp-checks' }, checkbox('en retard', r.rt, val => { r.rt = val; }))),
         done ? h('span') : h('div', { class: 'grp-col grp-col-t' },
           h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Travail : ${DEF_T}` }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
           h('div', { class: 'grp-checks' },
             checkbox('matériel manquant', r.mat, val => { r.mat = val; }),
-            checkbox('devoir non fait', r.dv, val => { r.dv = val; }))),
+            r.dvDeja ? checkbox('devoir non fait (déjà enregistré)', true, null, { disabled: true }) : checkbox('devoir non fait', r.dv, val => { r.dv = val; }))),
         done ? h('span') : obsZone);
       rowEls.set(e.ID, ligne);
       return ligne;
     }));
     async function save() {
       rowEls.forEach(l => { l.classList.remove('err'); l.querySelector('.err-msg')?.remove(); });
-      const todo = inscs.filter(({ e }) => { const r = rows[e.ID]; return !deja.has(e.ID) && r && (r.c || r.t || r.dv || r.rt || r.mat || r.obs.trim()); });
+      const todo = inscs.filter(({ e }) => { const r = rows[e.ID]; return r && (r.edit || (!deja.has(e.ID) && (r.c || r.t || r.dv || r.rt || r.mat || r.obs.trim()))); });
       const incomplete = todo.filter(({ e }) => !rows[e.ID].c || !rows[e.ID].t);
       if (!todo.length) { errBox.replaceChildren(notice('Rien à enregistrer : touchez les pastilles d\'au moins un élève.', 'warn')); return; }
       if (incomplete.length) {
@@ -125,18 +142,20 @@ export function render(params) {
         pickers[rows[incomplete[0].e.ID].c ? 1 : 0]?.querySelector('button')?.focus({ preventScroll: true });
         return;
       }
-      if (todo.some(({ e }) => rows[e.ID].dv) && !common.devoir.trim()) { errBox.replaceChildren(notice('Indiquez le devoir attendu (commun).', 'danger')); return; }
+      const nouveauDevoir = ({ e }) => rows[e.ID].dv && !rows[e.ID].dvDeja;
+      if (todo.some(nouveauDevoir) && !common.devoir.trim()) { errBox.replaceChildren(notice('Indiquez le devoir attendu (commun).', 'danger')); return; }
       const ensId = moi()?.ID ?? c.EnseignantID;
       const sk = semaineCle(state.date);
       for (const { i, e } of todo) {
         const r = rows[e.ID];
         const title = `${e.Prenom} ${e.Nom} · ${c.Title} · ${state.date}`;
-        await S.store.add('RS_Suivis', {
+        if (r.edit) await S.store.update('RS_Suivis', r.edit, { Comportement: r.c, Travail: r.t, Retard: r.rt, MaterielManquant: r.mat, Observation: r.obs.trim() });
+        else await S.store.add('RS_Suivis', {
           Title: title, EleveID: e.ID, InscriptionID: i.ID, CoursID: c.ID, EnseignantID: ensId,
           DateSuivi: state.date, SemaineCle: sk, Portee: state.portee, Phase: phase,
           Comportement: r.c, Travail: r.t, Retard: r.rt, MaterielManquant: r.mat, Observation: r.obs.trim(), CoachTravaille: '', CoachProgres: '',
         });
-        if (r.dv) {
+        if (r.dv && !r.dvDeja) {
           await S.store.add('RS_Devoirs', {
             Title: title, EleveID: e.ID, InscriptionID: i.ID, CoursID: c.ID, EnseignantID: ensId,
             DateConstat: state.date, SemaineCle: sk, Phase: phase, SansConsequence: phase === 'Décompression',
@@ -144,8 +163,9 @@ export function render(params) {
           });
         }
       }
-      if (travail?.Type === 'Devoir' && todo.some(({ e }) => rows[e.ID].dv)) await changeStatut('Contrôlé');
-      toast(`${todo.length} suivi${todo.length > 1 ? 's' : ''} enregistré${todo.length > 1 ? 's' : ''}`);
+      if (travail?.Type === 'Devoir' && todo.some(nouveauDevoir)) await changeStatut('Contrôlé');
+      const nMod = todo.filter(({ e }) => rows[e.ID].edit).length, nNew = todo.length - nMod;
+      toast([nNew && `${nNew} suivi${nNew > 1 ? 's' : ''} enregistré${nNew > 1 ? 's' : ''}`, nMod && `${nMod} modifié${nMod > 1 ? 's' : ''}`].filter(Boolean).join(' · '));
       rows = {};
       draw();
     }
@@ -203,12 +223,65 @@ export function render(params) {
       rows = {}; common.sujet = '';
       draw();
     }
+    // résultats déjà enregistrés ce jour dans ce cours, par sujet ; même règle que l'écran Évaluation : l'auteur ou la coordination corrige
+    const existantes = sortBy(S.store.where('RS_Evaluations', x => x.CoursID === c.ID && x.DateEval === state.date), 'Sujet');
+    const modifiable = x => isCoord() || moi()?.ID === x.EnseignantID;
+    const resultat = x => x.ResultatFormatif || fmtNote(x.Note);
+    const ligneExistante = x => {
+      const el = eleve(x.EleveID);
+      const m = evalMode(x.Phase);
+      if (evalEdit?.id !== x.ID) {
+        return h('div', { class: 'grp-eval saved' },
+          h('div', { class: 'who' }, el ? nomEleve(el) : '—'),
+          h('span', { class: 'note' }, resultat(x)),
+          h('div', { class: 'et' }, x.Etayage && h('span', { class: 'muted small' }, `Étayage : ${x.Etayage}`),
+            modifiable(x) && btn('Modifier', () => {
+              evalEdit = { id: x.ID, note: x.Note != null ? fmtNote(x.Note) : '', etayage: x.Etayage || '', formatif: x.ResultatFormatif || '', err: '' };
+              draw();
+              root.querySelector(`[data-eval="${x.ID}"] input, [data-eval="${x.ID}"] .seg button`)?.focus();
+            }, 'ghost small', { 'aria-label': `Modifier le résultat de ${el?.Prenom || ''}` })));
+      }
+      const r = evalEdit;
+      const enregistrer = async () => {
+        let patch;
+        if (m === 'formatif') {
+          if (!r.formatif) { r.err = 'Choisissez un résultat.'; draw(); return; }
+          patch = { ResultatFormatif: r.formatif, Note: null };
+        } else {
+          const n = parseNote(r.note);
+          if (n == null || Number.isNaN(n)) { r.err = 'Note invalide : entre 1 et 6, au dixième.'; draw(); return; }
+          patch = { Note: n, Etayage: m === 'etayee' ? r.etayage.trim() : '' };
+        }
+        await S.store.update('RS_Evaluations', x.ID, patch);
+        toast('Résultat modifié');
+        evalEdit = null;
+        draw();
+      };
+      const annuler = () => { evalEdit = null; draw(); };
+      return h('div', { class: 'grp-eval saved editing', 'data-eval': x.ID },
+        h('div', { class: 'who' }, el ? nomEleve(el) : '—', h('small', null, 'modification en cours')),
+        m === 'formatif'
+          ? seg(FORMATIF, r.formatif, val => { r.formatif = val; draw(); }, `Résultat ${el?.Prenom || ''}`)
+          : input('text', r.note, { inputmode: 'decimal', 'aria-label': `Note ${el?.Prenom || ''}`, onInput: ev => { r.note = ev.target.value; } }),
+        h('div', { class: 'et' },
+          m === 'etayee' && input('text', r.etayage, { placeholder: 'Étayage (aide apportée)', 'aria-label': `Étayage ${el?.Prenom || ''}`, onInput: ev => { r.etayage = ev.target.value; } }),
+          btn('Enregistrer', enregistrer, 'small'), btn('Annuler', annuler, 'ghost small')),
+        r.err && h('div', { class: 'err-msg', role: 'alert' }, r.err));
+    };
+    const sujets = [...new Set(existantes.map(x => x.Sujet))];
+    const dejaSaisi = existantes.length > 0 && card(`Déjà enregistré le ${fmtDate(state.date, { day: true })}`, { hint: 'Pour corriger une note mal saisie, touchez « Modifier » sur la ligne de l\'élève.' },
+      sujets.map(sj => {
+        const du = sortBy(existantes.filter(x => x.Sujet === sj).map(x => ({ x, nom: eleve(x.EleveID)?.Nom || '' })), 'nom').map(o => o.x);
+        return h('div', { class: 'grp-sujet' },
+          h('h3', null, `« ${sj} »`, h('span', { class: 'muted small' }, ` · coef. ${String(du[0].Coefficient ?? 1).replace('.', ',')}`)),
+          du.map(ligneExistante));
+      }));
     const hint = {
       formatif: 'Décompression : évaluation formative uniquement (réussi seul / avec aide / pas encore). Aucune note.',
       etayee: 'Remobilisation : note sur une tâche de niveau classe, avec l\'étayage apporté.',
       normale: 'Ré-exposition : note en conditions normales.',
     }[mode];
-    return card(`Évaluation · ${c.Title}`, { hint },
+    return [card(`Évaluation · ${c.Title}`, { hint },
       h('div', { class: 'form', style: { marginBottom: '8px' } },
         h('div', { class: 'row' },
           field('Sujet', input('text', common.sujet, { placeholder: 'ex. Fractions', onInput: ev => { common.sujet = ev.target.value; } })),
@@ -216,7 +289,7 @@ export function render(params) {
       mode !== 'formatif' && h('p', { class: 'hint' }, 'Notes de 1 à 6 au dixième (4,5 ou 4.5). Case vide = absent, rien n\'est enregistré.'),
       list,
       errBox,
-      h('div', { class: 'btn-row', style: { marginTop: '12px' } }, btn('Enregistrer', save)));
+      h('div', { class: 'btn-row', style: { marginTop: '12px' } }, btn('Enregistrer', save))), dejaSaisi];
   }
 
   draw();

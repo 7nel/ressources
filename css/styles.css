@@ -444,6 +444,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 /* Déjà saisi : texte en pleine encre (pas d'opacité, le contraste doit rester ≥ 4,5:1) ; l'état est écrit dans la ligne, le fond ne fait que l'alléger */
 .grp-row.done { background: var(--bg); padding-block: 6px; }
 .grp-row.done > span:empty { display: none; }
+.grp-row.editing { box-shadow: inset 3px 0 0 var(--accent); }
 /* Contrôles de la saisie de groupe : le cours prend la largeur, la date et la portée se partagent la ligne suivante (le premier élève arrive plus haut) */
 .grp-controls .row > .field { flex: 1 1 150px; }
 .grp-controls .row > .field:first-child { flex: 1 1 100%; }
@@ -470,6 +471,18 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .reperes { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .reperes .badge { white-space: nowrap; }
 .grp-eval { display: grid; grid-template-columns: minmax(140px, 1fr) 110px minmax(180px, 2fr); gap: 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); }
+.grp-sujet + .grp-sujet { margin-top: 16px; }
+.grp-sujet h3 { margin: 0 0 4px; }
+.grp-eval.saved { padding-block: 6px; }
+.grp-eval.saved .who small { display: block; font-weight: 400; font-size: .875rem; color: var(--muted); }
+.grp-eval.saved .note { font-weight: 700; font-variant-numeric: tabular-nums; }
+.grp-eval.saved .et { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.grp-eval.saved .et input { flex: 1 1 180px; }
+.grp-eval.saved .et .btn.ghost:last-child { margin-left: auto; }
+.grp-eval.editing { box-shadow: inset 3px 0 0 var(--accent); }
+.grp-eval.editing .seg { grid-column: 2 / -1; }
+.grp-eval.editing .seg ~ .et { grid-column: 1 / -1; }
+.grp-eval .err-msg { grid-column: 1 / -1; color: var(--danger); font-weight: 700; font-size: .875rem; }
 @media (max-width: 860px) {
   .grp-row { grid-template-columns: repeat(auto-fit, minmax(206px, 1fr)); gap: 6px 12px; }
   .grp-row .who, .grp-row .grp-obs { grid-column: 1 / -1; }
