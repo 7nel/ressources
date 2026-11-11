@@ -67,6 +67,13 @@ Créer un dossier OneDrive partagé avec l'équipe (ex. « RessourceS – échan
 (y compris quand une copie de secours a été téléchargée : le dossier n'a rien reçu). Un échec reste affiché jusqu'à ce qu'une écriture réussisse ;
 cliquer sur « Sauvegarder » pour réessayer. Les changements d'état sont annoncés aux lecteurs d'écran (zone d'annonce discrète) ; non vérifié avec VoiceOver ou TalkBack.
 
+**Alerte du dossier relié** (Chrome ou Edge sur ordinateur, dossier relié) : un bandeau en haut de l'écran signale
+- un dossier **figé** : pendant une volée, aucune version d'un·e collègue n'a changé depuis 3 jours d'école (seuil pratique, à ajuster). C'est ce qui arrive quand OneDrive duplique ou déconnecte le dossier et que l'app lit l'ancienne copie (cas du 2 au 11 novembre 2026) ;
+- un dossier **introuvable** : OneDrive l'a renommé, déplacé ou recréé.
+
+Le bandeau propose « Changer de dossier » (relier le bon « appCR », puis l'app le charge) et, pour un dossier figé, « Ignorer » (masqué jusqu'à la prochaine version reçue). Les collègues y lisent aussi « prévenez PL ».
+« Dossier et collègues », sous l'état de la sauvegarde, montre le dossier relié et la date de la dernière version de chacun·e : on y voit aussi qui n'enregistre pas.
+
 **Réglages > Données de ce navigateur** : « Remplacer par un fichier… » vérifie le fichier en entier avant de toucher aux données
 (un fichier invalide, incomplet ou vide est refusé, vos données restent intactes) et demande confirmation en indiquant ce que contient le fichier.
 « Réinitialiser les données » remplace tout par la base de départ : enseignant·es, cours et volées, sans aucun élève.

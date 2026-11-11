@@ -3,10 +3,10 @@ import { CONFIG } from './config.js';
 import { Store } from './data/store.js';
 import { LocalAdapter } from './data/local-adapter.js';
 import { SharePointAdapter } from './data/sharepoint-adapter.js';
-import { S, loadSettings, saveSettings, isSandbox, refDate, moi, enseignantsActifs, nav, applyTheme } from './state.js';
-import { h, icon, btn, field, select, notice, card, modal, memoriserFocus } from './ui.js';
-import { fmtDate } from './domain.js';
-import { sauvegarder, charger, chargerAuDemarrage, isDirty, markDirty, getMeta, syncState, wasLoadedThisSession, dismissLoad, supportsFolder, autoPossible } from './sync.js';
+import { S, loadSettings, saveSettings, isSandbox, moi, enseignantsActifs, nav, applyTheme, isCoord, voleeAt } from './state.js';
+import { h, icon, btn, field, select, notice, card, modal, memoriserFocus, toast } from './ui.js';
+import { fmtDate, todayISO } from './domain.js';
+import { sauvegarder, charger, chargerAuDemarrage, isDirty, markDirty, getMeta, syncState, wasLoadedThisSession, dismissLoad, supportsFolder, autoPossible, alerteDossier, ignorerAlerte, changerDeDossier, SEUIL_JOURS_ECOLE } from './sync.js';
 
 import * as Accueil from './screens/accueil.js';
 import * as Eleves from './screens/eleves.js';
@@ -75,14 +75,23 @@ function parseHash() {
   return { name: ROUTES[name] ? name : 'accueil', params };
 }
 
+/** Le bandeau ne sert plus qu'à l'alerte du dossier relié (figé ou introuvable). */
 function renderBanner() {
-  bannerEl.hidden = true; return; // bandeau retiré à la demande de l'équipe
-  // eslint-disable-next-line no-unreachable
-  bannerEl.replaceChildren(
-    h('strong', null, 'VERSION DE TEST'),
-    h('span', { class: 'banner-long' }, 'Élèves fictifs uniquement : ne saisissez aucun vrai nom d\'élève.'),
-    h('span', null, `Date simulée : ${fmtDate(refDate(), { day: true })}`),
-    h('button', { type: 'button', onClick: () => nav('parametres') }, 'changer'));
+  const aujourdhui = todayISO();
+  const al = S.store ? alerteDossier({ aujourdhui, enVolee: Boolean(voleeAt(aujourdhui)) }) : null;
+  if (!al) { bannerEl.hidden = true; bannerEl.className = 'banner'; bannerEl.replaceChildren(); return; }
+  const prevenir = isCoord() ? null : h('span', null, 'Si vous ne savez pas quoi faire, prévenez PL.');
+  const changer = h('button', { type: 'button', onClick: async () => { try { await changerDeDossier(); } catch (e) { toast(`Dossier non relié (${e.message}).`, 'err'); } render(); } }, 'Changer de dossier');
+  const texte = al.kind === 'introuvable'
+    ? [h('strong', null, 'Dossier partagé introuvable.'), h('span', null, `« ${getMeta().folderName || 'appCR'} » a été renommé, déplacé ou recréé par OneDrive : l'app ne peut plus le lire ni y enregistrer.`)]
+    : [h('strong', null, 'Le dossier relié ne reçoit plus les versions des collègues.'),
+      h('span', null, al.derniere
+        ? `Aucune nouvelle version depuis le ${fmtDate(al.derniere.slice(0, 10), { year: false })} (${al.jours} jours d'école). OneDrive l'a peut-être dupliqué ou déconnecté.`
+        : 'Aucune version de collègue dans ce dossier. Ce n\'est peut-être pas le bon dossier.')];
+  bannerEl.className = 'banner alerte';
+  bannerEl.hidden = false;
+  bannerEl.replaceChildren(...[...texte, prevenir, changer,
+    al.kind === 'fige' ? h('button', { type: 'button', title: 'Masquer jusqu\'à la prochaine version reçue', onClick: () => { ignorerAlerte(); renderBanner(); } }, 'Ignorer') : null].filter(Boolean));
 }
 
 function renderSidebar(active) {
@@ -130,8 +139,21 @@ function etatComplet(st) {
 /** Fenêtre d'aide de la barre étroite : l'explication complète de l'état, accessible au clavier. */
 function afficherEtat() {
   const st = syncState();
-  modal('État de l\'enregistrement', h('div', { class: 'form' }, h('p', null, etatComplet(st)), h('p', { class: 'hint' }, noteEnregistrement())),
-    [{ label: 'Fermer', variant: 'secondary' }, { label: 'Sauvegarder', onClick: () => { sauvegarder(); } }]);
+  const m = getMeta();
+  const equipe = Object.entries(m.equipe || {}).sort(([a], [b]) => a.localeCompare(b));
+  const ilYa = iso => { const j = Math.round((Date.parse(todayISO()) - Date.parse(iso.slice(0, 10))) / 86400000);
+    return j <= 0 ? 'aujourd\'hui' : j === 1 ? 'hier' : `${fmtDate(iso.slice(0, 10), { year: false })} (il y a ${j} jours)`; };
+  modal('État de l\'enregistrement', h('div', { class: 'form' },
+    h('p', null, etatComplet(st)), h('p', { class: 'hint' }, noteEnregistrement()),
+    supportsFolder() && h('p', null, m.folderName ? `Dossier relié : « ${m.folderName} »${m.introuvable ? ' (introuvable)' : ''}.` : 'Aucun dossier relié.'),
+    equipe.length
+      ? h('div', null, h('p', { class: 'small' }, h('strong', null, 'Dernière version de chacun·e'), ' (au dernier chargement) :'),
+        h('ul', { class: 'small', style: { margin: 0, paddingLeft: '20px' } }, equipe.map(([a, d]) => h('li', null, `${a} : ${ilYa(d)}`))),
+        h('p', { class: 'hint' }, `Si aucune version de collègue ne change pendant ${SEUIL_JOURS_ECOLE} jours d'école, un bandeau vous prévient.`))
+      : supportsFolder() && h('p', { class: 'hint' }, 'Les versions des collègues s\'affichent ici après un chargement du dossier.')),
+  [{ label: 'Fermer', variant: 'secondary' },
+    ...(supportsFolder() ? [{ label: 'Changer de dossier', variant: 'secondary', onClick: async () => { try { await changerDeDossier(); } catch (e) { toast(`Dossier non relié (${e.message}).`, 'err'); } render(); } }] : []),
+    { label: 'Sauvegarder', onClick: () => { sauvegarder(); } }]);
 }
 
 function syncBlock(compact = false) {
@@ -155,7 +177,8 @@ function syncBlock(compact = false) {
   return h('div', { class: 'sync' },
     h('div', { class: 'sync-title' }, 'Échange avec l\'équipe'),
     save, load,
-    h('div', { class: 'sync-meta' }, status, note, m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null));
+    h('div', { class: 'sync-meta' }, status, note, m.lastLoad ? h('span', null, `Chargé ${hhmm(m.lastLoad)}`) : null,
+      h('button', { type: 'button', class: 'sync-detail', 'aria-haspopup': 'dialog', onClick: afficherEtat }, 'Dossier et collègues')));
 }
 
 /**
@@ -252,7 +275,7 @@ function welcome(changer = false) {
 
 async function start() {
   const root = document.getElementById('app');
-  bannerEl = h('div', { class: 'banner', role: 'note' });
+  bannerEl = h('div', { class: 'banner', role: 'status', hidden: true });
   sidebarEl = h('nav', { class: 'sidebar', 'aria-label': 'Menu principal' });
   mainEl = h('main', { id: 'main', tabindex: '-1' });
   syncBarEl = h('div', { class: 'sync-bar-wrap' });
@@ -281,6 +304,7 @@ async function start() {
   S.store.onWrite = markDirty;
   window.addEventListener('beforeunload', e => { if (isSandbox() && isDirty()) { e.preventDefault(); e.returnValue = ''; } });
   installerAnnonces();
+  window.addEventListener('rs:sync', () => renderBanner());
   window.addEventListener('rs:sync', () => renderSidebar(ROUTES[S.route.name]?.nav === 'saisie' ? 'groupe' : ROUTES[S.route.name]?.nav));
   if (isSandbox() && S.settings.moiId) await chargerAuDemarrage();
   let first = true;

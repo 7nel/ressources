@@ -21,6 +21,10 @@ const META_KEY = 'ressources_echange_v1';
 // lastDownload : dernier fichier téléchargé ou partagé (ce n'est pas une synchronisation). error : cause de l'échec en cours.
 // secours : un fichier de secours a été téléchargé après un échec du dossier. Aucune donnée d'élève n'est conservée ici.
 const meta = { dirty: false, lastSave: null, lastLoad: null, folderName: null, lastDownload: null, error: null, secours: false };
+// Surveillance du dossier relié (initiales et dates seulement) : equipe = { initiales: date du dernier enregistrement lu dans son fichier } ;
+// introuvable : le dossier relié a disparu (renommé ou déplacé par OneDrive) ; figeIgnore : date de la dernière version d'un·e collègue
+// au moment où l'alerte « dossier figé » a été ignorée (elle reste masquée tant qu'aucune version plus récente n'arrive, puis revient si le dossier se fige de nouveau).
+Object.assign(meta, { equipe: null, introuvable: false, figeIgnore: null });
 // Écriture automatique, rétablie le 2026-10-26 dans l'app installée seulement. Suspendue le 2026-10-24 parce qu'elle remplaçait
 // le fichier sans relire le dossier et pouvait écraser le travail d'un autre appareil : elle relit et fusionne désormais tout
 // le dossier (son propre fichier compris) avant d'écrire, comme « Sauvegarder ». Pour la couper : passer ce drapeau à false.
@@ -163,7 +167,7 @@ async function getFolder() {
 export async function chooseFolder() {
   const handle = await window.showDirectoryPicker({ id: 'ressources-echange', mode: 'readwrite' });
   dirHandle = handle;
-  meta.folderName = handle.name; saveMeta();
+  meta.folderName = handle.name; meta.introuvable = false; meta.equipe = null; saveMeta();
   try { await idb('readwrite', st => st.put(handle, 'dossier')); } catch { /* le dossier sera redemandé */ }
   return handle;
 }
@@ -217,10 +221,77 @@ function report(t, silent) {
 
 async function readFolder(handle) {
   const texts = [];
-  for await (const entry of handle.values()) {
-    if (entry.kind === 'file' && isVersionFile(entry.name)) texts.push(await (await entry.getFile()).text());
+  try {
+    for await (const entry of handle.values()) {
+      if (entry.kind === 'file' && isVersionFile(entry.name)) texts.push(await (await entry.getFile()).text());
+    }
+  } catch (e) {
+    if (e?.name === 'NotFoundError') { meta.introuvable = true; saveMeta(); emit(); }
+    throw e;
   }
+  noterEquipe(texts);
   return texts;
+}
+
+/** Retient, pour chaque fichier du dossier, ses initiales et la date de son dernier enregistrement (rien d'autre). */
+function noterEquipe(texts) {
+  const equipe = {};
+  for (const t of texts) {
+    try {
+      const d = JSON.parse(t);
+      if (d?.auteur && d?.enregistre && (!equipe[d.auteur] || d.enregistre > equipe[d.auteur])) equipe[d.auteur] = d.enregistre;
+    } catch { /* fichier illisible : compté ailleurs */ }
+  }
+  meta.equipe = equipe; meta.introuvable = false; saveMeta(); emit();
+}
+
+/* ---------- Alerte : dossier relié figé ou introuvable ---------- */
+export const SEUIL_JOURS_ECOLE = 3; // choix pratique, sans donnée pour le fonder : à ajuster à l'usage
+
+/** Jours d'école (lundi à vendredi) écoulés après le jour `depuis`, jusqu'à `jusqua` compris. */
+export function joursEcoleEntre(depuis, jusqua) {
+  let n = 0;
+  const d = new Date(`${depuis.slice(0, 10)}T12:00:00Z`);
+  const fin = new Date(`${jusqua.slice(0, 10)}T12:00:00Z`);
+  for (d.setUTCDate(d.getUTCDate() + 1); d <= fin; d.setUTCDate(d.getUTCDate() + 1)) if (d.getUTCDay() % 6 !== 0) n++;
+  return n;
+}
+
+/** Dernière version enregistrée par un·e collègue (pas soi-même), d'après le dernier chargement du dossier. */
+export function derniereVersionCollegue() {
+  const moiT = moi()?.Title;
+  const dates = Object.entries(meta.equipe || {}).filter(([a]) => a !== moiT).map(([, d]) => d).sort();
+  return dates.length ? dates[dates.length - 1] : null;
+}
+
+/**
+ * Alerte à afficher, ou null.
+ * - introuvable : le dossier relié n'existe plus à cet endroit (OneDrive l'a renommé, déplacé ou recréé).
+ * - fige : aucune version d'un·e collègue n'a changé depuis SEUIL_JOURS_ECOLE jours d'école, pendant une volée.
+ *   C'est le symptôme d'un dossier qui ne se synchronise plus (cas du 2 au 11 novembre 2026).
+ * `enVolee` : une volée est en cours aujourd'hui (pas d'alerte « figé » pendant les vacances).
+ */
+export function alerteDossier({ aujourdhui, enVolee }) {
+  if (!isSandbox() || !supportsFolder() || !dirHandleConnu()) return null;
+  if (meta.introuvable) return { kind: 'introuvable' };
+  if (!enVolee || !meta.equipe) return null;
+  const derniere = derniereVersionCollegue();
+  const jours = derniere ? joursEcoleEntre(derniere.slice(0, 10), aujourdhui) : Infinity;
+  if (jours < SEUIL_JOURS_ECOLE) return null;
+  if (meta.figeIgnore && meta.figeIgnore === (derniere || 'aucune')) return null;
+  return { kind: 'fige', derniere, jours };
+}
+const dirHandleConnu = () => Boolean(meta.folderName);
+export function ignorerAlerte() {
+  meta.figeIgnore = derniereVersionCollegue() || 'aucune'; saveMeta(); emit();
+}
+
+/** Relie un autre dossier puis le charge aussitôt. */
+export async function changerDeDossier() {
+  try { await chooseFolder(); } catch (e) { if (e?.name === 'AbortError') return false; throw e; }
+  meta.introuvable = false; meta.figeIgnore = null; saveMeta();
+  await charger();
+  return true;
 }
 
 /**
