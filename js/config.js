@@ -5,6 +5,9 @@
 
 export const CONFIG = {
   MODE: 'bac-a-sable',
+  // Première volée suivie dans l'app. Pour les volées commencées avant (2026-27 V1), l'accueil ne réclame
+  // ni bilan final ni CPS de sortie : ils n'ont pas été faits dans l'app. Actions et devoirs restent signalés.
+  DEBUT_SUIVI_APP: '2026-10-26',
   sharepoint: {
     clientId: '',      // fourni par l'informatique (ID d'application)
     tenantId: '',      // ID du tenant cantonal

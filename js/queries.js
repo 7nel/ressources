@@ -1,4 +1,5 @@
 // Calculs partagés entre écrans (accueil, dossier, bilans). Rien n'est stocké : tout est recalculé.
+import { CONFIG } from './config.js';
 import { S, volee, cours, eleve, nomEleve, inscriptionsEnCours, moi, ens, isCoord, refDate } from './state.js';
 import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey } from './domain.js';
 
@@ -265,7 +266,9 @@ export function aCloturer(vPrec, { restreint, coursIds } = {}) {
   const m = moi();
   const ids = new Set(inscs.map(i => i.ID));
   const out = [];
-  if (!restreint) {
+  // bilans et CPS de sortie réclamés seulement pour les volées commencées depuis que l'app est utilisée
+  const suivieDansApp = !CONFIG.DEBUT_SUIVI_APP || String(vPrec.DateDebut || '') >= CONFIG.DEBUT_SUIVI_APP;
+  if (!restreint && suivieDansApp) {
     for (const i of inscs) if (!bilanDe(i.ID, 'Final')) out.push({ kind: 'Bilan final manquant', title: nomEleve(eleve(i.EleveID)), go: ['bilan', { insc: i.ID, type: 'Final' }] });
     for (const i of inscs) if (!cpsPasse(i.ID, 'Sortie')) out.push({ kind: 'CPS de sortie manquant', title: nomEleve(eleve(i.EleveID)), go: ['cps', { eleve: i.EleveID, insc: i.ID }] });
   }
