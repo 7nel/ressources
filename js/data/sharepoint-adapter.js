@@ -18,7 +18,7 @@ const MULTI_CHOICE = { RS_Bilans: ['DomainesPrioritaires'] };
 const DATE_FIELDS = new Set([
   'DateDebut', 'DateDebutRemob', 'DateDebutReexpo', 'DateFin', 'DateSuivi', 'DateConstat', 'DateResolution',
   'DateEval', 'DateBilan', 'DatePassation', 'DateSignatureEleve', 'DateValidationCoord', 'Echeance',
-  'DateCloture', 'DateMaj',
+  'DateCloture', 'DateMaj', 'DateAbsence',
 ]);
 const READ_ONLY = new Set(['ID', 'id', 'UID', 'Created', 'Modified', 'Author', 'Editor', '@odata.etag', 'ContentType', 'Attachments', 'Edit', 'LinkTitle', 'LinkTitleNoMenu', 'DocIcon', 'ItemChildCount', 'FolderChildCount', '_UIVersionString', '_ComplianceFlags', '_ComplianceTag', '_ComplianceTagWrittenTime', '_ComplianceTagUserId', 'AppAuthorLookupId', 'AppEditorLookupId', 'AuthorLookupId', 'EditorLookupId']);
 

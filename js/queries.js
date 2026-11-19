@@ -1,13 +1,18 @@
 // Calculs partagés entre écrans (accueil, dossier, bilans). Rien n'est stocké : tout est recalculé.
 import { CONFIG } from './config.js';
 import { S, volee, cours, eleve, nomEleve, inscriptionsEnCours, moi, ens, isCoord, refDate } from './state.js';
-import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey } from './domain.js';
+import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey, totalHeuresAbsence } from './domain.js';
 
 const st = () => S.store;
 
 export function suivisDeSemaine(sk, inscIds) {
   const set = inscIds && new Set(inscIds);
   return st().where('RS_Suivis', s => s.SemaineCle === sk && (!set || set.has(s.InscriptionID)));
+}
+
+/** Heures d'absence d'une inscription, éventuellement limitées (semaine, phase…). */
+export function heuresAbsenceInsc(inscId, filtre = () => true) {
+  return totalHeuresAbsence(st().where('RS_Absences', a => a.InscriptionID === inscId && filtre(a)));
 }
 
 /** Retenue du vendredi (R9) : devoirs de la semaine hors décompression. */
@@ -365,8 +370,15 @@ export function bilanCR(voleeIds) {
     return { nom, n: paires.length, entree: moyenne(paires.map(p => p[0])), sortie: moyenne(paires.map(p => p[1])), hausse: paires.filter(([a, b]) => b - a >= SEUIL_CPS_HAUSSE).length };
   });
 
+  // Absences : heures par élève (chaque élève compte pour un), en tout et par phase
+  const hAbs = actives.map(i => heuresAbsenceInsc(i.ID));
+  const absences = {
+    total: hAbs.reduce((a, b) => a + b, 0), moy: moyenne(hAbs), sans: hAbs.filter(x => !x).length, n: actives.length,
+    phases: phases.map(p => ({ phase: p, total: actives.reduce((a, i) => a + heuresAbsenceInsc(i.ID, x => x.Phase === p), 0) })),
+  };
+
   // Bilans réalisés
   const bilans = ['Mise en route', 'Intermédiaire', 'Final'].map(type => ({ type, fait: actives.filter(i => bilanDe(i.ID, type)).length, sur: actives.length }));
 
-  return { effectifs, nActives: actives.length, profils, sansProfil, ct, notes, cps, bilans };
+  return { effectifs, nActives: actives.length, profils, sansProfil, ct, notes, cps, absences, bilans };
 }

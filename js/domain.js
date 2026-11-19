@@ -118,6 +118,47 @@ export function weeksOfVolee(v) {
   return out;
 }
 
+/* ---------- Absences : décompte en heures ---------- */
+// Matin 4 h, après-midi 3 h ; le mercredi n'a pas d'après-midi d'école (4 h au plus).
+// Une absence : Duree 'Heure' | 'Demi-journée' | 'Journée' ; Moment 'Matin' | 'Après-midi' pour l'heure et la demi-journée.
+export const HEURES_MATIN = 4;
+export const HEURES_APREM = 3;
+export const DUREES_ABSENCE = ['Heure', 'Demi-journée', 'Journée'];
+export const MOMENTS = ['Matin', 'Après-midi'];
+export const estMercredi = date => parseDate(date).getUTCDay() === 3;
+export const heuresMaxJour = date => estMercredi(date) ? HEURES_MATIN : HEURES_MATIN + HEURES_APREM;
+const heuresMoment = (moment, date) => moment === 'Matin' ? HEURES_MATIN : estMercredi(date) ? 0 : HEURES_APREM;
+/**
+ * Heures d'absence d'un élève sur un jour, à partir de toutes ses absences de ce jour (plusieurs cours) :
+ * une journée couvre tout ; par demi-journée, une demi-journée couvre ses heures, sinon les heures s'ajoutent
+ * jusqu'à la durée de la demi-journée (4 h le matin, 3 h l'après-midi, rien le mercredi après-midi).
+ */
+export function heuresJour(absences) {
+  if (!absences.length) return 0;
+  const date = absences[0].DateAbsence;
+  if (absences.some(a => a.Duree === 'Journée')) return heuresMaxJour(date);
+  let n = 0;
+  for (const m of MOMENTS) {
+    const max = heuresMoment(m, date);
+    const l = absences.filter(a => a.Moment === m);
+    n += l.some(a => a.Duree === 'Demi-journée') ? max : Math.min(max, l.filter(a => a.Duree === 'Heure').length);
+  }
+  return n;
+}
+/** Total d'heures d'absence, jour par jour (les absences peuvent mêler plusieurs élèves). */
+export function totalHeuresAbsence(absences) {
+  let n = 0;
+  for (const l of groupBy(absences, a => `${a.EleveID}|${a.DateAbsence}`).values()) n += heuresJour(l);
+  return n;
+}
+export function libelleAbsence(a) {
+  const m = a.Moment === 'Matin' ? 'le matin' : 'l\'après-midi';
+  if (a.Duree === 'Journée') return `journée${estMercredi(a.DateAbsence) ? ' (mercredi)' : ''}`;
+  if (a.Duree === 'Demi-journée') return a.Moment === 'Matin' ? 'matin' : 'après-midi';
+  return `1 heure ${m}`;
+}
+export const fmtHeures = n => `${n}\u00a0h`;
+
 /* ---------- Retenue du vendredi (R9) ---------- */
 export function retenueMinutes(n) { return n >= 1 ? Math.min(60, 15 + 5 * (n - 1)) : 0; }
 

@@ -10,7 +10,7 @@ const FORMATS = ['RessourceS-bac-a-sable', 'RessourceS-version'];
 const LABELS = {
   RS_Enseignants: 'Enseignant·es', RS_Cours: 'Cours', RS_Eleves: 'Élèves', RS_Volees: 'Volées', RS_Inscriptions: 'Inscriptions',
   RS_Suivis: 'Suivis', RS_Devoirs: 'Devoirs', RS_Evaluations: 'Évaluations', RS_Bilans: 'Bilans', RS_Actions: 'Actions',
-  RS_CPS: 'CPS', RS_Stages: 'Stages', RS_DocsOrientation: 'Documents d\'orientation', RS_Taches: 'Tâches', RS_Travaux: 'Travaux',
+  RS_CPS: 'CPS', RS_Stages: 'Stages', RS_DocsOrientation: 'Documents d\'orientation', RS_Taches: 'Tâches', RS_Travaux: 'Travaux', RS_Absences: 'Absences',
 };
 export const listLabel = l => LABELS[l] || l;
 

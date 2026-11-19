@@ -9,7 +9,7 @@ import { checkMergeShape } from './import-validation.js';
 export const LISTS = [
   'RS_Enseignants', 'RS_Cours', 'RS_Eleves', 'RS_Volees', 'RS_Inscriptions',
   'RS_Suivis', 'RS_Devoirs', 'RS_Evaluations', 'RS_Bilans', 'RS_Actions',
-  'RS_CPS', 'RS_Stages', 'RS_DocsOrientation', 'RS_Taches', 'RS_Travaux',
+  'RS_CPS', 'RS_Stages', 'RS_DocsOrientation', 'RS_Taches', 'RS_Travaux', 'RS_Absences',
 ];
 
 export class Store {
