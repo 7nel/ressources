@@ -1,8 +1,8 @@
 import { S, isSandbox, refDate, setDateCourante, voleeAt, volees, inscriptionsEnCours, eleve, nomEleve, cours, moi, isCoord, mesCours, vueRestreinte, saveSettings, nav, labels } from '../state.js';
 import { h, card, btn, badge, pastille, phaseBadge, empty, notice, input, ctPair } from '../ui.js';
-import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, mondayOf, addDays, weeksOfVolee, nextVolee, lastVolee } from '../domain.js';
+import { todayISO, semaineCle, phaseOf, daysBetween, fmtDate, fmtDateLong, mondayOf, addDays, weeksOfVolee, nextVolee, lastVolee, fmtHeures } from '../domain.js';
 import { charger, wasLoadedThisSession, dismissLoad } from '../sync.js';
-import { retenues, alertes, progres, sansSuivi, aFaire, travauxSemaine, aCloturer, aPreparer } from '../queries.js';
+import { retenues, alertes, progres, sansSuivi, aFaire, travauxSemaine, aCloturer, aPreparer, absencesVolee } from '../queries.js';
 
 const fmt1 = v => v.toFixed(1).replace('.', ',');
 const moy = v => h('span', { class: 'moy' }, fmt1(v));
@@ -273,6 +273,34 @@ export function render() {
           h('div', { class: 'meta' }, `${c.n} devoir${c.n > 1 ? 's' : ''} : ${c.devoirs.map(d => cours(d.CoursID)?.Title).join(', ')}`)),
         h('div', { class: 'end' }, h('strong', null, `${c.minutes} min`)))))) : empty('Pas de retenue cette semaine.')), 'Retenue du vendredi');
 
+  /* ---- Absences : vision globale (tous les élèves de la volée, même en « Ma vue » : l'absence concerne l'élève, pas un cours) ---- */
+  let absencesCard = null;
+  if (v) {
+    const ab = absencesVolee(inscs, sk, date);
+    const n = ab.eleves.length;
+    const resume = h('dl', { class: 'abs-resume' },
+      h('dt', null, 'Cette semaine'), h('dd', { class: 'abs-h' }, fmtHeures(ab.semaine.heures)),
+      h('dd', { class: 'meta' }, ab.semaine.n ? `${ab.semaine.n} ${pl(ab.semaine.n, 'élève absent', 'élèves absents')}` : 'aucun élève absent'),
+      h('dt', null, 'Depuis le début'), h('dd', { class: 'abs-h' }, fmtHeures(ab.volee.heures)),
+      h('dd', { class: 'meta' }, `${fmt1(ab.volee.moy)} h par élève en moyenne · ${ab.volee.sans} ${pl(ab.volee.sans, 'élève', 'élèves')} sans absence sur ${ab.volee.n}`));
+    const lignes = ab.eleves.map(x => h('li', null,
+      h('button', { type: 'button', class: 'item abs-eleve', onClick: () => nav('dossier', { eleve: x.eleveId }) },
+        h('div', { class: 'main' },
+          h('div', { class: 'title' }, nomEleve(eleve(x.eleveId))),
+          h('div', { class: 'meta' }, x.branches.slice(0, 3).map(([b, k]) => `${b} ${fmtHeures(k)}`).join(' · '))),
+        h('span', { class: `abs-h ${x.semaine ? '' : 'muted'}` }, h('span', { class: 'sr-only' }, 'cette semaine : '), fmtHeures(x.semaine)),
+        h('span', { class: 'abs-h' }, h('span', { class: 'sr-only' }, 'depuis le début : '), fmtHeures(x.total)))));
+    lignes.slice(NB_PROGRES).forEach(li => { li.hidden = true; });
+    const toutVoir = n > NB_PROGRES
+      ? btn(`Voir tous (${n})`, e => { lignes.forEach(li => { li.hidden = false; }); e.currentTarget.remove(); }, 'secondary small')
+      : null;
+    absencesCard = aideRepliable(card('Absences', { id: 'carte-absences', hint: 'Heures d\'absence de tous les élèves de la volée : matin 4 h, après-midi 3 h, mercredi 4 h au plus. Les branches viennent de la grille horaire. Le détail est dans le dossier de chaque élève.' },
+      resume,
+      n ? [h('div', { class: 'abs-entete', 'aria-hidden': 'true' }, h('span', null, 'Élève'), h('span', null, 'semaine'), h('span', null, 'volée')),
+        h('ul', { class: 'list' }, lignes), toutVoir]
+        : empty('Aucune absence depuis le début de la volée.')), 'Absences');
+  }
+
   /* ---- À faire ---- */
   const todo = aFaire(date, v, { restreint, coursIds });
   const afItem = (t, imbrique = false) => h('button', { type: 'button', 'data-kind': t.kind, class: `item ${t.late ? 'late' : ''}`, onClick: () => nav(...t.go) },
@@ -349,7 +377,7 @@ export function render() {
     v && h('div', { class: 'tiles-wrap' }, h('div', { class: `tiles tiles-${tiles.length}` }, tiles)),
     v || clotureCard || prepaCard
       ? h('div', { class: 'cols-dossier' },
-        h('div', { class: 'stack' }, v ? [progresCard, alertCard, retenueCard] : null, prepaCard, clotureCard),
+        h('div', { class: 'stack' }, v ? [progresCard, alertCard, retenueCard, absencesCard] : null, prepaCard, clotureCard),
         h('div', { class: 'stack todo-col' }, todoCard))
       : todoCard);
 }

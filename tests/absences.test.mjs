@@ -6,7 +6,7 @@ const { heuresJour, totalHeuresAbsence, branchesJour, heuresParBranche, GRILLE }
 const { S } = await import('../js/state.js');
 const { Store } = await import('../js/data/store.js');
 const { LocalAdapter } = await import('../js/data/local-adapter.js');
-const { heuresAbsenceInsc, bilanCR, sansSuivi } = await import('../js/queries.js');
+const { heuresAbsenceInsc, bilanCR, sansSuivi, absencesVolee } = await import('../js/queries.js');
 
 const LUNDI = '2026-11-16', MERCREDI = '2026-11-18';
 const A = (Duree, Moment = '', DateAbsence = LUNDI, EleveID = 1) => ({ EleveID, Duree, Moment, DateAbsence });
@@ -115,4 +115,27 @@ test('pas d\'alerte « sans suivi » pour un élève absent à toutes les pério
   assert.equal(sansSuivi(sk, [i], null, mardi).length, 0);
   assert.equal(sansSuivi(sk, [i], coaching.ID, mardi).length, 0, 'coaching hors grille : règle de toutes les périodes');
   assert.equal(sansSuivi(sk, [i], null, MERCREDI).length, 1, 'présent mercredi');
+});
+
+test('accueil : vision globale de la semaine et de la volée', async () => {
+  S.store = new Store(new LocalAdapter({ memoryOnly: true }));
+  await S.store.init();
+  const v = S.store.all('RS_Volees').find(x => x.Title === '2026-27 V2');
+  const maths = S.store.all('RS_Cours').find(c => c.Title === 'Mathématiques');
+  const ins = [];
+  for (const p of ['A', 'B', 'C']) {
+    const e = await S.store.add('RS_Eleves', { Nom: 'Test', Prenom: p, Statut: 'Actif' });
+    ins.push(await S.store.add('RS_Inscriptions', { EleveID: e.ID, VoleeID: v.ID, StatutInscription: 'En cours' }));
+  }
+  const abs = (i, Duree, Moment, DateAbsence, SemaineCle) => S.store.add('RS_Absences', { EleveID: i.EleveID, InscriptionID: i.ID, CoursID: maths.ID, DateAbsence, SemaineCle, Duree, Moment });
+  await abs(ins[0], 'Heure', 'Matin', LUNDI, 202647);          // A : 1 h cette semaine (maths)
+  await abs(ins[1], 'Journée', '', '2026-11-03', 202645);      // B : 7 h il y a deux semaines
+  await abs(ins[1], 'Journée', '', '2026-11-20', 202647);      // vendredi : après la date affichée, pas compté
+  const r = absencesVolee(ins, 202647, MERCREDI);
+  assert.deepEqual(r.semaine, { heures: 1, n: 1 });
+  assert.equal(r.volee.heures, 8);
+  assert.equal(r.volee.sans, 1);
+  assert.equal(r.volee.n, 3);
+  assert.deepEqual(r.eleves.map(x => [x.eleveId, x.total, x.semaine]), [[ins[1].EleveID, 7, 0], [ins[0].EleveID, 1, 1]]);
+  assert.deepEqual(r.eleves[1].branches, [['Maths', 1]]);
 });

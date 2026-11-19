@@ -478,10 +478,34 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .grp-row .who .check { display: flex; font-weight: 400; min-height: 36px; }
 .grp-row .who .abs-ailleurs { color: var(--warn); font-weight: 700; }
 .grp-row .grp-abs { grid-column: span 2; }
-.abs-semaine + .abs-semaine { margin-top: 12px; }
-.abs-semaine h3 { margin: 0 0 4px; font-size: 1rem; }
-.abs-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
-.abs-branches { margin: 0 0 6px; }
+/* Absences : trois colonnes alignées partout (libellé · heures à droite · détail) */
+.abs-semaines { --abs-lib: minmax(0, 9rem); --abs-h: 3.5rem; }
+.abs-h { font-family: var(--num); font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+.abs-semaine { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line); }
+.abs-ligne-tete, .abs-jour, .abs-branches { display: grid; grid-template-columns: var(--abs-lib) var(--abs-h) 1fr; column-gap: 12px; align-items: baseline; }
+.abs-ligne-tete { margin: 0 0 4px; font-size: 1rem; }
+.abs-jours { list-style: none; margin: 0; padding: 0; }
+.abs-jour { padding: 6px 0; border-top: 1px solid var(--line); }
+.abs-jour:first-child { border-top: 0; }
+.abs-date { white-space: nowrap; }
+.abs-detail { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.abs-ligne { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; column-gap: 12px; }
+.abs-fold { margin-top: 6px; }
+.abs-fold > summary { align-items: center; color: var(--accent); font-weight: 700; font-size: .92rem; }
+.abs-branches { margin: 0 0 4px; row-gap: 4px; }
+.abs-branches dt, .abs-branches dd { margin: 0; }
+.abs-barre { align-self: center; height: 8px; }
+.abs-barre span { display: block; height: 100%; min-width: 2px; background: var(--line-strong); }
+@media (max-width: 520px) {
+  .abs-detail { grid-column: 1 / -1; padding-left: 12px; }
+}
+/* Accueil : résumé chiffré et liste des élèves, colonnes « semaine » et « volée » alignées */
+.abs-resume { display: grid; grid-template-columns: auto 3.5rem 1fr; gap: 4px 16px; align-items: baseline; margin: 0 0 12px; }
+.abs-resume dt { font-weight: 700; }
+.abs-resume dd { margin: 0; }
+.abs-entete { display: flex; gap: 12px; padding: 0 8px 4px; font-size: .875rem; color: var(--muted); border-bottom: 1px solid var(--line); }
+.abs-entete span:first-child { flex: 1; }
+.abs-entete span:not(:first-child), .abs-eleve .abs-h { flex: none; width: 3.5rem; text-align: right; }
 .abs-choix { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 @media (pointer: coarse) { .grp-row .who .check { min-height: 44px; } }
 .reperes { display: inline-flex; flex-wrap: wrap; gap: 4px; }

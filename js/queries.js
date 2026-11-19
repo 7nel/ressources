@@ -1,7 +1,7 @@
 // Calculs partagés entre écrans (accueil, dossier, bilans). Rien n'est stocké : tout est recalculé.
 import { CONFIG } from './config.js';
 import { S, volee, cours, eleve, nomEleve, inscriptionsEnCours, moi, ens, isCoord, refDate } from './state.js';
-import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey, totalHeuresAbsence, periodes, periodesManquees, brancheDuCours, MOMENTS } from './domain.js';
+import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey, totalHeuresAbsence, heuresParBranche, periodes, periodesManquees, brancheDuCours, MOMENTS } from './domain.js';
 
 const st = () => S.store;
 
@@ -13,6 +13,31 @@ export function suivisDeSemaine(sk, inscIds) {
 /** Heures d'absence d'une inscription, éventuellement limitées (semaine, phase…). */
 export function heuresAbsenceInsc(inscId, filtre = () => true) {
   return totalHeuresAbsence(st().where('RS_Absences', a => a.InscriptionID === inscId && filtre(a)));
+}
+
+/**
+ * Vision globale des absences pour l'accueil : la semaine `sk` et la volée jusqu'à `date` incluse, pour les inscriptions données.
+ * Chaque élève compte pour un ; `eleves` ne garde que les élèves avec au moins une heure, les plus absents en tête.
+ */
+export function absencesVolee(inscs, sk, date) {
+  const titre = a => cours(a.CoursID)?.Title || '';
+  const eleves = inscs.map(i => {
+    const abs = st().where('RS_Absences', a => a.InscriptionID === i.ID && a.DateAbsence <= date);
+    return {
+      eleveId: i.EleveID,
+      total: totalHeuresAbsence(abs),
+      semaine: totalHeuresAbsence(abs.filter(a => a.SemaineCle === sk)),
+      branches: heuresParBranche(abs, titre),
+    };
+  });
+  const total = eleves.reduce((a, e) => a + e.total, 0);
+  const avec = eleves.filter(e => e.total > 0)
+    .sort((a, b) => b.total - a.total || b.semaine - a.semaine || nomEleve(eleve(a.eleveId)).localeCompare(nomEleve(eleve(b.eleveId)), 'fr'));
+  return {
+    semaine: { heures: eleves.reduce((a, e) => a + e.semaine, 0), n: eleves.filter(e => e.semaine > 0).length },
+    volee: { heures: total, moy: eleves.length ? total / eleves.length : 0, sans: eleves.length - avec.length, n: eleves.length },
+    eleves: avec,
+  };
 }
 
 /** Retenue du vendredi (R9) : devoirs de la semaine hors décompression. */

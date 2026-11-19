@@ -236,24 +236,34 @@ function absencesCard(i, e) {
     toast('Absence retirée', 'ok', { label: 'Annuler', onClick: async () => { await S.store.add('RS_Absences', champs); toast('Absence rétablie'); refresh(); } });
     refresh();
   };
-  // « Maths 3 h · Français 2 h · … »
-  const parBranche = l => h('p', { class: 'meta abs-branches' }, heuresParBranche(l, titre).map(([b, n]) => `${b} ${fmtHeures(n)}`).join(' · '));
+  // Vue par branche, repliée : une branche par ligne, heures alignées à droite, barre proportionnelle (repère visuel, le chiffre fait foi).
+  const parBranche = (l, label) => {
+    const rows = heuresParBranche(l, titre);
+    const max = Math.max(...rows.map(r => r[1]), 1);
+    return h('details', { class: 'fold abs-fold' },
+      h('summary', null, label),
+      h('dl', { class: 'abs-branches' }, rows.map(([b, n]) => [
+        h('dt', null, b),
+        h('dd', { class: 'abs-h' }, fmtHeures(n)),
+        h('dd', { class: 'abs-barre', 'aria-hidden': 'true' }, h('span', { style: { width: `${(n / max) * 100}%` } }))])));
+  };
   const semaines = [...groupBy(sortBy(abs, '-DateAbsence'), a => a.SemaineCle)];
   return card(`Absences · ${fmtHeures(total)}`, {
     hint: 'Matin 4 h, après-midi 3 h, mercredi 4 h au plus. Les heures sont réparties par branche selon la grille horaire ; une heure saisie hors grille (coaching) compte en « Non précisé ».',
     actions: i.StatutInscription === 'En cours' ? [btn('+ Absence', () => nav('saisie', { eleve: e.ID }), 'secondary small')] : null,
   }, abs.length ? h('div', { class: 'abs-semaines' },
-    h('div', { class: 'abs-semaine' }, h('h3', null, 'Par branche'), parBranche(abs)),
+    parBranche(abs, 'Par branche, depuis le début'),
     semaines.map(([, l]) => {
       const jours = [...groupBy(l, a => a.DateAbsence)];
       return h('div', { class: 'abs-semaine' },
-        h('h3', null, `Semaine du ${fmtDate(mondayOf(l[0].DateAbsence), { year: false })}`, h('span', { class: 'muted' }, ` · ${fmtHeures(totalHeuresAbsence(l))}`)),
-        parBranche(l),
-        h('ul', { class: 'list' }, jours.map(([date, la]) => h('li', null, h('div', { class: 'item' },
-          h('div', { class: 'main' },
-            h('div', { class: 'title' }, fmtDate(date, { day: true }), h('span', { class: 'muted', style: { fontWeight: 400 } }, ` · ${fmtHeures(heuresJour(la))}`)),
-            la.map(a => h('div', { class: 'meta abs-ligne' }, `${libelleAbsence(a)}${ens(a.EnseignantID) ? ` · ${ens(a.EnseignantID).Title}` : ''}`,
-              retirable(a) && btn('Retirer', () => retirer(a), 'ghost small', { 'aria-label': `Retirer l'absence du ${fmtDate(date)} (${libelleAbsence(a)})` })))))))));
+        h('h3', { class: 'abs-ligne-tete' }, h('span', null, `Semaine du ${fmtDate(mondayOf(l[0].DateAbsence), { year: false })}`), h('span', { class: 'abs-h' }, fmtHeures(totalHeuresAbsence(l)))),
+        h('ul', { class: 'abs-jours' }, jours.map(([date, la]) => h('li', { class: 'abs-jour' },
+          h('span', { class: 'abs-date' }, fmtDate(date, { day: true, year: false })),
+          h('span', { class: 'abs-h' }, fmtHeures(heuresJour(la))),
+          h('div', { class: 'abs-detail' }, la.map(a => h('div', { class: 'abs-ligne' },
+            h('span', null, libelleAbsence(a), ens(a.EnseignantID) && h('span', { class: 'muted' }, ` · ${ens(a.EnseignantID).Title}`)),
+            retirable(a) && btn('Retirer', () => retirer(a), 'ghost small', { 'aria-label': `Retirer l'absence du ${fmtDate(date)} (${libelleAbsence(a)})` }))))))),
+        parBranche(l, 'Par branche'));
     })) : empty('Aucune absence.'));
 }
 
