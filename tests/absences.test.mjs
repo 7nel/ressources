@@ -2,11 +2,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 globalThis.localStorage = { getItem: () => null, setItem() {}, removeItem() {} };
-const { heuresJour, totalHeuresAbsence, branchesJour, heuresParBranche, GRILLE } = await import('../js/domain.js');
+const { heuresJour, totalHeuresAbsence, branchesJour, heuresParBranche, GRILLE, etatDemiJournee, heuresClasseJour, heuresAbsenceClasse } = await import('../js/domain.js');
 const { S } = await import('../js/state.js');
 const { Store } = await import('../js/data/store.js');
 const { LocalAdapter } = await import('../js/data/local-adapter.js');
-const { heuresAbsenceInsc, bilanCR, sansSuivi, absencesVolee } = await import('../js/queries.js');
+const { heuresAbsenceInsc, bilanCR, sansSuivi, absencesVolee, couvertureAbsences } = await import('../js/queries.js');
 
 const LUNDI = '2026-11-16', MERCREDI = '2026-11-18';
 const A = (Duree, Moment = '', DateAbsence = LUNDI, EleveID = 1) => ({ EleveID, Duree, Moment, DateAbsence });
@@ -138,4 +138,34 @@ test('accueil : vision globale de la semaine et de la volée', async () => {
   assert.equal(r.volee.n, 3);
   assert.deepEqual(r.eleves.map(x => [x.eleveId, x.total, x.semaine]), [[ins[1].EleveID, 7, 0], [ins[0].EleveID, 1, 1]]);
   assert.deepEqual(r.eleves[1].branches, [['Maths', 1]]);
+});
+
+test('calendrier : état de chaque demi-journée', () => {
+  assert.equal(etatDemiJournee([], 'Matin'), 0);
+  assert.equal(etatDemiJournee([A('Journée')], 'Après-midi'), 'D');
+  assert.equal(etatDemiJournee([A('Demi-journée', 'Matin')], 'Matin'), 'D');
+  assert.equal(etatDemiJournee([A('Demi-journée', 'Matin')], 'Après-midi'), 0);
+  assert.equal(etatDemiJournee([A('Heure', 'Matin'), A('Heure', 'Matin')], 'Matin'), 2);
+  assert.equal(etatDemiJournee([A('Heure', 'Après-midi'), A('Heure', 'Après-midi'), A('Heure', 'Après-midi')], 'Après-midi'), 'D', 'trois heures = toute l\'après-midi');
+  assert.equal(etatDemiJournee([A('Journée', '', MERCREDI)], 'Après-midi'), 0, 'pas d\'après-midi le mercredi');
+});
+
+test('heures de classe : la grille sans les Cours normaux', () => {
+  assert.deepEqual(['2026-11-16', '2026-11-17', MERCREDI, '2026-11-19', '2026-11-20', '2026-11-21'].map(heuresClasseJour), [7, 6, 3, 6, 5, 0]);
+  // une journée le mardi : 7 h d'absence, dont 6 h de classe (la première période est en Cours normaux)
+  assert.equal(heuresAbsenceClasse([AC('Journée', '', '2026-11-17')], titre), 6);
+});
+
+test('couverture : part des heures de classe manquées depuis le début de la volée', async () => {
+  S.store = new Store(new LocalAdapter({ memoryOnly: true }));
+  await S.store.init();
+  const v = S.store.all('RS_Volees').find(x => x.Title === '2026-27 V2'); // du lundi 26.10
+  const e = await S.store.add('RS_Eleves', { Nom: 'Test', Prenom: 'A', Statut: 'Actif' });
+  const i = await S.store.add('RS_Inscriptions', { EleveID: e.ID, VoleeID: v.ID, StatutInscription: 'En cours' });
+  assert.deepEqual(couvertureAbsences(i, '2026-10-30'), { ecole: 27, absent: 0, taux: 0 });
+  for (const d of ['2026-10-26', '2026-10-27', '2026-10-28']) await S.store.add('RS_Absences', { EleveID: e.ID, InscriptionID: i.ID, CoursID: 1, DateAbsence: d, Duree: 'Journée', Moment: '' });
+  const c = couvertureAbsences(i, '2026-10-30');
+  assert.equal(c.absent, 7 + 6 + 3);
+  assert.ok(c.taux >= 0.3);
+  assert.equal(couvertureAbsences(i, '2026-11-13').taux < 0.3, true, 'trois semaines : sous le seuil');
 });

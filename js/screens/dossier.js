@@ -1,11 +1,11 @@
 import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, etatVolee, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
 import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, seg, menu, levelLegend, propres, reperesSuivi } from '../ui.js';
-import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes, groupBy, heuresJour, totalHeuresAbsence, libelleAbsence, fmtHeures, mondayOf, heuresParBranche } from '../domain.js';
-import { synthese, bilanDe, cpsDe } from '../queries.js';
+import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes, groupBy, heuresJour, totalHeuresAbsence, libelleAbsence, fmtHeures, mondayOf, heuresParBranche, weeksOfVolee, etatDemiJournee, heuresClasseJour, heuresAbsenceClasse, MOMENTS, SEUIL_COUVERTURE } from '../domain.js';
+import { synthese, bilanDe, cpsDe, couvertureAbsences } from '../queries.js';
 import { enteteEleve } from '../voisins.js';
 
 // Affichage du dossier : revient au défaut à chaque ouverture (changement d'adresse), pas lors d'un simple rafraîchissement.
-const DEFAUT = () => ({ showAll: false, chrono: false, graph: true, table: true, groupes: [], aide: false, cours: [], menuCours: false });
+const DEFAUT = () => ({ showAll: false, chrono: false, graph: true, table: true, groupes: [], aide: false, cours: [], menuCours: false, absSem: {} });
 const state = DEFAUT();
 window.addEventListener('hashchange', () => Object.assign(state, DEFAUT()));
 const basculer = (arr, id) => (arr.includes(id) ? arr.filter(x => x !== id) : [...arr, id]);
@@ -63,9 +63,29 @@ function syntheseCard(i) {
   const { weeks, rows, moyennes } = synthese(i);
   const L = labels();
   const nowSk = semaineCle(refDate());
-  if (!rows.length) return card('Synthèse hebdomadaire', {}, empty('Aucune cotation pour cette inscription.'));
+  // Absences : heures de chaque semaine, semaine entièrement manquée (toutes les heures de classe, sans les Cours normaux),
+  // et phrase de couverture quand l'élève a manqué au moins 30 % des heures de classe depuis le début de la volée.
+  const v = volee(i.VoleeID);
+  const abs = S.store.where('RS_Absences', a => a.InscriptionID === i.ID);
+  const titreCours = a => cours(a.CoursID)?.Title || '';
+  const absSem = weeks.map(w => {
+    const l = abs.filter(a => a.SemaineCle === w.sk);
+    let ecole = 0;
+    for (let d = 0; d < 5; d++) { const j = addDays(w.monday, d); if (j >= v.DateDebut && j <= v.DateFin && j <= refDate()) ecole += heuresClasseJour(j); }
+    return { h: totalHeuresAbsence(l), entiere: ecole > 0 && heuresAbsenceClasse(l, titreCours) >= ecole };
+  });
+  const couv = couvertureAbsences(i);
+  const couvNote = couv.taux >= SEUIL_COUVERTURE
+    ? h('p', { class: 'abs-couv' }, h('strong', null, `Absent ${fmtHeures(couv.absent)} sur ${fmtHeures(couv.ecole)} de classe (${Math.round(couv.taux * 100)} %)`),
+      ', hors cours normaux. Les cotations ne décrivent que les heures où l\'élève était là.')
+    : null;
+  const vide = k => absSem[k].entiere ? h('span', { class: 'syn-absent' }, 'absent') : h('span', { class: 'none', 'aria-label': 'aucun suivi' }, '·');
+  if (!rows.length) return card('Synthèse hebdomadaire', {}, couvNote, empty('Aucune cotation pour cette inscription.'));
   const nowCls = k => weeks[k].sk === nowSk ? 'now' : null;
   const body = [];
+  if (abs.length) body.push(h('tr', { class: 'syn-abs' },
+    h('th', { scope: 'row' }, 'Absences (heures)'),
+    absSem.map((x, k) => h('td', { class: nowCls(k) }, x.h ? x.h : weeks[k].monday > refDate() ? null : h('span', { class: 'none' }, '0')))));
   for (const m of moyennes) {
     const ouvert = state.groupes.includes(m.groupe);
     const nCours = rows.filter(r => r.groupe === m.groupe).length;
@@ -77,14 +97,16 @@ function syntheseCard(i) {
       }, h('span', { class: 'chevron', 'aria-hidden': 'true' }, ouvert ? '▾' : '▸'),
         h('span', { class: 'dot', style: { background: GROUPE_COULEUR[m.groupe], marginRight: '6px' } }), `${m.groupe} · moyenne`,
         h('span', { class: 'muted', style: { fontWeight: 400 } }, ` (${nCours})`))),
-      m.semaines.map((w, k) => h('td', { class: nowCls(k) }, w.n ? h('span', { class: 'cell row' }, moyChip('C', w.c), moyChip('T', w.t)) : h('span', { class: 'none', 'aria-label': 'aucun suivi' }, '·')))));
+      m.semaines.map((w, k) => h('td', { class: nowCls(k) }, w.n
+        ? [h('span', { class: 'cell row' }, moyChip('C', w.c), moyChip('T', w.t)), h('span', { class: 'syn-n' }, `${w.n} cot.`)]
+        : vide(k)))));
     if (ouvert) for (const r of rows.filter(r => r.groupe === m.groupe)) {
       body.push(h('tr', null,
         h('th', { scope: 'row', class: 'sub' }, h('span', { class: 'dot', style: { background: r.cours.Couleur || 'var(--muted)', marginRight: '6px' } }), r.cours.Title),
         r.cells.map((list, k) => h('td', { class: nowCls(k) },
           list.length
             ? h('span', { class: 'cell' }, list.slice(0, 2).map(s => ctPair(s.Comportement, s.Travail, L)), list.length > 2 && h('span', { class: 'more' }, `+${list.length - 2}`))
-            : h('span', { class: 'none', 'aria-label': 'aucun suivi' }, '·')))));
+            : vide(k)))));
     }
   }
   const table = h('table', { class: 'syn' },
@@ -101,7 +123,7 @@ function syntheseCard(i) {
     title: 'Comment lire cette synthèse', onClick: () => { state.aide = !state.aide; refresh(); },
   }, '?');
   const legende = h('div', { class: 'syn-legende' }, aide, levelLegend(L, { compact: true }));
-  const aideTexte = state.aide ? h('p', { class: 'hint aide-texte' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Ponctualité et matériel sont cochés à part, sans niveau. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; cliquez sur une moyenne pour voir les pastilles de chaque cours. Le coaching n'est pas coté.`) : null;
+  const aideTexte = state.aide ? h('p', { class: 'hint aide-texte' }, `C = comportement : ${DEF_C}. T = travail : ${DEF_T}. Ponctualité et matériel sont cochés à part, sans niveau. Les lignes « moyenne » donnent la tendance de la semaine par famille de cours ; cliquez sur une moyenne pour voir les pastilles de chaque cours ; sous chaque moyenne, le nombre de cotations. Un élève absent n'est pas coté : « absent » marque une semaine entièrement manquée, et la ligne « Absences » donne les heures de chaque semaine. Le coaching n'est pas coté.`) : null;
   const chartBox = h('div');
   const drawChart = () => chartBox.replaceChildren(...propres([
     h('div', { class: 'syn-barre' },
@@ -118,6 +140,7 @@ function syntheseCard(i) {
       btn(state.table ? 'Masquer le tableau' : 'Afficher le tableau', () => { state.table = !state.table; refresh(); }, 'ghost small', { 'aria-pressed': String(!state.table), 'data-cle-focus': 'tableau' }),
     ],
   },
+    couvNote,
     !state.graph ? legende : null,
     !state.graph ? aideTexte : null,
     state.graph ? chartBox : null,
@@ -247,23 +270,86 @@ function absencesCard(i, e) {
         h('dd', { class: 'abs-h' }, fmtHeures(n)),
         h('dd', { class: 'abs-barre', 'aria-hidden': 'true' }, h('span', { style: { width: `${(n / max) * 100}%` } }))])));
   };
-  const semaines = [...groupBy(sortBy(abs, '-DateAbsence'), a => a.SemaineCle)];
-  return card(`Absences · ${fmtHeures(total)}`, {
-    actions: i.StatutInscription === 'En cours' ? [btn('+ Absence', () => nav('saisie', { eleve: e.ID }), 'secondary small')] : null,
-  }, abs.length ? h('div', { class: 'abs-semaines' },
-    parBranche(abs, 'Par branche, depuis le début'),
-    semaines.map(([, l]) => {
-      const jours = [...groupBy(l, a => a.DateAbsence)];
-      return h('div', { class: 'abs-semaine' },
-        h('h3', { class: 'abs-ligne-tete' }, h('span', null, `Semaine du ${fmtDate(mondayOf(l[0].DateAbsence), { year: false })}`), h('span', { class: 'abs-h' }, fmtHeures(totalHeuresAbsence(l)))),
-        h('ul', { class: 'abs-jours' }, jours.map(([date, la]) => h('li', { class: 'abs-jour' },
-          h('span', { class: 'abs-date' }, fmtDate(date, { day: true, year: false })),
-          h('span', { class: 'abs-h' }, fmtHeures(heuresJour(la))),
-          h('div', { class: 'abs-detail' }, la.map(a => h('div', { class: 'abs-ligne' },
-            h('span', null, libelleAbsence(a), ens(a.EnseignantID) && h('span', { class: 'muted' }, ` · ${ens(a.EnseignantID).Title}`)),
-            retirable(a) && btn('Retirer', () => retirer(a), 'ghost small', { 'aria-label': `Retirer l'absence du ${fmtDate(date)} (${libelleAbsence(a)})` }))))))),
-        parBranche(l, 'Par branche'));
-    })) : empty('Aucune absence.'));
+  // Détail d'une semaine : ses jours (heures, durée, qui a saisi, Retirer) puis sa vue par branche.
+  const detailSemaine = l => h('div', { class: 'abs-semaines' },
+    h('ul', { class: 'abs-jours' }, [...groupBy(sortBy(l, 'DateAbsence'), a => a.DateAbsence)].map(([date, la]) => h('li', { class: 'abs-jour' },
+      h('span', { class: 'abs-date' }, fmtDate(date, { day: true, year: false })),
+      h('span', { class: 'abs-h' }, fmtHeures(heuresJour(la))),
+      h('div', { class: 'abs-detail' }, la.map(a => h('div', { class: 'abs-ligne' },
+        h('span', null, libelleAbsence(a), ens(a.EnseignantID) && h('span', { class: 'muted' }, ` · ${ens(a.EnseignantID).Title}`)),
+        retirable(a) && btn('Retirer', () => retirer(a), 'ghost small', { 'aria-label': `Retirer l'absence du ${fmtDate(date)} (${libelleAbsence(a)})` }))))))),
+    parBranche(l, 'Par branche'));
+  const actions = i.StatutInscription === 'En cours' ? [btn('+ Absence', () => nav('saisie', { eleve: e.ID }), 'secondary small')] : null;
+  if (!abs.length) return card('Absences · 0 h', { actions }, empty('Aucune absence.'));
+  return card(`Absences · ${fmtHeures(total)}`, { actions },
+    calendrierAbsences(i, abs, detailSemaine),
+    h('div', { class: 'abs-semaines' }, parBranche(abs, 'Par branche, depuis le début')));
+}
+
+/* ---------- Calendrier des absences : une ligne par semaine de la volée, une case par demi-journée ---------- */
+const JOURS_CAL = ['lun', 'mar', 'mer', 'jeu', 'ven'];
+const COLS_CAL = JOURS_CAL.flatMap((j, d) => MOMENTS.filter(m => d !== 2 || m === 'Matin').map(m => ({ j, d, m }))); // mercredi : matin seul
+const NOM_JOUR = { lun: 'lundi', mar: 'mardi', mer: 'mercredi', jeu: 'jeudi', ven: 'vendredi' };
+function calendrierAbsences(i, abs, detailSemaine) {
+  const v = volee(i.VoleeID);
+  const auj = refDate();
+  const parJour = groupBy(abs, a => a.DateAbsence);
+  const derniere = abs.reduce((m, a) => (a.DateAbsence > m ? a.DateAbsence : m), auj);
+  const lundis = (v ? weeksOfVolee(v) : [...new Set(abs.map(a => mondayOf(a.DateAbsence)))].sort()).filter(l => l <= derniere);
+  const parSemaine = groupBy(abs, a => mondayOf(a.DateAbsence));
+  // Ouvertes d'office : les deux semaines les plus récentes qui ont des absences ; le choix de la personne est gardé jusqu'au changement d'élève.
+  const recentes = new Set(lundis.filter(l => parSemaine.has(l)).slice(-2));
+  const ouverte = l => (l in state.absSem ? state.absSem[l] : recentes.has(l));
+  const etat = (lundi, c) => {
+    const date = addDays(lundi, c.d);
+    if (v && (date < v.DateDebut || date > v.DateFin)) return 'X';
+    if (date > auj && !parJour.has(date)) return 'F';
+    return etatDemiJournee(parJour.get(date) || [], c.m);
+  };
+  const sep = k => k > 0 && COLS_CAL[k].d !== COLS_CAL[k - 1].d;
+  const libelle = (c, x) => x === 'D' ? 'absent' : x === 'X' ? 'pas de classe' : x === 'F' ? 'à venir' : x ? `absent ${x} h` : 'présent';
+  const corps = lundis.flatMap(l => {
+    const etats = COLS_CAL.map(c => etat(l, c));
+    const list = parSemaine.get(l) || [];
+    const id = `abs-sem-${l}`;
+    const ouv = list.length > 0 && ouverte(l);
+    const n = list.length ? totalHeuresAbsence(list) : 0;
+    const titre = h('span', null, `S${(v ? weeksOfVolee(v).indexOf(l) : 0) + 1} `, h('span', { class: 'd' }, fmtDate(l, { year: false })));
+    const ligne = h('tr', { class: ouv ? 'ouvert' : '' },
+      h('th', { scope: 'row' }, list.length
+        ? h('button', { type: 'button', class: 'cal-sem', 'aria-expanded': String(ouv), 'aria-controls': id, title: ouv ? 'Masquer les jours' : 'Voir les jours', onClick: () => { state.absSem[l] = !ouv; refresh(); } }, titre)
+        : h('span', { class: 'cal-sem vide' }, titre)),
+      etats.map((x, k) => {
+        const c = COLS_CAL[k];
+        const cls = x === 'D' ? 'D' : x === 'X' ? 'X' : x === 'F' ? 'F' : x ? 'H' : '';
+        const max = c.m === 'Matin' ? 4 : 3;
+        return h('td', { class: sep(k) ? 'sep' : null },
+          h('span', { class: `cal-c ${cls}`, title: `${NOM_JOUR[c.j]} ${c.m.toLowerCase()} : ${libelle(c, x)}`, style: cls === 'H' ? { '--p': `${Math.round((x / max) * 100)}%` } : null },
+            h('span', { class: 'sr-only' }, `${NOM_JOUR[c.j]} ${c.m.toLowerCase()} : ${libelle(c, x)}`),
+            cls === 'H' ? h('span', { 'aria-hidden': 'true' }, x) : null));
+      }),
+      h('td', { class: `abs-h cal-tot ${n ? '' : 'zero'}` }, fmtHeures(n)));
+    return ouv ? [ligne, h('tr', { class: 'cal-detail', id }, h('td', { colspan: COLS_CAL.length + 2 }, detailSemaine(list)))] : [ligne];
+  });
+  // Bas du calendrier : pour chaque demi-journée, le nombre de semaines où l'élève a manqué (sur les semaines de classe passées).
+  const pied = COLS_CAL.map((c, k) => {
+    const xs = lundis.map(l => etat(l, c)).filter(x => x !== 'X' && x !== 'F');
+    const nAbs = xs.filter(Boolean).length;
+    return h('td', { class: `${sep(k) ? 'sep ' : ''}${xs.length && nAbs / xs.length >= 0.5 ? 'fort' : nAbs ? '' : 'muted'}`, title: `${nAbs} sur ${xs.length}` },
+      nAbs, h('span', { class: 'sr-only' }, ` sur ${xs.length}`));
+  });
+  return h('div', { class: 'scroll-x' }, h('table', { class: 'abs-cal' },
+    h('caption', { class: 'sr-only' }, 'Absences par demi-journée, une ligne par semaine de la volée. Le bouton d\'une semaine affiche ses jours.'),
+    h('thead', null,
+      h('tr', null, h('td'), JOURS_CAL.map((j, d) => h('th', { scope: 'colgroup', colspan: d === 2 ? 1 : 2, class: d ? 'sep' : null }, j)), h('td')),
+      h('tr', null, h('td'), COLS_CAL.map((c, k) => h('th', { scope: 'col', class: `petit ${sep(k) ? 'sep' : ''}`, title: c.m }, c.m === 'Matin' ? 'M' : 'A')), h('th', { scope: 'col', class: 'petit cal-tot' }, 'heures'))),
+    h('tbody', null, corps),
+    h('tfoot', null, h('tr', null, h('th', { scope: 'row', title: 'Nombre de semaines où cette demi-journée a été manquée' }, 'absent'), pied, h('td'))),
+  ), h('ul', { class: 'cal-leg', 'aria-hidden': 'true' },
+    h('li', null, h('span', { class: 'cal-c D' }), 'demi-journée ou journée'),
+    h('li', null, h('span', { class: 'cal-c H', style: { '--p': '50%' } }, '2'), 'quelques heures'),
+    h('li', null, h('span', { class: 'cal-c' }), 'présent'),
+    h('li', null, h('span', { class: 'cal-c X' }), 'pas de classe')));
 }
 
 const filtreCours = x => !state.cours.length || state.cours.includes(x.CoursID);

@@ -499,6 +499,55 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 @media (max-width: 520px) {
   .abs-detail { grid-column: 1 / -1; padding-left: 12px; }
 }
+/* Calendrier des absences (dossier) : une ligne par semaine, une case par demi-journée */
+.abs-cal { border-collapse: collapse; font-variant-numeric: tabular-nums; margin: 0 0 4px; }
+.abs-cal th, .abs-cal td { padding: 0; text-align: center; font-weight: 400; }
+.abs-cal thead th { font-weight: 700; font-size: .875rem; padding-bottom: 2px; }
+.abs-cal thead th.petit { font-weight: 400; color: var(--muted); padding-bottom: 4px; }
+.abs-cal .sep { border-left: 6px solid transparent; }
+.abs-cal tbody th { text-align: left; white-space: nowrap; padding-right: 8px; }
+.cal-sem { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 0 4px 0 0; background: none; border: 0; color: inherit; font: inherit; font-weight: 700; cursor: pointer; border-radius: 4px; }
+.cal-sem.vide { cursor: default; padding-left: 13px; }
+button.cal-sem::before { content: ""; width: 7px; height: 7px; border: solid var(--muted); border-width: 0 2px 2px 0; transform: rotate(-45deg); transition: transform .15s; flex: none; }
+tr.ouvert button.cal-sem::before { transform: rotate(45deg); }
+button.cal-sem:hover { color: var(--accent); }
+.cal-sem .d { font-weight: 400; color: var(--muted); }
+.abs-cal .cal-tot { padding-left: 10px; min-width: 3rem; font-weight: 600; text-align: right; }
+.abs-cal .cal-tot.zero { color: var(--muted); font-weight: 400; }
+.abs-cal thead .cal-tot { text-align: right; }
+.cal-c { display: block; width: 26px; height: 28px; margin: 2px auto; border-radius: 4px; border: 1px solid var(--line-ctl); font: 600 .875rem/26px var(--num); }
+.cal-c.D { background: var(--warn); border-color: var(--warn); }
+.cal-c.H { background: linear-gradient(to top, var(--warn-soft) var(--p), transparent var(--p)); border: 2px solid var(--warn); color: var(--warn); line-height: 24px; }
+.cal-c.X { border: 0; background: repeating-linear-gradient(-45deg, var(--line-strong) 0 2px, transparent 2px 6px); }
+.cal-c.F { border-style: dashed; border-color: var(--line-strong); }
+.abs-cal tfoot th, .abs-cal tfoot td { padding-top: 8px; border-top: 1px solid var(--line); font-size: .875rem; }
+.abs-cal tfoot th { text-align: left; color: var(--muted); }
+.abs-cal tfoot td { font-family: var(--num); font-weight: 600; }
+.abs-cal tfoot td.fort { color: var(--warn); }
+.abs-cal tfoot td.muted { font-weight: 400; }
+.abs-cal tr.cal-detail > td { text-align: left; padding: 2px 0 12px 18px; }
+.abs-cal tr.cal-detail .abs-semaines { margin: 0; --abs-lib: 6.5rem; --abs-h: 2.5rem; }
+.abs-cal td:not(.cal-tot) { padding: 0 1px; }
+.cal-leg { display: flex; flex-wrap: wrap; gap: 6px 20px; list-style: none; margin: 8px 0 0; padding: 0; font-size: .875rem; color: var(--muted); }
+.cal-leg li { display: inline-flex; align-items: center; gap: 8px; }
+.cal-leg .cal-c { width: 22px; height: 22px; margin: 0; font-size: .875rem; line-height: 18px; }
+@media (max-width: 560px) {
+  .cal-c { width: 22px; height: 24px; line-height: 22px; }
+  .cal-c.H { line-height: 20px; }
+  .abs-cal .sep { border-left-width: 4px; }
+  .cal-sem .d { display: none; }
+  .abs-cal .cal-tot { min-width: 0; padding-left: 6px; }
+  .abs-cal tbody th { padding-right: 4px; }
+  .abs-cal tr.cal-detail > td { padding-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { button.cal-sem::before { transition: none; } }
+@media (pointer: coarse) { .cal-sem { min-height: 44px; } }
+/* Synthèse : absences et nombre de cotations */
+.syn tr.syn-abs th, .syn tr.syn-abs td { color: var(--warn); font-family: var(--num); font-weight: 600; }
+.syn tr.syn-abs th { font-family: var(--font); }
+.syn .syn-n { display: block; color: var(--muted); font-size: .875rem; margin-top: 2px; font-weight: 400; }
+.syn .syn-absent { display: inline-block; padding: 0 6px; border: 1px dashed var(--warn); color: var(--warn); border-radius: var(--r-label); font-size: .875rem; }
+.abs-couv { margin: 0 0 12px; padding: 10px 12px; border-left: 3px solid var(--warn); background: var(--warn-soft); max-width: 70ch; }
 /* Accueil : résumé chiffré et liste des élèves, colonnes « semaine » et « volée » alignées */
 .abs-resume { display: grid; grid-template-columns: auto 3.5rem 1fr; gap: 4px 16px; align-items: baseline; margin: 0 0 12px; }
 .abs-resume dt { font-weight: 700; }

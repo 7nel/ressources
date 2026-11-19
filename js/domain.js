@@ -229,6 +229,31 @@ export function heuresParBranche(absences, titreCours) {
   return Object.entries(tot).sort((a, b) => b[1] - a[1] || (a[0] === BRANCHE_NON_PRECISEE) - (b[0] === BRANCHE_NON_PRECISEE) || a[0].localeCompare(b[0], 'fr'));
 }
 /**
+ * \u00c9tat d'une demi-journ\u00e9e pour le calendrier, \u00e0 partir des absences d'un \u00e9l\u00e8ve sur un jour :
+ * 'D' (journ\u00e9e ou demi-journ\u00e9e), sinon le nombre d'heures (born\u00e9 \u00e0 la dur\u00e9e de la demi-journ\u00e9e), 0 si pr\u00e9sent.
+ */
+export function etatDemiJournee(absences, moment) {
+  if (!absences.length) return 0;
+  const max = heuresMoment(moment, absences[0].DateAbsence);
+  if (!max) return 0;
+  if (absences.some(a => a.Duree === 'Journ\u00e9e')) return 'D';
+  const l = absences.filter(a => a.Moment === moment);
+  if (l.some(a => a.Duree === 'Demi-journ\u00e9e')) return 'D';
+  const n = Math.min(max, l.filter(a => a.Duree === 'Heure').length);
+  return n === max ? 'D' : n;
+}
+/** Heures de classe ressource d'un jour selon la grille, sans les Cours normaux (0 le week-end). */
+export function heuresClasseJour(date) {
+  return MOMENTS.reduce((n, m) => n + periodes(date, m).filter(b => b !== N).length, 0);
+}
+/** Heures d'absence prises sur les heures de classe ressource (r\u00e9partition par branche, sans les Cours normaux). */
+export function heuresAbsenceClasse(absences, titreCours) {
+  return heuresParBranche(absences, titreCours).reduce((n, [b, k]) => b === N ? n : n + k, 0);
+}
+/** Seuil au-del\u00e0 duquel les cotations sont signal\u00e9es comme partielles : part des heures de classe manqu\u00e9es. */
+export const SEUIL_COUVERTURE = 0.3;
+
+/**
  * P\u00e9riodes de la grille couvertes par les absences d'un \u00e9l\u00e8ve sur un jour : un tableau de bool\u00e9ens par moment
  * ({ Matin: [...], 'Apr\u00e8s-midi': [...] }), pour savoir s'il a manqu\u00e9 tout un cours.
  */

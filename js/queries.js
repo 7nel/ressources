@@ -1,7 +1,7 @@
 // Calculs partagés entre écrans (accueil, dossier, bilans). Rien n'est stocké : tout est recalculé.
 import { CONFIG } from './config.js';
 import { S, volee, cours, eleve, nomEleve, inscriptionsEnCours, moi, ens, isCoord, refDate } from './state.js';
-import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey, totalHeuresAbsence, heuresParBranche, periodes, periodesManquees, brancheDuCours, MOMENTS } from './domain.js';
+import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey, totalHeuresAbsence, heuresParBranche, heuresClasseJour, heuresAbsenceClasse, periodes, periodesManquees, brancheDuCours, MOMENTS } from './domain.js';
 
 const st = () => S.store;
 
@@ -38,6 +38,21 @@ export function absencesVolee(inscs, sk, date) {
     volee: { heures: total, moy: eleves.length ? total / eleves.length : 0, sans: eleves.length - avec.length, n: eleves.length },
     eleves: avec,
   };
+}
+
+/**
+ * Part des heures de classe ressource manquées (sans les Cours normaux), du début de la volée à `jusquau` (au plus la fin de la volée).
+ * Les jours fériés ne sont pas connus de l'app : ils comptent comme des jours de classe.
+ */
+export function couvertureAbsences(insc, jusquau = refDate()) {
+  const v = volee(insc.VoleeID);
+  if (!v) return { ecole: 0, absent: 0, taux: 0 };
+  const fin = jusquau < v.DateFin ? jusquau : v.DateFin;
+  let ecole = 0;
+  for (let d = v.DateDebut; d <= fin; d = addDays(d, 1)) ecole += heuresClasseJour(d);
+  const abs = st().where('RS_Absences', a => a.InscriptionID === insc.ID && a.DateAbsence >= v.DateDebut && a.DateAbsence <= fin);
+  const absent = Math.min(ecole, heuresAbsenceClasse(abs, a => cours(a.CoursID)?.Title || ''));
+  return { ecole, absent, taux: ecole ? absent / ecole : 0 };
 }
 
 /** Retenue du vendredi (R9) : devoirs de la semaine hors décompression. */
