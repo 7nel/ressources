@@ -149,10 +149,16 @@ export function render() {
     const bandes = fonds.map((f, k) => {
       if (!f) return '';
       const x0 = Math.max(0, x(k) - pas / 2 + 0.5), x1 = Math.min(W, x(k) + pas / 2 - 0.5);
-      return `<rect class="fond-${f.cls}" x="${x0.toFixed(1)}" y="0" width="${(x1 - x0).toFixed(1)}" height="${H}"><title>Semaine ${k + 1} : ${f.dit}</title></rect>`;
+      const rect = cls => `<rect class="${cls}" x="${x0.toFixed(1)}" y="0" width="${(x1 - x0).toFixed(1)}" height="${H}"`;
+      // rouge : aplat plus hachures, pour se distinguer de l'orange autrement que par la teinte
+      return f.cls === 'rouge'
+        ? `<g>${rect('fond-rouge')}/>${rect('')} fill="url(#hach-${r.i.ID})"/><title>Semaine ${k + 1} : ${f.dit}</title></g>`
+        : `${rect('fond-orange')}><title>Semaine ${k + 1} : ${f.dit}</title></rect>`;
     }).join('');
+    const motif = fonds.some(f => f?.cls === 'rouge')
+      ? `<defs><pattern id="hach-${r.i.ID}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="hach" width="2" height="6"/></pattern></defs>` : '';
     const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(`${nom}. Comportement : ${dit('c')}. Travail : ${dit('t')}.${ditFonds ? ` Semaines signalées : ${ditFonds}.` : ''}`)}">`
-      + bandes
+      + motif + bandes
       + `<line x1="${pad}" x2="${W - pad}" y1="${y(1)}" y2="${y(1)}" stroke="var(--line)"/><line x1="${pad}" x2="${W - pad}" y1="${y(4)}" y2="${y(4)}" stroke="var(--line)"/>`
       + `<line x1="${x(jusqua)}" x2="${x(jusqua)}" y1="2" y2="${H - 2}" stroke="var(--line-strong)" stroke-width="1"/>`
       + serie('t', 'var(--accent)', true) + serie('c', 'var(--ink)', false) + '</svg>';
