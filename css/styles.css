@@ -358,6 +358,11 @@ button.item { min-height: 44px; }
 .suivi-mini { display: grid; gap: 2px; align-content: start; }
 .suivi-mini-nom { font-weight: 700; }
 .suivi-mini svg { width: 100%; height: auto; display: block; }
+.suivi-mini .fond-orange { fill: var(--warn); fill-opacity: .2; }
+.suivi-mini .fond-rouge { fill: var(--danger); fill-opacity: .2; }
+.leg-fond { display: inline-block; width: 14px; height: 14px; border-radius: 2px; vertical-align: -2px; margin-right: 4px; }
+.leg-fond.orange { background: color-mix(in srgb, var(--warn) 20%, transparent); border: 1px solid var(--warn); }
+.leg-fond.rouge { background: color-mix(in srgb, var(--danger) 20%, transparent); border: 1px solid var(--danger); }
 .suivi-cell { display: flex; flex-direction: column; gap: 4px; }
 .suivi-it { display: inline-flex; align-items: center; gap: 8px; }
 .suivi-cours { font-size: .875rem; color: var(--muted); }

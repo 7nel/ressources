@@ -1,7 +1,7 @@
 // Suivi : cotations de comportement et de travail de la semaine, actions en cours et observations, pour tous les élèves de la volée.
 import { S, nav, voleeAt, inscriptionsEnCours, eleve, nomEleve, cours, refDate, vueRestreinte, mesCours, moi, labels } from '../state.js';
 import { h, card, btn, empty, notice, badge, ctPair, levelLegend, phaseBadge, esc } from '../ui.js';
-import { fmtDate, fmtDateLong, mondayOf, addDays, semaineCle, phaseOf, sortBy, weeksOfVolee, estCote, moyenne, fmtHeures } from '../domain.js';
+import { fmtDate, fmtDateLong, mondayOf, addDays, semaineCle, phaseOf, sortBy, weeksOfVolee, estCote, moyenne, fmtHeures, heuresClasseJour, heuresAbsenceClasse } from '../domain.js';
 import { suivisDeSemaine, heuresAbsenceInsc } from '../queries.js';
 
 const state = { date: null, ref: null, alpha: false, courbes: true };
@@ -105,15 +105,32 @@ export function render() {
   const cles = semaines.map(semaineCle);
   const jusqua = cles.indexOf(sk);
   const toutes = S.store.where('RS_Suivis', x => estCote(x) && inscs.some(i => i.ID === x.InscriptionID) && (!coursIds || coursIds.has(x.CoursID)));
+  // Fond de chaque semaine passée : rouge si l'élève a manqué plus de la moitié des heures de classe (sans les Cours normaux)
+  // ou s'il n'a aucune cotation ; orange s'il a été absent au moins deux jours.
+  const absVolee = S.store.where('RS_Absences', a => inscs.some(i => i.ID === a.InscriptionID));
+  const titreCours = a => cours(a.CoursID)?.Title || '';
+  const heuresClasseSem = semaines.map(l => {
+    let n = 0;
+    for (let d = 0; d < 5; d++) { const j = addDays(l, d); if (j >= v.DateDebut && j <= v.DateFin && j <= refDate()) n += heuresClasseJour(j); }
+    return n;
+  });
+  const fondSemaine = (absI, cotees, k) => {
+    if (k > jusqua || !heuresClasseSem[k]) return null;
+    const l = absI.filter(a => a.SemaineCle === cles[k]);
+    if (!cotees || heuresAbsenceClasse(l, titreCours) > heuresClasseSem[k] / 2) return { cls: 'rouge', dit: cotees ? 'absent plus de la moitié des heures de classe' : 'aucune cotation' };
+    if (new Set(l.map(a => a.DateAbsence)).size >= 2) return { cls: 'orange', dit: 'au moins deux jours d\'absence' };
+    return null;
+  };
   const courbe = r => {
     const mine = toutes.filter(x => x.InscriptionID === r.i.ID);
+    const absI = absVolee.filter(a => a.InscriptionID === r.i.ID);
     const pts = cles.map((k, n) => {
       if (n > jusqua) return null;
       const sem = mine.filter(x => x.SemaineCle === k);
       return sem.length ? { n, c: moyenne(sem.map(x => x.Comportement)), t: moyenne(sem.map(x => x.Travail)) } : null;
     });
+    const fonds = cles.map((k, n) => fondSemaine(absI, !!pts[n], n));
     const nom = nomEleve(r.e);
-    if (!pts.some(Boolean)) return h('div', { class: 'suivi-mini' }, h('div', { class: 'suivi-mini-nom' }, nom), h('span', { class: 'muted small' }, 'pas encore de cotation'));
     const W = 200, H = 56, pad = 6, n = cles.length;
     const x = k => pad + (n === 1 ? (W - 2 * pad) / 2 : (W - 2 * pad) * k / (n - 1));
     const y = v => pad + (H - 2 * pad) * (1 - (v - 1) / 3);
@@ -125,8 +142,17 @@ export function render() {
       for (const q of pts.filter(Boolean)) out += `<circle cx="${x(q.n).toFixed(1)}" cy="${y(q[cle]).toFixed(1)}" r="${q.n === jusqua ? 3.5 : 2.5}" fill="${col}"><title>${cle === 'c' ? 'Comportement' : 'Travail'} · semaine ${q.n + 1} : ${fmt1(q[cle])}</title></circle>`;
       return out;
     };
-    const dit = cle => pts.filter(Boolean).map(q => `semaine ${q.n + 1} : ${fmt1(q[cle])}`).join(', ');
-    const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(`${nom}. Comportement : ${dit('c')}. Travail : ${dit('t')}.`)}">`
+    const dit = cle => pts.filter(Boolean).map(q => `semaine ${q.n + 1} : ${fmt1(q[cle])}`).join(', ') || 'aucune cotation';
+    const ditFonds = fonds.map((f, k) => f && `semaine ${k + 1} : ${f.dit}`).filter(Boolean).join(', ');
+    const pas = n === 1 ? W - 2 * pad : (W - 2 * pad) / (n - 1);
+    // une bande par semaine, centrée sur son point, avec 1 px de jour entre deux semaines voisines
+    const bandes = fonds.map((f, k) => {
+      if (!f) return '';
+      const x0 = Math.max(0, x(k) - pas / 2 + 0.5), x1 = Math.min(W, x(k) + pas / 2 - 0.5);
+      return `<rect class="fond-${f.cls}" x="${x0.toFixed(1)}" y="0" width="${(x1 - x0).toFixed(1)}" height="${H}"><title>Semaine ${k + 1} : ${f.dit}</title></rect>`;
+    }).join('');
+    const svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(`${nom}. Comportement : ${dit('c')}. Travail : ${dit('t')}.${ditFonds ? ` Semaines signalées : ${ditFonds}.` : ''}`)}">`
+      + bandes
       + `<line x1="${pad}" x2="${W - pad}" y1="${y(1)}" y2="${y(1)}" stroke="var(--line)"/><line x1="${pad}" x2="${W - pad}" y1="${y(4)}" y2="${y(4)}" stroke="var(--line)"/>`
       + `<line x1="${x(jusqua)}" x2="${x(jusqua)}" y1="2" y2="${H - 2}" stroke="var(--line-strong)" stroke-width="1"/>`
       + serie('t', 'var(--accent)', true) + serie('c', 'var(--ink)', false) + '</svg>';
@@ -134,7 +160,9 @@ export function render() {
   };
   const tendance = h('details', { class: 'card fold', open: state.courbes, onToggle: e => { state.courbes = e.target.open; } },
     h('summary', null, h('h2', null, 'Tendance depuis le début de la volée'),
-      h('span', { class: 'hint' }, 'moyenne hebdomadaire, de 1 à 4 · trait plein : comportement · pointillé : travail')),
+      h('span', { class: 'hint' }, 'moyenne hebdomadaire, de 1 à 4 · trait plein : comportement · pointillé : travail · ',
+        h('span', { class: 'leg-fond orange', 'aria-hidden': 'true' }), 'au moins deux jours d\'absence · ',
+        h('span', { class: 'leg-fond rouge', 'aria-hidden': 'true' }), 'absent plus de la moitié des heures de classe, ou aucune cotation')),
     triees.length ? h('div', { class: 'suivi-mini-grid' }, triees.map(courbe)) : empty('Aucun élève inscrit dans cette volée.'));
 
   const tableau = h('div', { class: 'scroll-x' }, h('table', { class: 'tbl suivi-tbl' },
