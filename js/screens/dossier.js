@@ -249,7 +249,6 @@ function absencesCard(i, e) {
   };
   const semaines = [...groupBy(sortBy(abs, '-DateAbsence'), a => a.SemaineCle)];
   return card(`Absences · ${fmtHeures(total)}`, {
-    hint: 'Matin 4 h, après-midi 3 h, mercredi 4 h au plus. Les heures sont réparties par branche selon la grille horaire ; une heure saisie hors grille (coaching) compte en « Non précisé ».',
     actions: i.StatutInscription === 'En cours' ? [btn('+ Absence', () => nav('saisie', { eleve: e.ID }), 'secondary small')] : null,
   }, abs.length ? h('div', { class: 'abs-semaines' },
     parBranche(abs, 'Par branche, depuis le début'),
