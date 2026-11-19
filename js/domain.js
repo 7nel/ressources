@@ -159,6 +159,99 @@ export function libelleAbsence(a) {
 }
 export const fmtHeures = n => `${n}\u00a0h`;
 
+/* ---------- Grille horaire de la classe ressource ---------- */
+// Grille de l'ann\u00e9e (classe RessourceS) : une case = une p\u00e9riode, matin 4, apr\u00e8s-midi 3, mercredi matin seul. L'\u00e9tude n'est pas compt\u00e9e.
+// \u00ab Cours normaux \u00bb : l'\u00e9l\u00e8ve est dans sa classe d'origine. Une branche est reli\u00e9e \u00e0 un cours de l'app par mots-cl\u00e9s dans son titre.
+const N = 'Cours normaux';
+export const GRILLE = [
+  /* lundi    */ { Matin: ['Allemand', 'Maths', 'Fran\u00e7ais', 'M\u00e9thodo / Orientation'], 'Apr\u00e8s-midi': ['ACM', 'ACM', 'ACM'] },
+  /* mardi    */ { Matin: [N, 'Maths', 'Fran\u00e7ais', 'Sciences'], 'Apr\u00e8s-midi': ['Musique', 'Musique', 'Musique'] },
+  /* mercredi */ { Matin: [N, 'Maths', 'Dessin', 'Dessin'], 'Apr\u00e8s-midi': [] },
+  /* jeudi    */ { Matin: [N, 'Maths', 'Anglais', 'Fran\u00e7ais'], 'Apr\u00e8s-midi': ['Sport', 'Sport', 'Sport'] },
+  /* vendredi */ { Matin: [N, N, 'Sciences', 'Fran\u00e7ais'], 'Apr\u00e8s-midi': ['Th\u00e9\u00e2tre', 'Th\u00e9\u00e2tre', 'Bilan'] },
+];
+export const BRANCHE_NON_PRECISEE = 'Non pr\u00e9cis\u00e9';
+const MOTS_BRANCHE = {
+  Allemand: ['allemand'], Maths: ['math'], Fran\u00e7ais: ['francais'], 'M\u00e9thodo / Orientation': ['methodo', 'orientation'],
+  Sciences: ['science'], Anglais: ['anglais'], Dessin: ['dessin', 'arts visuels', 'artv'], ACM: ['acm'], Musique: ['musique'],
+  Sport: ['sport', 'education physique'], Th\u00e9\u00e2tre: ['theatre'], Bilan: ['bilan'],
+};
+/** Branche de la grille qui correspond \u00e0 un titre de cours (null : cours absent de la grille, coaching par exemple). */
+export function brancheDuCours(titre) {
+  const t = normalise(titre);
+  if (!t) return null;
+  return Object.keys(MOTS_BRANCHE).find(b => MOTS_BRANCHE[b].some(k => t.includes(k))) || null;
+}
+/** P\u00e9riodes d'un jour et d'un moment selon la grille (vide le week-end). */
+export function periodes(date, moment) {
+  const j = (parseDate(date).getUTCDay() + 6) % 7;
+  return GRILLE[j]?.[moment] || [];
+}
+/**
+ * Heures d'absence d'un \u00e9l\u00e8ve sur un jour, r\u00e9parties par branche selon la grille : { branche: heures }.
+ * Une journ\u00e9e ou une demi-journ\u00e9e couvre ses p\u00e9riodes. Une heure va \u00e0 une p\u00e9riode du cours o\u00f9 elle a \u00e9t\u00e9 saisie,
+ * sinon (coaching, cours hors grille) en \u00ab Non pr\u00e9cis\u00e9 \u00bb, sans d\u00e9passer la demi-journ\u00e9e. Le total \u00e9gale heuresJour.
+ * `titreCours(a)` donne le titre du cours de l'absence.
+ */
+export function branchesJour(absences, titreCours) {
+  const out = {};
+  const plus = (b, n = 1) => { out[b] = (out[b] || 0) + n; };
+  if (!absences.length) return out;
+  const date = absences[0].DateAbsence;
+  const journee = absences.some(a => a.Duree === 'Journ\u00e9e');
+  for (const m of MOMENTS) {
+    const slots = periodes(date, m);
+    const max = heuresMoment(m, date);
+    const l = absences.filter(a => a.Moment === m);
+    if (journee || l.some(a => a.Duree === 'Demi-journ\u00e9e')) {
+      slots.slice(0, max).forEach(b => plus(b));
+      if (slots.length < max) plus(BRANCHE_NON_PRECISEE, max - slots.length);
+      continue;
+    }
+    const libres = slots.slice(0, max);
+    let n = 0;
+    for (const a of l.filter(x => x.Duree === 'Heure')) {
+      if (n >= max) break;
+      const b = brancheDuCours(titreCours(a));
+      const k = b ? libres.indexOf(b) : -1;
+      if (k >= 0) { libres.splice(k, 1); plus(b); } else plus(BRANCHE_NON_PRECISEE);
+      n++;
+    }
+  }
+  return out;
+}
+/** Heures d'absence par branche, jour par jour et \u00e9l\u00e8ve par \u00e9l\u00e8ve, tri\u00e9es par heures d\u00e9croissantes : [[branche, heures]]. */
+export function heuresParBranche(absences, titreCours) {
+  const tot = {};
+  for (const l of groupBy(absences, a => `${a.EleveID}|${a.DateAbsence}`).values()) {
+    for (const [b, n] of Object.entries(branchesJour(l, titreCours))) tot[b] = (tot[b] || 0) + n;
+  }
+  return Object.entries(tot).sort((a, b) => b[1] - a[1] || (a[0] === BRANCHE_NON_PRECISEE) - (b[0] === BRANCHE_NON_PRECISEE) || a[0].localeCompare(b[0], 'fr'));
+}
+/**
+ * P\u00e9riodes de la grille couvertes par les absences d'un \u00e9l\u00e8ve sur un jour : un tableau de bool\u00e9ens par moment
+ * ({ Matin: [...], 'Apr\u00e8s-midi': [...] }), pour savoir s'il a manqu\u00e9 tout un cours.
+ */
+export function periodesManquees(absences, titreCours) {
+  const out = {};
+  if (!absences.length) return out;
+  const date = absences[0].DateAbsence;
+  const journee = absences.some(a => a.Duree === 'Journ\u00e9e');
+  for (const m of MOMENTS) {
+    const slots = periodes(date, m);
+    const l = absences.filter(a => a.Moment === m);
+    if (journee || l.some(a => a.Duree === 'Demi-journ\u00e9e')) { out[m] = slots.map(() => true); continue; }
+    const pris = slots.map(() => false);
+    for (const a of l.filter(x => x.Duree === 'Heure')) {
+      const b = brancheDuCours(titreCours(a));
+      const k = slots.findIndex((s, i) => !pris[i] && s === b);
+      if (k >= 0) pris[k] = true;
+    }
+    out[m] = pris;
+  }
+  return out;
+}
+
 /* ---------- Retenue du vendredi (R9) ---------- */
 export function retenueMinutes(n) { return n >= 1 ? Math.min(60, 15 + 5 * (n - 1)) : 0; }
 

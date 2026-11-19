@@ -1,6 +1,6 @@
 import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, etatVolee, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
 import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, seg, menu, levelLegend, propres, reperesSuivi } from '../ui.js';
-import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes, groupBy, heuresJour, totalHeuresAbsence, libelleAbsence, fmtHeures, mondayOf } from '../domain.js';
+import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes, groupBy, heuresJour, totalHeuresAbsence, libelleAbsence, fmtHeures, mondayOf, heuresParBranche } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
 import { enteteEleve } from '../voisins.js';
 
@@ -146,7 +146,7 @@ function chronologieCard(i) {
   for (const a of S.store.where('RS_Absences', x => x.InscriptionID === i.ID && dans(x.DateAbsence))) {
     ev.push({ date: a.DateAbsence, ordre: 0.5, signal: false, node: h('div', { class: 'item' },
       badge('Absent', 'warn'),
-      h('div', { class: 'main' }, h('div', { class: 'title' }, `${libelleAbsence(a)} · ${cours(a.CoursID)?.Title || ''}`))) });
+      h('div', { class: 'main' }, h('div', { class: 'title' }, `${libelleAbsence(a)}${ens(a.EnseignantID) ? ` · ${ens(a.EnseignantID).Title}` : ''}`))) });
   }
   for (const d of S.store.where('RS_Devoirs', x => x.InscriptionID === i.ID && dans(x.DateConstat))) {
     ev.push({ date: d.DateConstat, ordre: 1, signal: d.Statut === 'Ouvert', node: (h('div', { class: 'item' },
@@ -224,10 +224,11 @@ function devoirsCard(i) {
             : badge(d.Statut, d.Statut === 'Rattrapé' ? 'ok' : 'danger')))))) : empty('Aucun devoir non fait.'));
 }
 
-/** Absences de l'inscription : total en heures, détail par semaine puis par jour (un jour peut réunir plusieurs saisies). */
+/** Absences de l'inscription : total, par branche (selon la grille horaire), puis par semaine et par jour avec les initiales de qui a saisi. */
 function absencesCard(i, e) {
   const abs = S.store.where('RS_Absences', a => a.InscriptionID === i.ID);
   const total = totalHeuresAbsence(abs);
+  const titre = a => cours(a.CoursID)?.Title || '';
   const retirable = a => isCoord() || (moi()?.ID === a.EnseignantID && daysBetween(String(a.Created).slice(0, 10), refDate()) <= 7);
   const retirer = async a => {
     const { ID, UID, Created, Modified, ...champs } = a;
@@ -235,20 +236,25 @@ function absencesCard(i, e) {
     toast('Absence retirée', 'ok', { label: 'Annuler', onClick: async () => { await S.store.add('RS_Absences', champs); toast('Absence rétablie'); refresh(); } });
     refresh();
   };
+  // « Maths 3 h · Français 2 h · … »
+  const parBranche = l => h('p', { class: 'meta abs-branches' }, heuresParBranche(l, titre).map(([b, n]) => `${b} ${fmtHeures(n)}`).join(' · '));
   const semaines = [...groupBy(sortBy(abs, '-DateAbsence'), a => a.SemaineCle)];
   return card(`Absences · ${fmtHeures(total)}`, {
-    hint: 'Matin 4 h, après-midi 3 h, mercredi 4 h au plus. Plusieurs saisies le même jour ne comptent jamais plus que la journée d\'école.',
+    hint: 'Matin 4 h, après-midi 3 h, mercredi 4 h au plus. Les heures sont réparties par branche selon la grille horaire ; une heure saisie hors grille (coaching) compte en « Non précisé ».',
     actions: i.StatutInscription === 'En cours' ? [btn('+ Absence', () => nav('saisie', { eleve: e.ID }), 'secondary small')] : null,
-  }, abs.length ? h('div', { class: 'abs-semaines' }, semaines.map(([, l]) => {
-    const jours = [...groupBy(l, a => a.DateAbsence)];
-    return h('div', { class: 'abs-semaine' },
-      h('h3', null, `Semaine du ${fmtDate(mondayOf(l[0].DateAbsence), { year: false })}`, h('span', { class: 'muted' }, ` · ${fmtHeures(totalHeuresAbsence(l))}`)),
-      h('ul', { class: 'list' }, jours.map(([date, la]) => h('li', null, h('div', { class: 'item' },
-        h('div', { class: 'main' },
-          h('div', { class: 'title' }, fmtDate(date, { day: true }), h('span', { class: 'muted', style: { fontWeight: 400 } }, ` · ${fmtHeures(heuresJour(la))}`)),
-          la.map(a => h('div', { class: 'meta abs-ligne' }, `${libelleAbsence(a)} · ${cours(a.CoursID)?.Title || '—'} · ${ens(a.EnseignantID)?.Title || ''}`,
-            retirable(a) && btn('Retirer', () => retirer(a), 'ghost small', { 'aria-label': `Retirer l'absence du ${fmtDate(date)} (${cours(a.CoursID)?.Title || ''})` })))))))));
-  })) : empty('Aucune absence.'));
+  }, abs.length ? h('div', { class: 'abs-semaines' },
+    h('div', { class: 'abs-semaine' }, h('h3', null, 'Par branche'), parBranche(abs)),
+    semaines.map(([, l]) => {
+      const jours = [...groupBy(l, a => a.DateAbsence)];
+      return h('div', { class: 'abs-semaine' },
+        h('h3', null, `Semaine du ${fmtDate(mondayOf(l[0].DateAbsence), { year: false })}`, h('span', { class: 'muted' }, ` · ${fmtHeures(totalHeuresAbsence(l))}`)),
+        parBranche(l),
+        h('ul', { class: 'list' }, jours.map(([date, la]) => h('li', null, h('div', { class: 'item' },
+          h('div', { class: 'main' },
+            h('div', { class: 'title' }, fmtDate(date, { day: true }), h('span', { class: 'muted', style: { fontWeight: 400 } }, ` · ${fmtHeures(heuresJour(la))}`)),
+            la.map(a => h('div', { class: 'meta abs-ligne' }, `${libelleAbsence(a)}${ens(a.EnseignantID) ? ` · ${ens(a.EnseignantID).Title}` : ''}`,
+              retirable(a) && btn('Retirer', () => retirer(a), 'ghost small', { 'aria-label': `Retirer l'absence du ${fmtDate(date)} (${libelleAbsence(a)})` })))))))));
+    })) : empty('Aucune absence.'));
 }
 
 const filtreCours = x => !state.cours.length || state.cours.includes(x.CoursID);

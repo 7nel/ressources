@@ -155,8 +155,8 @@ export function render() {
 
   /* ---- Tuiles ---- */
   const sans = restreint
-    ? new Set(mine.flatMap(c => sansSuivi(sk, inscs, c.ID).map(i => i.ID))).size
-    : sansSuivi(sk, inscs).length;
+    ? new Set(mine.flatMap(c => sansSuivi(sk, inscs, c.ID, date).map(i => i.ID))).size
+    : sansSuivi(sk, inscs, null, date).length;
   const al = alertes(sk, inscIds, coursIds);
   const col = v ? retenues(sk, inscIds, coursIds) : [];
   const phaseNow = v ? phaseOf(date, v) : null;

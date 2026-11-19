@@ -481,6 +481,7 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .abs-semaine + .abs-semaine { margin-top: 12px; }
 .abs-semaine h3 { margin: 0 0 4px; font-size: 1rem; }
 .abs-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.abs-branches { margin: 0 0 6px; }
 .abs-choix { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
 @media (pointer: coarse) { .grp-row .who .check { min-height: 44px; } }
 .reperes { display: inline-flex; flex-wrap: wrap; gap: 4px; }

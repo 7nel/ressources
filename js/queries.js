@@ -1,7 +1,7 @@
 // Calculs partagés entre écrans (accueil, dossier, bilans). Rien n'est stocké : tout est recalculé.
 import { CONFIG } from './config.js';
 import { S, volee, cours, eleve, nomEleve, inscriptionsEnCours, moi, ens, isCoord, refDate } from './state.js';
-import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey, totalHeuresAbsence } from './domain.js';
+import { semaineCle, retenueMinutes, groupeCours, GROUPES, estCote, moyenne, groupBy, addDays, weeksOfVolee, phaseOf, mondayOf, sortBy, weightedAvg, DOMAINES_COURTS, cpsKey, totalHeuresAbsence, periodes, periodesManquees, brancheDuCours, MOMENTS } from './domain.js';
 
 const st = () => S.store;
 
@@ -81,11 +81,35 @@ export function progres(date, inscs, { coursIds, responsable } = {}) {
     .sort((a, b) => nomEleve(eleve(a.eleveId)).localeCompare(nomEleve(eleve(b.eleveId)), 'fr'));
 }
 
-/** Inscriptions sans suivi cette semaine (tous cours, ou un cours donné). */
-export function sansSuivi(sk, inscriptions, coursId) {
+/**
+ * L'élève a-t-il manqué, selon la grille, toutes les périodes passées de la semaine (du lundi à `date`, vendredi au plus) :
+ * celles du cours donné, ou, sans cours ou pour un cours hors grille, toutes sauf les « Cours normaux » ? Faux s'il n'y a encore aucune période.
+ */
+export function absentToutLeTemps(inscId, date, coursId) {
+  // cours hors grille (coaching) : on ne sait pas quand il a lieu, la règle « toutes les périodes » s'applique
+  const branche = coursId ? brancheDuCours(cours(coursId)?.Title) : null;
+  const lundi = mondayOf(date);
+  const titre = a => cours(a.CoursID)?.Title || '';
+  let prevues = 0, manquees = 0;
+  for (let k = 0; k < 5; k++) {
+    const jour = addDays(lundi, k);
+    if (jour > date) break;
+    const abs = st().where('RS_Absences', a => a.InscriptionID === inscId && a.DateAbsence === jour);
+    const pm = periodesManquees(abs, titre);
+    for (const m of MOMENTS) periodes(jour, m).forEach((b, n) => {
+      if (branche ? b !== branche : b === 'Cours normaux') return;
+      prevues++;
+      if (pm[m]?.[n]) manquees++;
+    });
+  }
+  return prevues > 0 && manquees === prevues;
+}
+
+/** Inscriptions sans suivi cette semaine (tous cours, ou un cours donné), sauf les élèves absents à toutes les périodes passées. */
+export function sansSuivi(sk, inscriptions, coursId, date = refDate()) {
   const sv = suivisDeSemaine(sk, inscriptions.map(i => i.ID)).filter(s => !coursId || s.CoursID === coursId);
   const vus = new Set(sv.map(s => s.InscriptionID));
-  return inscriptions.filter(i => !vus.has(i.ID));
+  return inscriptions.filter(i => !vus.has(i.ID) && !(semaineCle(date) === sk && absentToutLeTemps(i.ID, date, coursId)));
 }
 
 export function devoirsOuverts(inscIds, coursIds) {
@@ -151,11 +175,11 @@ export function aFaire(date, v, { restreint, coursIds }) {
   if (v) {
     if (restreint) {
       for (const cid of coursIds) {
-        const sans = sansSuivi(sk, inscs, cid);
+        const sans = sansSuivi(sk, inscs, cid, date);
         if (sans.length) items.push({ prio: 3, kind: 'Sans suivi cette semaine', title: `${cours(cid)?.Title} : ${sans.length} élève${sans.length > 1 ? 's' : ''}`, meta: sans.map(i => eleve(i.EleveID)?.Prenom).join(', '), go: ['groupe', { cours: cid }] });
       }
     } else {
-      for (const i of sansSuivi(sk, inscs)) {
+      for (const i of sansSuivi(sk, inscs, null, date)) {
         items.push({ prio: 3, kind: 'Sans suivi cette semaine', title: nomEleve(eleve(i.EleveID)), meta: 'Aucune cotation depuis lundi', go: ['saisie', { eleve: i.EleveID }] });
       }
     }
