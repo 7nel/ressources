@@ -122,6 +122,17 @@ function cpsCard(b) {
         h('td', { class: 'num' }, c.n ? signe(c.sortie - c.entree) : '—'), h('td', { class: 'num' }, c.n ? sur(c.hausse, c.n) : '—'))))) : empty('Aucun élève n’a encore les deux passations (entrée et sortie).'));
 }
 
+function absencesCard(b) {
+  const a = b.absences;
+  return card('Absences', { hint: 'Heures d’absence saisies dans l’app : matin 4 h, après-midi 3 h, mercredi 4 h au plus. Une absence non saisie n’est pas comptée.' },
+    a.total ? [
+      h('p', { class: 'bcr-effectifs' }, [`${nb(a.total)} h en tout`, `${fmt1(a.moy)} h par élève en moyenne`, `${sur(a.sans, a.n)} sans absence`].join(' · ')),
+      tableau('Heures d’absence par phase', false,
+        h('thead', null, h('tr', null, h('th', null, 'Phase'), h('th', { class: 'num' }, 'Heures d’absence'))),
+        h('tbody', null, a.phases.map(p => h('tr', null, h('th', { scope: 'row' }, p.phase), h('td', { class: 'num' }, `${nb(p.total)} h`)))))]
+      : empty('Aucune absence saisie pour ces volées.'));
+}
+
 function bilansCard(b) {
   return card('Bilans réalisés', {}, h('div', { class: 'bcr-profils' }, b.bilans.map(x => ligne(x.type, x.fait, x.sur))));
 }
@@ -150,6 +161,10 @@ export function csvBilan(b, choisies, date) {
     add('CPS', c.nom, 'moyenne à l’entrée', num(c.entree), '', c.n); add('CPS', c.nom, 'moyenne à la sortie', num(c.sortie), '', c.n);
     add('CPS', c.nom, 'évolution ; élèves en hausse', num(c.sortie - c.entree), c.hausse, c.n);
   }
+  add('Absences', 'Heures en tout', '', b.absences.total, '', b.absences.n);
+  add('Absences', 'Heures par élève', 'moyenne', num(b.absences.moy, 1), '', b.absences.n);
+  add('Absences', 'Élèves sans absence', '', '', b.absences.sans, b.absences.n);
+  for (const p of b.absences.phases) add('Absences', p.phase, 'heures', p.total, '', '');
   for (const x of b.bilans) add('Bilans réalisés', x.type, '', '', x.fait, x.sur);
   add('Seuils (arbitraires)', 'Petite amélioration dès', '', num(SEUIL_PROFIL.petite, 1), '', ''); add('Seuils (arbitraires)', 'Nette amélioration dès', '', num(SEUIL_PROFIL.nette, 1), '', '');
   add('Seuils (arbitraires)', 'Domaine CPS en hausse dès', '', num(SEUIL_CPS_HAUSSE, 1), '', '');
@@ -207,5 +222,5 @@ export function render() {
     card('Volées choisies', { hint: 'Les trois phases de chaque volée, à l’échelle de sa durée.' },
       h('div', { class: 'bcr-volees' }, choisies.map(ramp)),
       h('p', { class: 'bcr-effectifs' }, [pl(e.total, 'inscription', 'inscriptions'), pl(e.terminees, 'terminée', 'terminées'), `${e.enCours} en cours`, pl(e.interrompues, 'interrompue', 'interrompues')].join(' · '))),
-    enBref(b), profilsCard(b), cotationsCard(b), notesCard(b), cpsCard(b), bilansCard(b));
+    enBref(b), profilsCard(b), cotationsCard(b), notesCard(b), cpsCard(b), absencesCard(b), bilansCard(b));
 }

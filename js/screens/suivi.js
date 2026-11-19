@@ -1,8 +1,8 @@
 // Suivi : cotations de comportement et de travail de la semaine, actions en cours et observations, pour tous les élèves de la volée.
 import { S, nav, voleeAt, inscriptionsEnCours, eleve, nomEleve, cours, refDate, vueRestreinte, mesCours, moi, labels } from '../state.js';
 import { h, card, btn, empty, notice, badge, ctPair, levelLegend, phaseBadge, esc } from '../ui.js';
-import { fmtDate, fmtDateLong, mondayOf, addDays, semaineCle, phaseOf, sortBy, weeksOfVolee, estCote, moyenne } from '../domain.js';
-import { suivisDeSemaine } from '../queries.js';
+import { fmtDate, fmtDateLong, mondayOf, addDays, semaineCle, phaseOf, sortBy, weeksOfVolee, estCote, moyenne, fmtHeures } from '../domain.js';
+import { suivisDeSemaine, heuresAbsenceInsc } from '../queries.js';
 
 const state = { date: null, ref: null, alpha: false, courbes: true };
 const fmt1 = v => v == null ? '—' : (Math.round(v * 10) / 10).toFixed(1).replace('.', ','); // semaine affichée ; revient à la date de référence quand celle-ci change
@@ -80,6 +80,16 @@ export function render() {
     return txt ? h('div', { class: 'suivi-decompte' }, txt) : null;
   };
 
+  // absences : heures de la semaine, et total depuis le début de la volée jusqu'à la fin de la semaine affichée
+  const dimanche = addDays(lundi, 6);
+  const caseAbsences = r => {
+    const sem = heuresAbsenceInsc(r.i.ID, a => a.SemaineCle === sk);
+    const cumul = heuresAbsenceInsc(r.i.ID, a => a.DateAbsence <= dimanche);
+    return h('td', { class: 'suivi-abs' },
+      sem ? h('strong', null, fmtHeures(sem)) : h('span', { class: 'muted' }, '0'),
+      h('div', { class: 'muted small' }, `${fmtHeures(cumul)} en tout`));
+  };
+
   const corps = triees.map(r => h('tr', null,
     h('th', { scope: 'row' },
       h('button', { type: 'button', class: 'back', onClick: () => nav('dossier', { eleve: r.i.EleveID }) }, nomEleve(r.e)),
@@ -87,6 +97,7 @@ export function render() {
       (r.niveau1 || r.retard) && h('div', { class: 'suivi-reperes' },
         r.niveau1 && badge(L[0] || 'niveau 1', 'danger'),
         r.retard && badge('action en retard', 'danger'))),
+    caseAbsences(r),
     colonnes.map(c => caseCours(r.sv, c)),
     h('td', { class: 'suivi-col-actions' }, cellActions(r.ac, r.sv))));
 
@@ -127,9 +138,10 @@ export function render() {
     triees.length ? h('div', { class: 'suivi-mini-grid' }, triees.map(courbe)) : empty('Aucun élève inscrit dans cette volée.'));
 
   const tableau = h('div', { class: 'scroll-x' }, h('table', { class: 'tbl suivi-tbl' },
-    h('caption', { class: 'sr-only' }, `Cotations de comportement (C) et de travail (T) de la semaine ${sk % 100}, par élève et par cours, actions en cours (A) et observations de la semaine (O)`),
+    h('caption', { class: 'sr-only' }, `Cotations de comportement (C) et de travail (T) de la semaine ${sk % 100}, par élève et par cours, heures d'absence, actions en cours (A) et observations de la semaine (O)`),
     h('thead', null, h('tr', null,
       h('th', { scope: 'col' }, 'Élève'),
+      h('th', { scope: 'col', class: 'suivi-abs' }, 'Absences'),
       colonnes.map(c => h('th', { scope: 'col' }, c.Title)),
       h('th', { scope: 'col', class: 'suivi-col-actions' }, 'Actions (A) et observations (O)'))),
     h('tbody', null, corps)));

@@ -1,6 +1,6 @@
 import { S, nav, back, eleve, cours, volee, ens, inscriptionsEleve, inscriptionCourante, phaseInscription, etatVolee, nomEleve, refDate, isCoord, moi, labels, refresh } from '../state.js';
 import { h, card, btn, pastille, ctPair, phaseBadge, badge, empty, notice, toast, modal, field, select, input, seg, menu, levelLegend, propres, reperesSuivi } from '../ui.js';
-import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes } from '../domain.js';
+import { DEF_C, DEF_T, addDays, phaseOf, fmtDate, fmtNote, semaineCle, sortBy, daysBetween, STATUTS_ELEVE, STATUTS_INSCRIPTION, cleDoublon, PHASE_CLASS, retenueMinutes, groupBy, heuresJour, totalHeuresAbsence, libelleAbsence, fmtHeures, mondayOf } from '../domain.js';
 import { synthese, bilanDe, cpsDe } from '../queries.js';
 import { enteteEleve } from '../voisins.js';
 
@@ -143,6 +143,11 @@ function chronologieCard(i) {
     typeof s.Comportement === 'number' ? ctPair(s.Comportement, s.Travail, L, false) : badge('Coaching'),
     h('div', { class: 'main' }, h('div', { class: 'title' }, cours(s.CoursID)?.Title || ''), reperesSuivi(s), texte && h('div', { class: 'meta clip' }, texte)))) });
   }
+  for (const a of S.store.where('RS_Absences', x => x.InscriptionID === i.ID && dans(x.DateAbsence))) {
+    ev.push({ date: a.DateAbsence, ordre: 0.5, signal: false, node: h('div', { class: 'item' },
+      badge('Absent', 'warn'),
+      h('div', { class: 'main' }, h('div', { class: 'title' }, `${libelleAbsence(a)} · ${cours(a.CoursID)?.Title || ''}`))) });
+  }
   for (const d of S.store.where('RS_Devoirs', x => x.InscriptionID === i.ID && dans(x.DateConstat))) {
     ev.push({ date: d.DateConstat, ordre: 1, signal: d.Statut === 'Ouvert', node: (h('div', { class: 'item' },
       badge('Devoir non fait', d.SansConsequence ? 'neutral' : 'warn'),
@@ -217,6 +222,33 @@ function devoirsCard(i) {
           d.Statut === 'Ouvert'
             ? h('div', { class: 'btn-row split' }, btn('Rattrapé', () => setStatut(d, 'Rattrapé'), 'secondary'), btn('Non rattrapé', () => setStatut(d, 'Non rattrapé'), 'danger secondary'))
             : badge(d.Statut, d.Statut === 'Rattrapé' ? 'ok' : 'danger')))))) : empty('Aucun devoir non fait.'));
+}
+
+/** Absences de l'inscription : total en heures, détail par semaine puis par jour (un jour peut réunir plusieurs saisies). */
+function absencesCard(i, e) {
+  const abs = S.store.where('RS_Absences', a => a.InscriptionID === i.ID);
+  const total = totalHeuresAbsence(abs);
+  const retirable = a => isCoord() || (moi()?.ID === a.EnseignantID && daysBetween(String(a.Created).slice(0, 10), refDate()) <= 7);
+  const retirer = async a => {
+    const { ID, UID, Created, Modified, ...champs } = a;
+    await S.store.remove('RS_Absences', a.ID);
+    toast('Absence retirée', 'ok', { label: 'Annuler', onClick: async () => { await S.store.add('RS_Absences', champs); toast('Absence rétablie'); refresh(); } });
+    refresh();
+  };
+  const semaines = [...groupBy(sortBy(abs, '-DateAbsence'), a => a.SemaineCle)];
+  return card(`Absences · ${fmtHeures(total)}`, {
+    hint: 'Matin 4 h, après-midi 3 h, mercredi 4 h au plus. Plusieurs saisies le même jour ne comptent jamais plus que la journée d\'école.',
+    actions: i.StatutInscription === 'En cours' ? [btn('+ Absence', () => nav('saisie', { eleve: e.ID }), 'secondary small')] : null,
+  }, abs.length ? h('div', { class: 'abs-semaines' }, semaines.map(([, l]) => {
+    const jours = [...groupBy(l, a => a.DateAbsence)];
+    return h('div', { class: 'abs-semaine' },
+      h('h3', null, `Semaine du ${fmtDate(mondayOf(l[0].DateAbsence), { year: false })}`, h('span', { class: 'muted' }, ` · ${fmtHeures(totalHeuresAbsence(l))}`)),
+      h('ul', { class: 'list' }, jours.map(([date, la]) => h('li', null, h('div', { class: 'item' },
+        h('div', { class: 'main' },
+          h('div', { class: 'title' }, fmtDate(date, { day: true }), h('span', { class: 'muted', style: { fontWeight: 400 } }, ` · ${fmtHeures(heuresJour(la))}`)),
+          la.map(a => h('div', { class: 'meta abs-ligne' }, `${libelleAbsence(a)} · ${cours(a.CoursID)?.Title || '—'} · ${ens(a.EnseignantID)?.Title || ''}`,
+            retirable(a) && btn('Retirer', () => retirer(a), 'ghost small', { 'aria-label': `Retirer l'absence du ${fmtDate(date)} (${cours(a.CoursID)?.Title || ''})` })))))))));
+  })) : empty('Aucune absence.'));
 }
 
 const filtreCours = x => !state.cours.length || state.cours.includes(x.CoursID);
@@ -412,7 +444,7 @@ export function render(params) {
     filtreCoursCard(i),
     h('div', { class: 'cols-dossier suivis-d-abord' },
       h('div', { class: 'stack' }, suivisCard(i, e), evaluationsCard(i, e)),
-      h('div', { class: 'stack' }, devoirsCard(i), actionsCard(i), bilansCard(i), inscriptionCard(i))));
+      h('div', { class: 'stack' }, absencesCard(i, e), devoirsCard(i), actionsCard(i), bilansCard(i), inscriptionCard(i))));
 }
 
 export { pastille };
