@@ -1,6 +1,6 @@
 import { S, nav, eleve, cours, refDate, moi, isCoord, mesCours, coursActifs, voleeAt, inscriptionsEnCours, nomEleve, labels } from '../state.js';
-import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, empty, redraw, ctPair, reperesSuivi } from '../ui.js';
-import { phaseOf, semaineCle, sortBy, fmtDate, daysBetween, parseNote, fmtNote, evalMode, FORMATIF, DEF_C, DEF_T } from '../domain.js';
+import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, empty, redraw, ctPair, reperesSuivi, choixAbsence, badge } from '../ui.js';
+import { phaseOf, semaineCle, sortBy, fmtDate, daysBetween, parseNote, fmtNote, evalMode, FORMATIF, DEF_C, DEF_T, heuresJour, libelleAbsence, fmtHeures, estMercredi } from '../domain.js';
 
 const state = { coursId: null, date: null, forDate: null, portee: 'Séance', mode: 'cot' };
 
@@ -80,23 +80,38 @@ export function render(params) {
     const suivisDuJour = S.store.where('RS_Suivis', s => s.CoursID === c.ID && s.DateSuivi === state.date);
     const deja = new Set(suivisDuJour.map(s => s.EleveID));
     // même règle que la saisie individuelle : l'auteur corrige pendant 7 jours, la coordination toujours
-    const modifiable = sv => typeof sv?.Comportement === 'number' && (isCoord() || (moi()?.ID === sv.EnseignantID && daysBetween(String(sv.Created).slice(0, 10), refDate()) <= 7));
+    const parAuteur = x => isCoord() || (moi()?.ID === x.EnseignantID && daysBetween(String(x.Created).slice(0, 10), refDate()) <= 7);
+    const modifiable = sv => typeof sv?.Comportement === 'number' && parAuteur(sv);
+    // absences du jour : celle saisie dans ce cours se modifie ici ; une journée saisie ailleurs couvre aussi ce cours
+    const absencesDuJour = S.store.where('RS_Absences', a => a.DateAbsence === state.date);
+    const absenceIci = el => absencesDuJour.find(a => a.EleveID === el.ID && a.CoursID === c.ID);
+    const absencesAilleurs = el => absencesDuJour.filter(a => a.EleveID === el.ID && a.CoursID !== c.ID);
     const devoirDuJour = el => S.store.where('RS_Devoirs', d => d.EleveID === el.ID && d.CoursID === c.ID && d.DateConstat === state.date)[0];
     const errBox = h('div', { 'aria-live': 'assertive' }); // annoncé aux lecteurs d'écran, avertissements compris
     const rowEls = new Map(); // élève → ligne affichée, pour marquer celle qui bloque l'enregistrement
     const list = h('div', null, inscs.map(({ i, e }) => {
       const sv = suivisDuJour.find(x => x.EleveID === e.ID);
-      const done = deja.has(e.ID) && !rows[e.ID]?.edit;
-      const r = rows[e.ID] ||= { c: null, t: null, dv: false, rt: false, mat: false, obs: '', obsOuvert: false };
+      const abs = absenceIci(e);
+      const ailleurs = absencesAilleurs(e);
+      const journeeAilleurs = !abs && !sv && ailleurs.find(a => a.Duree === 'Journée');
+      const done = (deja.has(e.ID) || !!abs || !!journeeAilleurs) && !rows[e.ID]?.edit && !rows[e.ID]?.absEdit;
+      const r = rows[e.ID] ||= { c: null, t: null, dv: false, rt: false, mat: false, obs: '', obsOuvert: false, abs: false, duree: null, moment: null };
       // ligne déjà saisie : on rappelle les niveaux enregistrés (C puis T) et les cases cochées au lieu d'une ligne vide
-      const recap = () => typeof sv?.Comportement === 'number' ? h('span', { class: 'pk' }, ctPair(sv.Comportement, sv.Travail, L), reperesSuivi(sv)) : h('span');
+      const absRecap = a => h('span', { class: 'pk' }, badge(`absent · ${libelleAbsence(a)}`, 'warn'),
+        h('span', { class: 'muted small' }, a.CoursID === c.ID ? fmtHeures(heuresJour([a])) : `saisi en ${cours(a.CoursID)?.Title || '—'}`));
+      const recap = () => abs ? absRecap(abs) : journeeAilleurs ? absRecap(journeeAilleurs)
+        : typeof sv?.Comportement === 'number' ? h('span', { class: 'pk' }, ctPair(sv.Comportement, sv.Travail, L), reperesSuivi(sv)) : h('span');
       // « Modifier » rouvre la ligne avec les valeurs enregistrées ; retirer les deux pastilles marque l'élève absent (saisie supprimée)
       const rouvrir = () => {
-        const dvEx = devoirDuJour(e);
-        rows[e.ID] = { edit: sv.ID, c: sv.Comportement, t: sv.Travail, rt: !!sv.Retard, mat: !!sv.MaterielManquant, dv: !!dvEx, dvDeja: !!dvEx, dvId: dvEx?.ID, obs: sv.Observation || '', obsOuvert: !!sv.Observation };
+        if (abs) rows[e.ID] = { absEdit: abs.ID, abs: true, duree: abs.Duree, moment: abs.Moment || null, c: null, t: null, dv: false, rt: false, mat: false, obs: '', obsOuvert: false };
+        else {
+          const dvEx = devoirDuJour(e);
+          rows[e.ID] = { edit: sv.ID, c: sv.Comportement, t: sv.Travail, rt: !!sv.Retard, mat: !!sv.MaterielManquant, dv: !!dvEx, dvDeja: !!dvEx, dvId: dvEx?.ID, obs: sv.Observation || '', obsOuvert: !!sv.Observation, abs: false, duree: null, moment: null };
+        }
         draw();
-        root.querySelector(`[data-eleve="${e.ID}"] .picker button`)?.focus();
+        root.querySelector(`[data-eleve="${e.ID}"] input[type=checkbox], [data-eleve="${e.ID}"] .picker button`)?.focus();
       };
+      const peutModifier = abs ? parAuteur(abs) : modifiable(sv);
       const annuler = () => { delete rows[e.ID]; draw(); };
       // commentaire : lien sous le nom ; le champ s'ouvre au clic, sur toute la largeur de la ligne
       const obsZone = h('div', { class: 'grp-obs' });
@@ -105,40 +120,59 @@ export function render(params) {
         obsZone.replaceChildren(...(r.obsOuvert ? [textarea(r.obs, { rows: 2, 'aria-label': `Commentaire ${e.Prenom}`, onInput: ev => { r.obs = ev.target.value; } })] : []));
         obsBtn.replaceChildren(...(r.obsOuvert ? [] : [btn('+ commentaire', () => { r.obsOuvert = true; drawObs(); obsZone.querySelector('textarea')?.focus(); }, 'ghost small grp-obs-btn', { 'aria-label': `Ajouter un commentaire pour ${e.Prenom}` })]));
       };
-      if (!done) drawObs();
-      const ligne = h('div', { class: `grp-row ${done ? 'done' : ''} ${r.edit ? 'editing' : ''}`, 'data-eleve': e.ID },
+      if (!done && !r.abs) drawObs();
+      const enModif = r.edit || r.absEdit;
+      // une absence saisie dans un autre cours ce jour-là (heure, demi-journée) : rappel, la cotation reste possible
+      const rappelAilleurs = !done && ailleurs.length > 0 && h('small', { class: 'abs-ailleurs' },
+        `absent ${ailleurs.map(a => `${libelleAbsence(a)} (${cours(a.CoursID)?.Title || '—'})`).join(', ')}`);
+      const caseAbsent = !done && checkbox('absent', r.abs, val => { r.abs = val; draw(); root.querySelector(`[data-eleve="${e.ID}"] .abs-choix button`)?.focus(); }, { 'aria-label': `${e.Prenom} absent` });
+      const ligne = h('div', { class: `grp-row ${done ? 'done' : ''} ${enModif ? 'editing' : ''} ${r.abs ? 'absent' : ''}`, 'data-eleve': e.ID },
         h('div', { class: 'who' }, nomEleve(e),
-          h('small', null, done ? '✓ déjà saisi' : r.edit ? 'modification en cours' : `${i.Degre} · ${i.ClasseOrigine}`),
-          done && modifiable(sv) && btn('Modifier', rouvrir, 'ghost small grp-obs-btn', { 'aria-label': `Modifier la saisie de ${e.Prenom}` }),
-          !done && obsBtn,
-          r.edit && btn('Annuler', annuler, 'ghost small grp-obs-btn', { 'aria-label': `Annuler la modification de ${e.Prenom}` })),
-        done ? recap() : h('div', { class: 'grp-col' },
+          h('small', null, done ? '✓ déjà saisi' : enModif ? 'modification en cours' : `${i.Degre} · ${i.ClasseOrigine}`),
+          rappelAilleurs,
+          done && !journeeAilleurs && peutModifier && btn('Modifier', rouvrir, 'ghost small grp-obs-btn', { 'aria-label': `Modifier la saisie de ${e.Prenom}` }),
+          caseAbsent,
+          !done && !r.abs && obsBtn,
+          enModif && btn('Annuler', annuler, 'ghost small grp-obs-btn', { 'aria-label': `Annuler la modification de ${e.Prenom}` })),
+        done ? recap() : r.abs ? h('div', { class: 'grp-abs' }, choixAbsence(r, state.date, draw, e.Prenom)) : h('div', { class: 'grp-col' },
           h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Comportement : ${DEF_C}` }, 'C'), levelPicker(r.c, val => { r.c = val; }, { labels: L, compact: true, name: `Comportement ${e.Prenom}` })),
           h('div', { class: 'grp-checks' }, checkbox('en retard', r.rt, val => { r.rt = val; }))),
-        done ? h('span') : h('div', { class: 'grp-col grp-col-t' },
+        done || r.abs ? h('span') : h('div', { class: 'grp-col grp-col-t' },
           h('div', { class: 'pk' }, h('span', { class: 'lab', title: `Travail : ${DEF_T}` }, 'T'), levelPicker(r.t, val => { r.t = val; }, { labels: L, compact: true, name: `Travail ${e.Prenom}` })),
           h('div', { class: 'grp-checks' },
             checkbox('matériel manquant', r.mat, val => { r.mat = val; }),
             checkbox('devoir non fait', r.dv, val => { r.dv = val; }))),
-        done ? h('span') : obsZone);
+        done || r.abs ? h('span') : obsZone);
       rowEls.set(e.ID, ligne);
       return ligne;
     }));
     async function save() {
       rowEls.forEach(l => { l.classList.remove('err'); l.querySelector('.err-msg')?.remove(); });
-      // aucune pastille = absent : la ligne n'est pas enregistrée, même avec une case cochée ou un commentaire
-      const todo = inscs.filter(({ e }) => { const r = rows[e.ID]; return r && (r.edit || (!deja.has(e.ID) && (r.c || r.t))); });
-      const absentsRemplis = inscs.filter(({ e }) => { const r = rows[e.ID]; return r && !r.edit && !deja.has(e.ID) && !r.c && !r.t && (r.dv || r.rt || r.mat || r.obs.trim()); });
-      const absent = r => r.edit && !r.c && !r.t;
-      const incomplete = todo.filter(({ e }) => !absent(rows[e.ID]) && (!rows[e.ID].c || !rows[e.ID].t));
-      if (!todo.length) { errBox.replaceChildren(notice('Rien à enregistrer : touchez les pastilles d\'au moins un élève.', 'warn')); return; }
+      // aucune pastille ni case « absent » : la ligne n'est pas enregistrée, même avec une case cochée ou un commentaire
+      const libre = e => !deja.has(e.ID) && !absenceIci(e);
+      const todo = inscs.filter(({ e }) => { const r = rows[e.ID]; return r && (r.edit || r.absEdit || (libre(e) && (r.abs || r.c || r.t))); });
+      const sansRien = inscs.filter(({ e }) => { const r = rows[e.ID]; return r && !r.edit && !r.absEdit && libre(e) && !r.abs && !r.c && !r.t && (r.dv || r.rt || r.mat || r.obs.trim()); });
+      const retire = r => !r.abs && !r.c && !r.t; // ligne rouverte, vidée : la saisie est supprimée
+      const incomplete = todo.filter(({ e }) => { const r = rows[e.ID]; return !r.abs && !retire(r) && (!r.c || !r.t); });
+      const sansDuree = todo.filter(({ e }) => { const r = rows[e.ID]; return r.abs && (!r.duree || (r.duree !== 'Journée' && !r.moment)); });
+      if (!todo.length) { errBox.replaceChildren(notice('Rien à enregistrer : touchez les pastilles d\'au moins un élève, ou cochez « absent ».', 'warn')); return; }
+      if (sansDuree.length) {
+        for (const { e } of sansDuree) {
+          const l = rowEls.get(e.ID);
+          l.classList.add('err');
+          l.appendChild(h('div', { class: 'err-msg' }, rows[e.ID].duree ? 'Choisissez matin ou après-midi.' : 'Choisissez heure, demi-journée ou journée.'));
+        }
+        errBox.replaceChildren(notice(`Durée de l'absence à préciser pour : ${sansDuree.map(x => x.e.Prenom).join(', ')}.`, 'danger'));
+        rowEls.get(sansDuree[0].e.ID).scrollIntoView({ block: 'center' });
+        return;
+      }
       if (incomplete.length) {
         for (const { e } of incomplete) {
           const l = rowEls.get(e.ID), r = rows[e.ID];
           l.classList.add('err');
           l.appendChild(h('div', { class: 'err-msg' }, `${!r.c ? 'C manque' : 'T manque'} : touchez une pastille.`));
         }
-        errBox.replaceChildren(notice(`Une seule pastille sur deux pour : ${incomplete.map(x => x.e.Prenom).join(', ')}. Cotez C et T, ou aucune des deux si l'élève est absent.`, 'danger'));
+        errBox.replaceChildren(notice(`Une seule pastille sur deux pour : ${incomplete.map(x => x.e.Prenom).join(', ')}. Cotez C et T, ou cochez « absent ».`, 'danger'));
         const premiere = rowEls.get(incomplete[0].e.ID);
         premiere.scrollIntoView({ block: 'center' });
         const pickers = premiere.querySelectorAll('.picker'); // premier choix manquant : C, sinon T
@@ -154,8 +188,18 @@ export function render(params) {
       for (const { i, e } of todo) {
         const r = rows[e.ID];
         const title = `${e.Prenom} ${e.Nom} · ${c.Title} · ${state.date}`;
-        if (absent(r)) {
-          await retirer('RS_Suivis', r.edit);
+        if (r.abs) {
+          // absent : la cotation éventuelle du jour est remplacée par l'absence
+          if (r.edit) await retirer('RS_Suivis', r.edit);
+          if (r.dvId) await retirer('RS_Devoirs', r.dvId);
+          const champs = { Duree: r.duree, Moment: r.duree === 'Journée' ? '' : (estMercredi(state.date) ? 'Matin' : r.moment) };
+          if (r.absEdit) await S.store.update('RS_Absences', r.absEdit, champs);
+          else await S.store.add('RS_Absences', { Title: title, EleveID: e.ID, InscriptionID: i.ID, CoursID: c.ID, EnseignantID: ensId, DateAbsence: state.date, SemaineCle: sk, Phase: phase, ...champs });
+          continue;
+        }
+        if (r.absEdit) await retirer('RS_Absences', r.absEdit); // case « absent » décochée : l'absence est retirée
+        if (retire(r)) {
+          if (r.edit) await retirer('RS_Suivis', r.edit);
           if (r.dvId) await retirer('RS_Devoirs', r.dvId);
           continue;
         }
@@ -175,20 +219,23 @@ export function render(params) {
         }
       }
       if (travail?.Type === 'Devoir' && todo.some(nouveauDevoir)) await changeStatut('Contrôlé');
-      const nRet = todo.filter(({ e }) => absent(rows[e.ID])).length;
-      const nMod = todo.filter(({ e }) => rows[e.ID].edit).length - nRet, nNew = todo.length - nMod - nRet;
-      const nAbs = absentsRemplis.length;
+      const nAbs = todo.filter(({ e }) => rows[e.ID].abs).length;
+      const nRet = todo.filter(({ e }) => !rows[e.ID].abs && retire(rows[e.ID])).length;
+      const nMod = todo.filter(({ e }) => !rows[e.ID].abs && !retire(rows[e.ID]) && rows[e.ID].edit).length;
+      const nNew = todo.length - nAbs - nRet - nMod;
+      const nVides = sansRien.length;
       const annuler = retires.length ? { label: 'Annuler', onClick: async () => {
         for (const [list, x] of retires) { const { ID, UID, Created, Modified, ...champs } = x; await S.store.add(list, champs); }
         toast('Suppression annulée'); draw();
       } } : undefined;
       toast([nNew && `${nNew} suivi${nNew > 1 ? 's' : ''} enregistré${nNew > 1 ? 's' : ''}`, nMod && `${nMod} modifié${nMod > 1 ? 's' : ''}`,
-        nRet && `${nRet} marqué${nRet > 1 ? 's' : ''} absent${nRet > 1 ? 's' : ''} (saisie supprimée)`,
-        nAbs && `${nAbs} sans pastille, compté${nAbs > 1 ? 's' : ''} absent${nAbs > 1 ? 's' : ''}`].filter(Boolean).join(' · '), 'ok', annuler);
+        nAbs && `${nAbs} absence${nAbs > 1 ? 's' : ''} enregistrée${nAbs > 1 ? 's' : ''}`,
+        nRet && `${nRet} saisie${nRet > 1 ? 's' : ''} supprimée${nRet > 1 ? 's' : ''}`,
+        nVides && `${nVides} sans pastille ni absence : non enregistré${nVides > 1 ? 's' : ''}`].filter(Boolean).join(' · '), 'ok', annuler);
       rows = {};
       draw();
     }
-    return card(`Cotations · ${c.Title}`, { hint: 'Touchez une pastille pour coter, touchez-la à nouveau pour annuler. Un élève sans pastille n\'est pas enregistré (absent). Pour un élève saisi par erreur, « Modifier » puis retirez ses deux pastilles.' },
+    return card(`Cotations · ${c.Title}`, { hint: 'Touchez une pastille pour coter, touchez-la à nouveau pour annuler. Élève absent : cochez « absent », puis heure, demi-journée ou journée. Un élève sans pastille ni absence n\'est pas enregistré. Pour corriger : « Modifier ».' },
       levelLegend(L),
       list,
       h('div', { class: 'form', style: { marginTop: '12px' } },

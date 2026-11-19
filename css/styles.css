@@ -367,6 +367,7 @@ button.item { min-height: 44px; }
 .suivi-tbl tbody th { position: sticky; left: 0; background: var(--card); }
 .suivi-tbl tbody th .back { font-weight: 700; color: var(--ink); text-align: left; }
 .suivi-col-actions { border-left: 1px solid var(--line-strong); min-width: 260px; }
+.suivi-tbl .suivi-abs { white-space: nowrap; font-variant-numeric: tabular-nums; }
 .suivi-actions { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .suivi-actions li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
 .suivi-actions .back { text-align: left; }
@@ -473,6 +474,15 @@ table.tbl { width: 100%; border-collapse: collapse; font-size: .93rem; }
 .grp-row .grp-obs { grid-column: 1 / -1; }
 .grp-row .grp-obs:empty { display: none; }
 .grp-obs textarea { width: 100%; min-height: 0; }
+/* Absence : la case sous le nom ; cochée, le choix de durée remplace C et T sur la ligne */
+.grp-row .who .check { display: flex; font-weight: 400; min-height: 36px; }
+.grp-row .who .abs-ailleurs { color: var(--warn); font-weight: 700; }
+.grp-row .grp-abs { grid-column: span 2; }
+.abs-semaine + .abs-semaine { margin-top: 12px; }
+.abs-semaine h3 { margin: 0 0 4px; font-size: 1rem; }
+.abs-ligne { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.abs-choix { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+@media (pointer: coarse) { .grp-row .who .check { min-height: 44px; } }
 .reperes { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .reperes .badge { white-space: nowrap; }
 .grp-eval { display: grid; grid-template-columns: minmax(140px, 1fr) 110px minmax(180px, 2fr); gap: 12px; align-items: center; padding: 10px 4px; border-top: 1px solid var(--line); }

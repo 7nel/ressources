@@ -1,5 +1,5 @@
 // Petits outils d'affichage. Tout texte passe par textContent : pas d'injection possible.
-import { PHASE_CLASS, DEF_C, DEF_T, REPERES } from './domain.js';
+import { PHASE_CLASS, DEF_C, DEF_T, REPERES, estMercredi, heuresMaxJour, fmtHeures, heuresJour } from './domain.js';
 
 export function h(tag, props, ...children) {
   const el = document.createElement(tag);
@@ -154,6 +154,23 @@ export function seg(options, value, onChange, label) {
       const l = typeof o === 'object' ? o.label : o;
       return h('button', { type: 'button', 'aria-pressed': String(v === value), onClick: () => onChange(v) }, l);
     }));
+}
+/**
+ * Durée d'une absence : heure, demi-journée ou journée, puis matin ou après-midi.
+ * r = { duree, moment } est modifié sur place ; onChange redessine. Le mercredi, seul le matin existe.
+ */
+export function choixAbsence(r, date, onChange, nom = '') {
+  const mer = estMercredi(date);
+  if (mer) r.moment = 'Matin';
+  const max = heuresMaxJour(date);
+  const heures = r.duree ? heuresJour([{ Duree: r.duree, Moment: r.moment, DateAbsence: date }]) : null;
+  return h('div', { class: 'abs-choix' },
+    seg([{ value: 'Heure', label: 'heure' }, { value: 'Demi-journée', label: 'demi-journée' }, { value: 'Journée', label: `journée (${fmtHeures(max)})` }],
+      r.duree, v => { r.duree = v; onChange(); }, `Durée de l'absence${nom ? ' ' + nom : ''}`),
+    r.duree && r.duree !== 'Journée' && (mer
+      ? h('span', { class: 'muted small' }, 'mercredi : matin')
+      : seg([{ value: 'Matin', label: 'matin' }, { value: 'Après-midi', label: 'après-midi' }], r.moment, v => { r.moment = v; onChange(); }, `Moment de l'absence${nom ? ' ' + nom : ''}`)),
+    heures != null && (r.duree === 'Journée' || r.moment) && h('span', { class: 'muted small' }, `compte ${fmtHeures(heures)}`));
 }
 /** Choix d'un niveau 1–4 (toucher à nouveau pour annuler). */
 export function levelPicker(value, onChange, { labels, compact = false, name = '' } = {}) {

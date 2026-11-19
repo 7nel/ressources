@@ -1,6 +1,6 @@
 import { S, nav, back, eleve, cours, volee, insc, refDate, moi, mesCours, coursActifs, nomEleve, labels, isCoord } from '../state.js';
-import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, redraw } from '../ui.js';
-import { phaseOf, semaineCle, sortBy, fmtDate, daysBetween } from '../domain.js';
+import { h, card, btn, field, select, input, textarea, seg, levelPicker, levelLegend, phaseBadge, notice, toast, checkbox, redraw, choixAbsence } from '../ui.js';
+import { phaseOf, semaineCle, sortBy, fmtDate, daysBetween, estMercredi } from '../domain.js';
 
 /** Inscription de l'élève dont la volée contient la date. */
 export function inscriptionAt(eleveId, date) {
@@ -25,6 +25,7 @@ export function render(params) {
     Observation: '', CoachTravaille: '', CoachProgres: '',
   };
   const dv = { on: false, desc: '' };
+  const abs = { on: false, duree: null, moment: null }; // « Élève absent » : une absence à la place du suivi
   const root = h('div', { class: 'page' });
 
   function draw() {
@@ -53,12 +54,28 @@ export function render(params) {
 
     const doublon = !editing && f.EleveID && f.CoursID && S.store.all('RS_Suivis').find(s => s.EleveID === f.EleveID && s.CoursID === f.CoursID && s.DateSuivi === f.DateSuivi);
     const errBox = h('div');
+    const absDeja = !editing && f.EleveID && f.CoursID && S.store.all('RS_Absences').find(a => a.EleveID === f.EleveID && a.CoursID === f.CoursID && a.DateAbsence === f.DateSuivi);
 
     async function save() {
       const errs = [];
       if (!f.EleveID) errs.push('Choisissez un élève.');
       if (!f.CoursID) errs.push('Choisissez un cours.');
       if (f.EleveID && !i) errs.push('Cette date est hors de la volée de l\'élève.');
+      if (abs.on) {
+        if (!abs.duree) errs.push('Choisissez la durée de l\'absence : heure, demi-journée ou journée.');
+        else if (abs.duree !== 'Journée' && !abs.moment) errs.push('Choisissez matin ou après-midi.');
+        if (!errs.length && absDeja) errs.push('Une absence est déjà enregistrée pour ce cours à cette date : corrigez-la depuis le dossier ou la saisie de groupe.');
+        if (errs.length) { errBox.replaceChildren(notice(errs.join(' '), 'danger')); return; }
+        const m = moi(), e = eleve(f.EleveID);
+        await S.store.add('RS_Absences', {
+          Title: `${e.Prenom} ${e.Nom} · ${c.Title} · ${f.DateSuivi}`, EleveID: f.EleveID, InscriptionID: i.ID, CoursID: f.CoursID,
+          EnseignantID: m?.ID ?? c.EnseignantID, DateAbsence: f.DateSuivi, SemaineCle: semaineCle(f.DateSuivi), Phase: phase,
+          Duree: abs.duree, Moment: abs.duree === 'Journée' ? '' : (estMercredi(f.DateSuivi) ? 'Matin' : abs.moment),
+        });
+        toast('Absence enregistrée');
+        nav('dossier', { eleve: f.EleveID });
+        return;
+      }
       if (!coaching && (!f.Comportement || !f.Travail)) errs.push('Les deux cotations (comportement et travail) sont obligatoires.');
       if (coaching && !f.CoachTravaille.trim() && !f.CoachProgres.trim()) errs.push('Indiquez ce qui a été travaillé ou un progrès / point de vigilance.');
       if (dv.on && !dv.desc.trim()) errs.push('Indiquez le devoir attendu.');
@@ -101,8 +118,12 @@ export function render(params) {
         h('div', { class: 'btn-row' }, h('span', { class: 'muted small' }, 'Phase :'), phaseBadge(phase),
           v && h('span', { class: 'muted small' }, `${v.Title}`),
           f.EleveID && !i && h('span', { class: 'danger-text small' }, 'Date hors de la volée de cet élève.')),
-        doublon && notice(`Un suivi existe déjà pour ce cours à cette date (${fmtDate(f.DateSuivi)}). Vous pouvez en ajouter un second ou modifier le premier depuis le dossier.`, 'warn'),
-        coaching ? notice('Coaching : pas de cotation C/T ni de note, seulement le suivi écrit.', 'info') : [
+        !editing && h('div', { class: 'field' },
+          checkbox('Élève absent', abs.on, val => { abs.on = val; draw(); }),
+          abs.on && choixAbsence(abs, f.DateSuivi, draw),
+          abs.on && h('span', { class: 'help' }, 'Matin 4 h, après-midi 3 h ; le mercredi, 4 h au plus.')),
+        !abs.on && doublon && notice(`Un suivi existe déjà pour ce cours à cette date (${fmtDate(f.DateSuivi)}). Vous pouvez en ajouter un second ou modifier le premier depuis le dossier.`, 'warn'),
+        abs.on ? null : coaching ? notice('Coaching : pas de cotation C/T ni de note, seulement le suivi écrit.', 'info') : [
           levelLegend(L),
           h('div', { class: 'row' },
             field('Comportement (C)', levelPicker(f.Comportement, val => { f.Comportement = val; }, { labels: L, name: 'Comportement' })),
@@ -110,11 +131,11 @@ export function render(params) {
           h('div', { class: 'btn-row' },
             checkbox('En retard', !!f.Retard, val => { f.Retard = val; }),
             checkbox('Matériel manquant', !!f.MaterielManquant, val => { f.MaterielManquant = val; }))],
-        coaching
+        abs.on ? null : coaching
           ? [field('Ce qui a été travaillé / notion ciblée', textarea(f.CoachTravaille, { onInput: ev => { f.CoachTravaille = ev.target.value; } })),
             field('Progrès · point de vigilance', textarea(f.CoachProgres, { onInput: ev => { f.CoachProgres = ev.target.value; } }))]
           : field('Observation (facultatif)', textarea(f.Observation, { onInput: ev => { f.Observation = ev.target.value; } }), { help: 'Faits observables, brefs. Rien de médical, de diagnostic ni de situation familiale.' }),
-        !editing && h('div', { class: 'field' },
+        !editing && !abs.on && h('div', { class: 'field' },
           checkbox('Devoir non fait', dv.on, val => { dv.on = val; draw(); }),
           dv.on && field('Devoir attendu', input('text', dv.desc, { placeholder: 'ex. Exercices p. 34', onInput: ev => { dv.desc = ev.target.value; } }),
             { help: phase === 'Décompression' ? 'Décompression : enregistré sans conséquence (pas de retenue).' : 'Compte pour la retenue du vendredi.' })),
