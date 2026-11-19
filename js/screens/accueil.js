@@ -377,7 +377,7 @@ export function render() {
     v && h('div', { class: 'tiles-wrap' }, h('div', { class: `tiles tiles-${tiles.length}` }, tiles)),
     v || clotureCard || prepaCard
       ? h('div', { class: 'cols-dossier' },
-        h('div', { class: 'stack' }, v ? [progresCard, alertCard, retenueCard, absencesCard] : null, prepaCard, clotureCard),
-        h('div', { class: 'stack todo-col' }, todoCard))
+        h('div', { class: 'stack' }, v ? [retenueCard, absencesCard] : null, prepaCard, clotureCard),
+        h('div', { class: 'stack todo-col' }, v ? [progresCard, alertCard] : null, todoCard))
       : todoCard);
 }
