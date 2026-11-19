@@ -1,7 +1,7 @@
 // Suivi : cotations de comportement et de travail de la semaine, actions en cours et observations, pour tous les élèves de la volée.
 import { S, nav, voleeAt, inscriptionsEnCours, eleve, nomEleve, cours, refDate, vueRestreinte, mesCours, moi, labels } from '../state.js';
 import { h, card, btn, empty, notice, badge, ctPair, levelLegend, phaseBadge, esc } from '../ui.js';
-import { fmtDate, fmtDateLong, mondayOf, addDays, semaineCle, phaseOf, sortBy, weeksOfVolee, estCote, moyenne, fmtHeures, heuresClasseJour, heuresAbsenceClasse } from '../domain.js';
+import { fmtDate, fmtDateLong, mondayOf, addDays, semaineCle, phaseOf, sortBy, weeksOfVolee, estCote, moyenne, fmtHeures, heuresClasseJour, heuresAbsenceClasse, totalHeuresAbsence } from '../domain.js';
 import { suivisDeSemaine, heuresAbsenceInsc } from '../queries.js';
 
 const state = { date: null, ref: null, alpha: false, courbes: true };
@@ -106,7 +106,7 @@ export function render() {
   const jusqua = cles.indexOf(sk);
   const toutes = S.store.where('RS_Suivis', x => estCote(x) && inscs.some(i => i.ID === x.InscriptionID) && (!coursIds || coursIds.has(x.CoursID)));
   // Fond de chaque semaine passée : rouge si l'élève a manqué plus de la moitié des heures de classe (sans les Cours normaux)
-  // ou s'il n'a aucune cotation ; orange s'il a été absent au moins deux jours.
+  // ou s'il n'a aucune cotation ; orange s'il a plus de 7 h d'absence dans la semaine (même décompte que la colonne « Absences »).
   const absVolee = S.store.where('RS_Absences', a => inscs.some(i => i.ID === a.InscriptionID));
   const titreCours = a => cours(a.CoursID)?.Title || '';
   const heuresClasseSem = semaines.map(l => {
@@ -118,7 +118,7 @@ export function render() {
     if (k > jusqua || !heuresClasseSem[k]) return null;
     const l = absI.filter(a => a.SemaineCle === cles[k]);
     if (!cotees || heuresAbsenceClasse(l, titreCours) > heuresClasseSem[k] / 2) return { cls: 'rouge', dit: cotees ? 'absent plus de la moitié des heures de classe' : 'aucune cotation' };
-    if (new Set(l.map(a => a.DateAbsence)).size >= 2) return { cls: 'orange', dit: 'au moins deux jours d\'absence' };
+    if (totalHeuresAbsence(l) > 7) return { cls: 'orange', dit: 'plus de 7 h d\'absence' };
     return null;
   };
   const courbe = r => {
@@ -161,7 +161,7 @@ export function render() {
   const tendance = h('details', { class: 'card fold', open: state.courbes, onToggle: e => { state.courbes = e.target.open; } },
     h('summary', null, h('h2', null, 'Tendance depuis le début de la volée'),
       h('span', { class: 'hint' }, 'moyenne hebdomadaire, de 1 à 4 · trait plein : comportement · pointillé : travail · ',
-        h('span', { class: 'leg-fond orange', 'aria-hidden': 'true' }), 'au moins deux jours d\'absence · ',
+        h('span', { class: 'leg-fond orange', 'aria-hidden': 'true' }), 'plus de 7 h d\'absence · ',
         h('span', { class: 'leg-fond rouge', 'aria-hidden': 'true' }), 'absent plus de la moitié des heures de classe, ou aucune cotation')),
     triees.length ? h('div', { class: 'suivi-mini-grid' }, triees.map(courbe)) : empty('Aucun élève inscrit dans cette volée.'));
 
